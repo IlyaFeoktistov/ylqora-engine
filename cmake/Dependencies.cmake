@@ -21,10 +21,13 @@ FetchContent_Declare(glm
     GIT_SHALLOW TRUE
 )
 
+# Всё качаем через git, а не URL: curl внутри некоторых сборок CMake (например, WinLibs)
+# не видит системные сертификаты Windows, а git использует их всегда.
 set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(nlohmann_json
-    URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.12.0
+    GIT_SHALLOW TRUE
 )
 
 FetchContent_MakeAvailable(SDL3 glm nlohmann_json)
