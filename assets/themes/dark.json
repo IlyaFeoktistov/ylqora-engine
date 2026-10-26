@@ -3,6 +3,11 @@
         "file": "fonts/NotoSans-Regular.ttf",
         "size": 17
     },
+    "iconFont": {
+        "file": "fonts/lucide.ttf",
+        "size": 16,
+        "offsetY": 2
+    },
     "style": {
         "windowPadding": [10, 8],
         "framePadding": [8, 5],

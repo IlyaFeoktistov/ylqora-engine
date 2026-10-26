@@ -113,7 +113,9 @@ void applyStyle(const Json& json, ImGuiStyle& style)
     }
 }
 
-void applyFont(const Json& json, const std::filesystem::path& assetsDir)
+// Шрифт из описания {"file": ..., "size": ...}. merge - подмешать к предыдущему
+// шрифту: так иконки встают прямо в текст.
+void addFont(const Json& json, const std::filesystem::path& assetsDir, bool merge)
 {
     if (!json.is_object() || !json.contains("file") || !json["file"].is_string()) {
         return;
@@ -121,9 +123,15 @@ void applyFont(const Json& json, const std::filesystem::path& assetsDir)
     const std::string file = json["file"].get<std::string>();
     const float size = json.contains("size") && json["size"].is_number() ? json["size"].get<float>() : 17.0f;
     const auto path = assetsDir / std::filesystem::path(std::u8string(file.begin(), file.end()));
+
+    ImFontConfig config;
+    config.MergeMode = merge;
+    if (const auto it = json.find("offsetY"); it != json.end() && it->is_number()) {
+        config.GlyphOffset.y = it->get<float>();
+    }
     // Глифы подгружаются по мере надобности, кириллица в том числе.
-    if (!ImGui::GetIO().Fonts->AddFontFromFileTTF(path.string().c_str(), size)) {
-        log::warn("Theme: font '{}' not found, using the built-in one", path.string());
+    if (!ImGui::GetIO().Fonts->AddFontFromFileTTF(path.string().c_str(), size, &config)) {
+        log::warn("Theme: font '{}' not found", path.string());
     }
 }
 
@@ -179,7 +187,8 @@ bool load(const std::filesystem::path& file, const std::filesystem::path& assets
         return false;
     }
 
-    applyFont(json.value("font", Json()), assetsDir);
+    addFont(json.value("font", Json()), assetsDir, false);
+    addFont(json.value("iconFont", Json()), assetsDir, true);
     applyStyle(json.value("style", Json()), style);
     applyColors(json.value("colors", Json()), style);
     applyEditorColors(json.value("editor", Json()));

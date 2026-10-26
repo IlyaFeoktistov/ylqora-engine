@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FileSystemPanel.hpp"
 #include "InspectorPanel.hpp"
 #include "ProjectManagerPanel.hpp"
 #include "SceneTreePanel.hpp"
@@ -12,6 +13,7 @@
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <utility>
@@ -35,6 +37,7 @@ private:
     // Что сделать после ответа на вопрос о несохранённых изменениях.
     enum class PendingAction {
         None,
+        OpenScene,
         CloseProject,
         Quit,
     };
@@ -62,13 +65,15 @@ private:
 
     SceneTreePanel m_sceneTree;
     InspectorPanel m_inspector;
+    FileSystemPanel m_files;
     ViewportPanel m_viewport;
     PendingAction m_pending = PendingAction::None;
+    std::filesystem::path m_pendingScene;
     bool m_unsavedRequested = false;
     // Курсор переносится у края окна: летит камера или тянут значение в инспекторе.
     bool m_mouseWrapping = false;
     // Что сейчас в заголовке окна, чтобы не менять его каждый кадр.
-    bool m_titleModified = false;
+    std::string m_title;
     float m_deltaSeconds = 0.0f;
     bool m_layoutChecked = false;
     // Языки с названиями. Названия читаются из файлов, поэтому один раз при старте.

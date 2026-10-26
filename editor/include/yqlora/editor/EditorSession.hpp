@@ -3,6 +3,7 @@
 #include "yqlora/editor/Project.hpp"
 #include "yqlora/editor/Selection.hpp"
 
+#include <filesystem>
 #include <optional>
 
 namespace yqlora {
@@ -39,8 +40,24 @@ public:
     bool open(const Project& project);
     void close();
 
-    // Сохраняет сцену в файл главной сцены проекта.
+    // Открытая сцена, путь от папки проекта.
+    const std::filesystem::path& scenePath() const
+    {
+        return m_scenePath;
+    }
+
+    // Открывает другую сцену проекта. Если файл не читается, остаётся прежняя.
+    bool openScene(const std::filesystem::path& path);
+
+    // Сохраняет сцену в её файл.
     bool saveScene();
+
+    // Делает сцену главной: она откроется вместе с проектом.
+    bool setMainScene(const std::filesystem::path& path);
+
+    // Файл или папку переименовали или удалили в панели файлов: если это
+    // открытая сцена (или папка с ней), путь к ней обновляется.
+    void fileRenamed(const std::filesystem::path& from, const std::filesystem::path& to);
 
     // Сцену меняли после открытия или последнего сохранения.
     bool modified() const
@@ -75,6 +92,7 @@ private:
     Scene& m_scene;
     const SceneSerializer& m_serializer;
     std::optional<Project> m_project;
+    std::filesystem::path m_scenePath;
     Selection m_selection;
     bool m_modified = false;
 };

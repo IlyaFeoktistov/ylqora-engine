@@ -6,6 +6,7 @@ add_library(yqlora_editor STATIC
     src/Picking.cpp
     src/EditorSession.cpp
     src/Project.cpp
+    src/ProjectFiles.cpp
     src/ProjectList.cpp
     src/TransformEdit.cpp
 )
@@ -24,6 +25,7 @@ add_executable(yqlora_app
     main.cpp
     ui/AddNodeDialog.cpp
     ui/EditorApp.cpp
+    ui/FileSystemPanel.cpp
     ui/InspectorPanel.cpp
     ui/ProjectManagerPanel.cpp
     ui/PropertyEditor.cpp

@@ -1,5 +1,7 @@
 #include "SceneTreePanel.hpp"
 
+#include "Icons.hpp"
+
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/scene/Scene.hpp"
@@ -37,7 +39,7 @@ void SceneTreePanel::draw(EditorSession& session, const TypeRegistry& registry)
 
     const std::string title = tr("editor.window.scene") + "###Scene";
     if (ImGui::Begin(title.c_str())) {
-        if (ImGui::Button("+")) {
+        if (ImGui::Button(icons::kAdd)) {
             m_addNode.open(selection.selected());
         }
         ImGui::SetItemTooltip("%s", tr("editor.tree.addNode").c_str());
@@ -92,7 +94,8 @@ void SceneTreePanel::drawNode(const Node& node, Selection& selection)
     }
 
     const auto id = reinterpret_cast<void*>(static_cast<std::uintptr_t>(node.id()));
-    const bool open = ImGui::TreeNodeEx(id, flags, "%s", node.name().c_str());
+    const bool open = ImGui::TreeNodeEx(id, flags, "%s  %s", icons::forNodeType(node.typeName()), node.name().c_str());
+    ImGui::SetItemTooltip("%s", std::string(node.typeName()).c_str());
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen()) {
         selection.select(node.id());
         m_reveal = false;
@@ -110,8 +113,6 @@ void SceneTreePanel::drawNode(const Node& node, Selection& selection)
     if (selected && m_reveal) {
         ImGui::SetScrollHereY();
     }
-    ImGui::SameLine();
-    ImGui::TextDisabled("%s", std::string(node.typeName()).c_str());
 
     if (open) {
         for (const auto& child : node.children()) {

@@ -1,5 +1,7 @@
 #include "AddNodeDialog.hpp"
 
+#include "Icons.hpp"
+
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
@@ -109,7 +111,8 @@ bool AddNodeDialog::drawType(const TypeRegistry& registry, const TypeInfo& type)
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
-    const bool open = ImGui::TreeNodeEx(type.name().c_str(), flags);
+    const bool open = ImGui::TreeNodeEx(type.name().c_str(), flags, "%s  %s", icons::forNodeType(type.name()),
+                                        type.name().c_str());
     bool chosen = false;
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
         m_selectedType = type.name();

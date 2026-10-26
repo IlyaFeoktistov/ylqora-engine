@@ -1,5 +1,6 @@
 #include "ProjectManagerPanel.hpp"
 
+#include "Icons.hpp"
 #include "Theme.hpp"
 
 #include "yqlora/core/Application.hpp"
@@ -61,7 +62,7 @@ std::optional<Project> ProjectManagerPanel::draw(Application& app)
         ImGui::TextUnformatted(tr("projects.title").c_str());
         ImGui::Separator();
 
-        if (ImGui::Button(tr("projects.new").c_str())) {
+        if (ImGui::Button((std::string(icons::kAdd) + "  " + tr("projects.new")).c_str())) {
             m_newName.clear();
             if (m_location.empty()) {
                 m_location = toUtf8(platform::documentsPath() / "Yqlora");
@@ -70,7 +71,7 @@ std::optional<Project> ProjectManagerPanel::draw(Application& app)
             m_openCreate = true;
         }
         ImGui::SameLine();
-        if (ImGui::Button(tr("projects.import").c_str())) {
+        if (ImGui::Button((std::string(icons::kImport) + "  " + tr("projects.import")).c_str())) {
             m_importPath.clear();
             m_error.clear();
             m_openImport = true;
@@ -79,13 +80,13 @@ std::optional<Project> ProjectManagerPanel::draw(Application& app)
         const bool hasSelection = m_selected >= 0 && m_selected < static_cast<int>(m_rows.size());
         const bool canOpen = hasSelection && !m_rows[static_cast<std::size_t>(m_selected)].missing;
         ImGui::BeginDisabled(!canOpen);
-        if (ImGui::Button(tr("projects.open").c_str())) {
+        if (ImGui::Button((std::string(icons::kFolderOpen) + "  " + tr("projects.open")).c_str())) {
             open(m_rows[static_cast<std::size_t>(m_selected)]);
         }
         ImGui::EndDisabled();
         ImGui::SameLine();
         ImGui::BeginDisabled(!hasSelection);
-        if (ImGui::Button(tr("projects.remove").c_str())) {
+        if (ImGui::Button((std::string(icons::kDelete) + "  " + tr("projects.remove")).c_str())) {
             m_deleteFolder = false;
             m_error.clear();
             m_openRemove = true;

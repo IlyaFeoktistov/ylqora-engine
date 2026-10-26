@@ -35,7 +35,8 @@
         "window": {
             "scene": "Scene",
             "viewport": "Viewport",
-            "inspector": "Inspector"
+            "inspector": "Inspector",
+            "files": "Files"
         },
         "scene": {
             "empty": "The scene is empty"
@@ -72,6 +73,21 @@
             "local": "Local",
             "global": "Global",
             "spaceHint": "Manipulator axes: the object's own or the world ones"
+        },
+        "files": {
+            "newScene": "New scene",
+            "newFolder": "New folder",
+            "refresh": "Refresh",
+            "empty": "The project has no files yet",
+            "mainScene": "Main scene: opens together with the project",
+            "open": "Open",
+            "setMain": "Make main scene",
+            "rename": "Rename",
+            "delete": "Delete",
+            "deleteQuestion": "Delete for good?",
+            "error": {
+                "rename": "This name is not allowed or already taken"
+            }
         }
     },
     "projects": {

@@ -58,6 +58,7 @@ cmake --build --preset debug
 | [doctest](https://github.com/doctest/doctest) | MIT |
 | [glad](https://github.com/Dav1dde/glad) (сгенерированный загрузчик) | CC0-1.0 или WTFPL; части Khronos - Apache-2.0 |
 | Шрифт [Noto Sans](https://github.com/notofonts/latin-greek-cyrillic) | [SIL OFL 1.1](assets/fonts/OFL.txt) |
+| Иконки [Lucide](https://lucide.dev) | [ISC](assets/fonts/Lucide-LICENSE.txt) |
 
 ## Лицензия
 

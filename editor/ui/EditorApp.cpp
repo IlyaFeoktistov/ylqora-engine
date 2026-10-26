@@ -68,7 +68,12 @@ void EditorApp::onGui()
 
     m_sceneTree.draw(m_session, m_registry);
     m_inspector.draw(m_session, m_registry);
+    m_files.draw(m_session, m_serializer);
     m_viewport.draw(*this, m_session, m_deltaSeconds);
+    if (const auto scene = m_files.takeOpenRequest(); scene && *scene != m_session.scenePath()) {
+        m_pendingScene = *scene;
+        request(PendingAction::OpenScene);
+    }
     updateTitle();
 
     const bool wrapping = m_viewport.camera().flying() || m_inspector.draggingValue();
@@ -88,8 +93,8 @@ void EditorApp::openProject(const Project& project)
     m_session.open(project);
     m_viewport.camera().setPosition({0.0f, 2.5f, 6.0f});
     m_viewport.camera().lookAt({0.0f, 0.5f, 0.0f});
-    m_titleModified = false;
-    setTitleDetail(project.name);
+    m_files.refresh();
+    updateTitle();
 
     m_projects->markOpened(project.directory);
     if (!m_projects->save()) {
@@ -102,14 +107,14 @@ void EditorApp::closeProject()
     m_session.close();
     m_mouseWrapping = false;
     setMouseWrapping(false);
-    setTitleDetail({});
+    updateTitle();
     m_projectManager->refresh();
 }
 
 void EditorApp::saveScene()
 {
     if (m_session.saveScene()) {
-        log::info("Scene saved: {}", m_session.project()->mainScene.generic_string());
+        log::info("Scene saved: {}", m_session.scenePath().generic_string());
     }
 }
 
@@ -127,6 +132,11 @@ void EditorApp::request(PendingAction action)
 void EditorApp::perform(PendingAction action)
 {
     switch (action) {
+    case PendingAction::OpenScene:
+        if (!m_session.openScene(m_pendingScene)) {
+            log::error("Cannot open scene '{}'", m_pendingScene.generic_string());
+        }
+        break;
     case PendingAction::CloseProject:
         closeProject();
         break;
@@ -173,11 +183,18 @@ void EditorApp::drawUnsavedDialog()
 
 void EditorApp::updateTitle()
 {
-    if (!m_session.project() || m_session.modified() == m_titleModified) {
-        return;
+    std::string title;
+    if (m_session.project()) {
+        const std::u8string scene = m_session.scenePath().filename().u8string();
+        title = m_session.project()->name + " - " + std::string(scene.begin(), scene.end());
+        if (m_session.modified()) {
+            title += " *";
+        }
     }
-    m_titleModified = m_session.modified();
-    setTitleDetail(m_session.project()->name + (m_titleModified ? " *" : ""));
+    if (title != m_title) {
+        m_title = title;
+        setTitleDetail(title);
+    }
 }
 
 void EditorApp::drawMenuBar()

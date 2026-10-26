@@ -1,5 +1,6 @@
 #include "ViewportPanel.hpp"
 
+#include "Icons.hpp"
 #include "Theme.hpp"
 #include "ViewportGizmos.hpp"
 
@@ -97,14 +98,15 @@ bool ViewportPanel::drawToolbar(const ImVec2& origin)
 {
     struct Button {
         Tool tool;
+        const char* icon;
         const char* labelKey;
         const char* hotkey;
     };
     static constexpr Button kButtons[] = {
-        {Tool::Select, "editor.tool.select", "Q"},
-        {Tool::Move, "editor.tool.move", "W"},
-        {Tool::Rotate, "editor.tool.rotate", "E"},
-        {Tool::Scale, "editor.tool.scale", "R"},
+        {Tool::Select, icons::kSelect, "editor.tool.select", "Q"},
+        {Tool::Move, icons::kMove, "editor.tool.move", "W"},
+        {Tool::Rotate, icons::kRotate, "editor.tool.rotate", "E"},
+        {Tool::Scale, icons::kScale, "editor.tool.scale", "R"},
     };
 
     const ImVec2 start(origin.x + 8.0f, origin.y + 8.0f);
@@ -115,7 +117,7 @@ bool ViewportPanel::drawToolbar(const ImVec2& origin)
         if (active) {
             ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
         }
-        if (ImGui::Button(tr(button.labelKey).c_str())) {
+        if (ImGui::Button(button.icon)) {
             m_tool = button.tool;
         }
         if (active) {
@@ -127,11 +129,12 @@ bool ViewportPanel::drawToolbar(const ImVec2& origin)
     }
 
     ImGui::SameLine(0.0f, 12.0f);
-    if (ImGui::Button(tr(m_localSpace ? "editor.tool.local" : "editor.tool.global").c_str())) {
+    if (ImGui::Button(m_localSpace ? icons::kLocal : icons::kGlobal)) {
         m_localSpace = !m_localSpace;
     }
     toolbarHovered = toolbarHovered || ImGui::IsItemHovered();
-    ImGui::SetItemTooltip("%s", tr("editor.tool.spaceHint").c_str());
+    ImGui::SetItemTooltip("%s: %s", tr(m_localSpace ? "editor.tool.local" : "editor.tool.global").c_str(),
+                          tr("editor.tool.spaceHint").c_str());
 
     return toolbarHovered;
 }

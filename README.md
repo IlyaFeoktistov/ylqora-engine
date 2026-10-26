@@ -58,6 +58,7 @@ The program starts without a console and logs only warnings and errors;
 | [doctest](https://github.com/doctest/doctest) | MIT |
 | [glad](https://github.com/Dav1dde/glad) (generated loader) | CC0-1.0 or WTFPL; Khronos parts Apache-2.0 |
 | [Noto Sans](https://github.com/notofonts/latin-greek-cyrillic) font | [SIL OFL 1.1](assets/fonts/OFL.txt) |
+| [Lucide](https://lucide.dev) icons | [ISC](assets/fonts/Lucide-LICENSE.txt) |
 
 ## License
 

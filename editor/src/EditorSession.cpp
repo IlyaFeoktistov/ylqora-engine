@@ -6,6 +6,8 @@
 #include "yqlora/scene/Scene.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
 
+#include <algorithm>
+#include <optional>
 #include <string>
 
 namespace yqlora {
@@ -40,6 +42,23 @@ bool contains(const Node& node, const Node* target)
     return false;
 }
 
+// path лежит внутри from (или равен ему): тот же путь, но от to. Иначе nullopt.
+std::optional<std::filesystem::path> replacePrefix(const std::filesystem::path& path,
+                                                   const std::filesystem::path& from,
+                                                   const std::filesystem::path& to)
+{
+    const auto [fromEnd, pathIt] = std::ranges::mismatch(from, path);
+    if (path.empty() || fromEnd != from.end()) {
+        return std::nullopt;
+    }
+    std::filesystem::path result = to;
+    for (auto it = pathIt; it != path.end(); ++it) {
+        result /= *it;
+    }
+
+    return result;
+}
+
 // "Cube", "Cube2", "Cube3"... - первое свободное среди детей parent.
 std::string uniqueChildName(const Node& parent, const std::string& base)
 {
@@ -65,6 +84,7 @@ EditorSession::EditorSession(Scene& scene, const SceneSerializer& serializer)
 bool EditorSession::open(const Project& project)
 {
     m_project = project;
+    m_scenePath = project.mainScene;
     m_selection.clear();
     m_modified = false;
 
@@ -84,8 +104,51 @@ void EditorSession::close()
 {
     m_scene.setRoot(nullptr);
     m_project.reset();
+    m_scenePath.clear();
     m_selection.clear();
     m_modified = false;
+}
+
+bool EditorSession::openScene(const std::filesystem::path& path)
+{
+    if (!m_project || !m_serializer.load(m_scene, m_project->directory / path)) {
+        return false;
+    }
+    m_scenePath = path;
+    m_selection.clear();
+    m_modified = false;
+
+    return true;
+}
+
+bool EditorSession::setMainScene(const std::filesystem::path& path)
+{
+    if (!m_project) {
+        return false;
+    }
+    const std::filesystem::path previous = m_project->mainScene;
+    m_project->mainScene = path;
+    if (!m_project->save()) {
+        m_project->mainScene = previous;
+
+        return false;
+    }
+
+    return true;
+}
+
+void EditorSession::fileRenamed(const std::filesystem::path& from, const std::filesystem::path& to)
+{
+    if (!m_project) {
+        return;
+    }
+    // Переименовали саму сцену или папку, где она лежит.
+    if (const auto scene = replacePrefix(m_scenePath, from, to)) {
+        m_scenePath = *scene;
+    }
+    if (const auto main = replacePrefix(m_project->mainScene, from, to)) {
+        setMainScene(*main);
+    }
 }
 
 bool EditorSession::saveScene()
@@ -94,7 +157,7 @@ bool EditorSession::saveScene()
         return false;
     }
 
-    if (!m_serializer.save(m_scene, m_project->mainScenePath())) {
+    if (!m_serializer.save(m_scene, m_project->directory / m_scenePath)) {
         return false;
     }
     m_modified = false;
