@@ -1,5 +1,7 @@
 #include "OpenGLRenderer.hpp"
 
+#include "GridPass.hpp"
+
 #include "yqlora/core/Log.hpp"
 #include "yqlora/platform/Window.hpp"
 
@@ -48,11 +50,14 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
               reinterpret_cast<const char*>(glGetString(GL_VERSION)));
 
     glEnable(GL_DEPTH_TEST);
+    m_grid = std::make_unique<GridPass>();
     resize(window.widthInPixels(), window.heightInPixels());
 }
 
 OpenGLRenderer::~OpenGLRenderer()
 {
+    // GL-объекты удаляются, пока контекст ещё жив.
+    m_grid.reset();
     SDL_GL_DestroyContext(m_context);
 }
 
@@ -64,6 +69,14 @@ void OpenGLRenderer::render(const FrameData& frame)
 
     // Здесь появится отрисовка frame.drawItems с frame.camera.view/projection.
 
+    // Сетка полупрозрачная, поэтому рисуется после объектов сцены.
+    if (frame.editor.grid) {
+        m_grid->draw(frame.camera);
+    }
+}
+
+void OpenGLRenderer::present()
+{
     SDL_GL_SwapWindow(m_window.sdlWindow());
 }
 

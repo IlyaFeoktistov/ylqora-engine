@@ -11,11 +11,17 @@ struct CameraData {
     Vec3 position{0.0f};
 };
 
+// Вспомогательная графика редактора, которой нет в игре.
+struct EditorOverlay {
+    bool grid = false;
+};
+
 // Всё, что рендереру нужно знать о кадре. Данные собирает buildFrameData,
 // рендерер их рисует. Дерево узлов до бэкенда не доходит.
 struct FrameData {
     CameraData camera;
     Vec4 clearColor{0.0f, 0.0f, 0.0f, 1.0f};
+    EditorOverlay editor;
     // Позже: std::vector<DrawItem> drawItems (меш + материал + transform).
 };
 

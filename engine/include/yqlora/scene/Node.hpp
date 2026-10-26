@@ -134,7 +134,7 @@ protected:
 
 private:
     // ID из файла сцены выставляет только загрузчик.
-    friend class SceneLoader;
+    friend class SceneSerializer;
     void setId(NodeId id);
 
     NodeId m_id;

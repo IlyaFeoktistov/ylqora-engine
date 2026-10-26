@@ -37,6 +37,11 @@ public:
     void setFovDegrees(float fov);
     void setClipPlanes(float nearPlane, float farPlane);
 
+    // По одной плоскости, для инспектора и загрузки сцены. Дальняя плоскость
+    // всегда остаётся дальше ближней: при конфликте сдвигается дальняя.
+    void setNearPlane(float nearPlane);
+    void setFarPlane(float farPlane);
+
     Mat4 viewMatrix() const;
     Mat4 projectionMatrix(float aspect, DepthRange depthRange) const;
 

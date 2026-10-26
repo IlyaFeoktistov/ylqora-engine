@@ -1,6 +1,7 @@
 #pragma once
 
 #include "yqlora/input/Key.hpp"
+#include "yqlora/render/FrameData.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 #include "yqlora/scene/Scene.hpp"
 
@@ -70,6 +71,11 @@ protected:
     }
 
     virtual void onKeyPressed(Key /*key*/)
+    {
+    }
+
+    // Последняя правка кадра перед отрисовкой, например включить сетку редактора.
+    virtual void onPrepareFrame(FrameData& /*frame*/)
     {
     }
 

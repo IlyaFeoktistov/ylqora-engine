@@ -8,14 +8,15 @@ using namespace yqlora;
 
 namespace {
 
-struct Health final : Component {
-    explicit Health(int initial = 100)
+// Компонент, которого нет в движке, для проверки общей работы с компонентами.
+struct TestComponent final : Component {
+    explicit TestComponent(int initial = 100)
         : value(initial)
     {
     }
     std::string_view typeName() const override
     {
-        return "Health";
+        return "TestComponent";
     }
 
     int value;
@@ -49,18 +50,18 @@ TEST_CASE("Component: Transform is the first component of every scene node")
 TEST_CASE("Component: add, find and remove")
 {
     Node3D node;
-    auto& health = node.addComponent<Health>(42);
+    auto& component = node.addComponent<TestComponent>(42);
 
-    CHECK(health.owner() == &node);
+    CHECK(component.owner() == &node);
     REQUIRE(node.components().size() == 2);
-    CHECK(node.components()[1].get() == &health);
-    CHECK(node.getComponent<Health>() == &health);
-    CHECK(node.getComponent<Health>()->value == 42);
+    CHECK(node.components()[1].get() == &component);
+    CHECK(node.getComponent<TestComponent>() == &component);
+    CHECK(node.getComponent<TestComponent>()->value == 42);
 
-    auto owned = node.removeComponent(health);
+    auto owned = node.removeComponent(component);
     REQUIRE(owned);
     CHECK(owned->owner() == nullptr);
-    CHECK(node.getComponent<Health>() == nullptr);
+    CHECK(node.getComponent<TestComponent>() == nullptr);
 
     Node other;
     CHECK(other.removeComponent(*owned) == nullptr);
@@ -79,10 +80,10 @@ TEST_CASE("Component: Transform cannot be removed")
 TEST_CASE("Component: canRemoveComponent only for own non-builtin components")
 {
     Node3D node;
-    auto& health = node.addComponent<Health>();
-    CHECK_FALSE(health.builtin());
-    CHECK(node.canRemoveComponent(health));
+    auto& component = node.addComponent<TestComponent>();
+    CHECK_FALSE(component.builtin());
+    CHECK(node.canRemoveComponent(component));
 
     Node3D other;
-    CHECK_FALSE(other.canRemoveComponent(health));
+    CHECK_FALSE(other.canRemoveComponent(component));
 }

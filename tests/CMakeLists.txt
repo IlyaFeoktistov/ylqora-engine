@@ -5,6 +5,8 @@ add_executable(yqlora_tests
     test_node.cpp
     test_camera.cpp
     test_scene.cpp
+    test_reflection.cpp
+    test_serializer.cpp
     test_localization.cpp
     test_settings.cpp
 )

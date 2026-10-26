@@ -136,7 +136,10 @@ void Application::mainLoop()
         const int height = std::max(m_window->heightInPixels(), 1);
         const float aspect = static_cast<float>(width) / static_cast<float>(height);
 
-        m_renderer->render(buildFrameData(m_scene, aspect, m_renderer->depthRange()));
+        FrameData frame = buildFrameData(m_scene, aspect, m_renderer->depthRange());
+        onPrepareFrame(frame);
+        m_renderer->render(frame);
+        m_renderer->present();
     }
 }
 

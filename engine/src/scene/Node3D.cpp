@@ -32,19 +32,36 @@ Vec3 Node3D::worldPosition() const
     return Vec3(worldMatrix()[3]);
 }
 
-Vec3 Node3D::forward() const
+void Node3D::setWorldPosition(const Vec3& position)
+{
+    const Node3D* p = parent3D();
+    const Vec3 local = p ? Vec3(glm::inverse(p->worldMatrix()) * Vec4(position, 1.0f)) : position;
+    m_transform->setPosition(local);
+}
+
+Vec3 Node3D::worldForward() const
 {
     return glm::normalize(-Vec3(worldMatrix()[2]));
 }
 
-Vec3 Node3D::right() const
+Vec3 Node3D::worldRight() const
 {
     return glm::normalize(Vec3(worldMatrix()[0]));
 }
 
-Vec3 Node3D::up() const
+Vec3 Node3D::worldUp() const
 {
     return glm::normalize(Vec3(worldMatrix()[1]));
+}
+
+Vec3 Node3D::toWorld(const Vec3& localPoint) const
+{
+    return Vec3(worldMatrix() * Vec4(localPoint, 1.0f));
+}
+
+Vec3 Node3D::toLocal(const Vec3& worldPoint) const
+{
+    return Vec3(glm::inverse(worldMatrix()) * Vec4(worldPoint, 1.0f));
 }
 
 void Node3D::onParentChanged()

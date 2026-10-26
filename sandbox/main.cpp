@@ -5,7 +5,6 @@
 #include <yqlora/scene/Node3D.hpp>
 
 #include <algorithm>
-#include <cmath>
 #include <iterator>
 
 namespace {
@@ -47,10 +46,11 @@ protected:
         // Вращаем пустой объект, камера как его ребёнок облетает центр.
         m_angle += deltaSeconds * 30.0f;
         m_pivot->transform().setRotationDegrees({0.0f, m_angle, 0.0f});
+    }
 
-        // Фон слегка меняется, чтобы было видно, что кадры идут.
-        const float t = 0.5f + 0.5f * std::sin(m_angle * 0.05f);
-        scene().setClearColor({0.08f, 0.09f + 0.05f * t, 0.12f + 0.08f * t, 1.0f});
+    void onPrepareFrame(yqlora::FrameData& frame) override
+    {
+        frame.editor.grid = true;
     }
 
     void onKeyPressed(yqlora::Key key) override

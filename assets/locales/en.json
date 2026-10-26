@@ -4,5 +4,19 @@
     },
     "app": {
         "title": "Yqlora Sandbox"
+    },
+    "type": {
+        "Node": {
+            "description": "Base node without a position: logic, scripts, grouping."
+        },
+        "Node3D": {
+            "description": "Empty object in 3D space: an anchor point for child nodes."
+        },
+        "Camera3D": {
+            "description": "Perspective camera. The scene is shown through the active camera."
+        },
+        "Transform3D": {
+            "description": "Position, rotation and scale relative to the parent node."
+        }
     }
 }

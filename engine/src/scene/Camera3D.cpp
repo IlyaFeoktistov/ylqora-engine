@@ -7,6 +7,13 @@
 
 namespace yqlora {
 
+namespace {
+
+constexpr float kMinNearPlane = 0.001f;
+constexpr float kMinPlaneGap = 0.001f;
+
+} // namespace
+
 Camera3D::Camera3D(std::string name)
     : Node3D(std::move(name))
 {
@@ -22,6 +29,17 @@ void Camera3D::setClipPlanes(float nearPlane, float farPlane)
     assert(nearPlane > 0.0f && farPlane > nearPlane);
     m_near = nearPlane;
     m_far = farPlane;
+}
+
+void Camera3D::setNearPlane(float nearPlane)
+{
+    m_near = std::max(nearPlane, kMinNearPlane);
+    m_far = std::max(m_far, m_near + kMinPlaneGap);
+}
+
+void Camera3D::setFarPlane(float farPlane)
+{
+    m_far = std::max(farPlane, m_near + kMinPlaneGap);
 }
 
 Mat4 Camera3D::viewMatrix() const

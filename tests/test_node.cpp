@@ -93,9 +93,32 @@ TEST_CASE("Node3D: reparenting invalidates cached world matrix")
 TEST_CASE("Node3D: default forward is -Z, lookAt turns towards target")
 {
     Node3D node;
-    CHECK(near(node.forward(), {0.0f, 0.0f, -1.0f}));
+    CHECK(near(node.worldForward(), {0.0f, 0.0f, -1.0f}));
 
     node.transform().setPosition({0.0f, 0.0f, 0.0f});
     node.transform().lookAt({5.0f, 0.0f, 0.0f});
-    CHECK(near(node.forward(), {1.0f, 0.0f, 0.0f}));
+    CHECK(near(node.worldForward(), {1.0f, 0.0f, 0.0f}));
+}
+
+TEST_CASE("Node3D: setWorldPosition places a child in world space")
+{
+    Node3D parent;
+    parent.transform().setPosition({10.0f, 0.0f, 0.0f});
+    parent.transform().setRotationDegrees({0.0f, 90.0f, 0.0f});
+    auto& child = parent.addChild<Node3D>();
+
+    child.setWorldPosition({10.0f, 0.0f, -1.0f});
+    CHECK(near(child.worldPosition(), {10.0f, 0.0f, -1.0f}));
+    // В координатах повёрнутого родителя это точка на его оси +X.
+    CHECK(near(child.transform().position(), {1.0f, 0.0f, 0.0f}));
+}
+
+TEST_CASE("Node3D: toWorld and toLocal are inverse to each other")
+{
+    Node3D node;
+    node.transform().setPosition({0.0f, 5.0f, 0.0f});
+    node.transform().setScale({2.0f, 2.0f, 2.0f});
+
+    CHECK(near(node.toWorld({1.0f, 0.0f, 0.0f}), {2.0f, 5.0f, 0.0f}));
+    CHECK(near(node.toLocal({2.0f, 5.0f, 0.0f}), {1.0f, 0.0f, 0.0f}));
 }

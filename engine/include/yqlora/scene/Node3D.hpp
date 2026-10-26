@@ -35,10 +35,17 @@ public:
     const Mat4& worldMatrix() const;
     Vec3 worldPosition() const;
 
-    // Направления в мировом пространстве.
-    Vec3 forward() const;
-    Vec3 right() const;
-    Vec3 up() const;
+    // Ставит узел в точку мира: локальное положение пересчитывается от родителя.
+    void setWorldPosition(const Vec3& position);
+
+    // Направления осей узла в мировом пространстве.
+    Vec3 worldForward() const;
+    Vec3 worldRight() const;
+    Vec3 worldUp() const;
+
+    // Перевод точки из локальных координат узла в мировые и обратно.
+    Vec3 toWorld(const Vec3& localPoint) const;
+    Vec3 toLocal(const Vec3& worldPoint) const;
 
 protected:
     void onParentChanged() override;

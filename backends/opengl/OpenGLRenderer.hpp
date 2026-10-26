@@ -2,10 +2,14 @@
 
 #include "yqlora/render/Renderer.hpp"
 
+#include <memory>
+
 // Намеренно без glad/SDL: этот заголовок включает фабрика рендереров.
 struct SDL_GLContextState;
 
 namespace yqlora {
+
+class GridPass;
 
 class OpenGLRenderer final : public Renderer {
 public:
@@ -32,11 +36,13 @@ public:
     }
 
     void render(const FrameData& frame) override;
+    void present() override;
     void resize(int width, int height) override;
 
 private:
     Window& m_window;
     SDL_GLContextState* m_context = nullptr;
+    std::unique_ptr<GridPass> m_grid;
     int m_width = 0;
     int m_height = 0;
 };

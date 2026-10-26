@@ -18,8 +18,12 @@ public:
     virtual GraphicsApi api() const = 0;
     virtual DepthRange depthRange() const = 0;
 
-    // Рисует кадр целиком и показывает его на экране.
+    // Рисует кадр в окно. На экране он появится после present(): между ними
+    // поверх можно дорисовать интерфейс.
     virtual void render(const FrameData& frame) = 0;
+
+    // Показывает нарисованный кадр на экране.
+    virtual void present() = 0;
 
     // Размер области вывода в пикселях изменился.
     virtual void resize(int width, int height) = 0;
