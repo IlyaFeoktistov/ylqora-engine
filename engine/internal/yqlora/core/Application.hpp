@@ -1,6 +1,6 @@
 #pragma once
 
-#include "yqlora/platform/Key.hpp"
+#include "yqlora/input/Key.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 #include "yqlora/scene/Scene.hpp"
 
@@ -37,20 +37,45 @@ public:
 
     // Запускает цикл до закрытия окна. Возвращает код завершения процесса.
     int run();
-    void quit() { m_running = false; }
+    void quit()
+    {
+        m_running = false;
+    }
 
-    Scene& scene() { return m_scene; }
-    Settings& settings() { return *m_settings; }
-    Localization& localization() { return *m_localization; }
+    Scene& scene()
+    {
+        return m_scene;
+    }
+
+    Settings& settings()
+    {
+        return *m_settings;
+    }
+
+    Localization& localization()
+    {
+        return *m_localization;
+    }
 
     // Переключает язык интерфейса и сохраняет выбор в настройках.
     bool setLanguage(std::string_view language);
 
 protected:
-    virtual void onStart() {}
-    virtual void onUpdate(float /*deltaSeconds*/) {}
-    virtual void onKeyPressed(Key /*key*/) {}
-    virtual void onShutdown() {}
+    virtual void onStart()
+    {
+    }
+
+    virtual void onUpdate(float /*deltaSeconds*/)
+    {
+    }
+
+    virtual void onKeyPressed(Key /*key*/)
+    {
+    }
+
+    virtual void onShutdown()
+    {
+    }
 
 private:
     void initSettingsAndLanguage();

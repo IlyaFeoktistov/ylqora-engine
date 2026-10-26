@@ -11,16 +11,19 @@ class Settings {
 public:
     explicit Settings(std::filesystem::path file);
 
-    // false — файла нет или он повреждён; поля остаются значениями по умолчанию.
+    // false, если файла нет или он повреждён; поля остаются значениями по умолчанию.
     bool load();
 
     // Сохраняет известные поля, не трогая чужие ключи в файле
     // (чтобы будущие версии движка не теряли настройки друг друга).
     bool save() const;
 
-    const std::filesystem::path& path() const { return m_path; }
+    const std::filesystem::path& path() const
+    {
+        return m_path;
+    }
 
-    // Код языка интерфейса ("ru", "en"). Пусто — язык ещё не выбран.
+    // Код языка интерфейса ("ru", "en"). Пусто, если язык ещё не выбран.
     std::string language;
 
 private:

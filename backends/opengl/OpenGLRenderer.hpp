@@ -12,7 +12,7 @@ public:
     static constexpr int kVersionMajor = 3;
     static constexpr int kVersionMinor = 3;
 
-    // Атрибуты контекста (версия, core profile, буферы) — до создания окна.
+    // Атрибуты контекста (версия, core profile, буферы), задаются до создания окна.
     static void prepareWindow();
 
     explicit OpenGLRenderer(Window& window);
@@ -21,8 +21,15 @@ public:
     OpenGLRenderer(const OpenGLRenderer&) = delete;
     OpenGLRenderer& operator=(const OpenGLRenderer&) = delete;
 
-    GraphicsApi api() const override { return GraphicsApi::OpenGL; }
-    DepthRange depthRange() const override { return DepthRange::MinusOneToOne; }
+    GraphicsApi api() const override
+    {
+        return GraphicsApi::OpenGL;
+    }
+
+    DepthRange depthRange() const override
+    {
+        return DepthRange::MinusOneToOne;
+    }
 
     void render(const FrameData& frame) override;
     void resize(int width, int height) override;

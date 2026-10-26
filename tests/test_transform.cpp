@@ -10,12 +10,12 @@ using namespace yqlora;
 
 namespace {
 
-bool near(const glm::vec3& a, const glm::vec3& b)
+bool near(const Vec3& a, const Vec3& b)
 {
     return glm::all(glm::epsilonEqual(a, b, 1e-4f));
 }
 
-bool near(const glm::vec2& a, const glm::vec2& b)
+bool near(const Vec2& a, const Vec2& b)
 {
     return glm::all(glm::epsilonEqual(a, b, 1e-4f));
 }
@@ -27,7 +27,7 @@ TEST_CASE("Transform3D: defaults to identity")
     const Node3D node;
     CHECK(near(node.transform().position(), {0.0f, 0.0f, 0.0f}));
     CHECK(near(node.transform().scale(), {1.0f, 1.0f, 1.0f}));
-    CHECK(node.transform().matrix() == glm::mat4(1.0f));
+    CHECK(node.transform().matrix() == Mat4(1.0f));
 }
 
 TEST_CASE("Transform3D: matrix applies scale, then rotation, then translation")
@@ -38,17 +38,23 @@ TEST_CASE("Transform3D: matrix applies scale, then rotation, then translation")
     t.setRotationDegrees({0.0f, 90.0f, 0.0f});
     t.setPosition({0.0f, 1.0f, 0.0f});
 
-    const glm::vec3 p = glm::vec3(t.matrix() * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    const Vec3 p = Vec3(t.matrix() * Vec4(1.0f, 0.0f, 0.0f, 1.0f));
     CHECK(near(p, {0.0f, 1.0f, -2.0f}));
     CHECK(near(t.rotationDegrees(), {0.0f, 90.0f, 0.0f}));
 }
 
-TEST_CASE("Transform3D: every change bumps the version")
+TEST_CASE("Transform3D: Euler angles are returned exactly as set")
 {
     Node3D node;
-    const auto v0 = node.transform().version();
-    node.transform().setPosition({1.0f, 0.0f, 0.0f});
-    CHECK(node.transform().version() != v0);
+    auto& t = node.transform();
+
+    // Через кватернион yaw 100 градусов вернулся бы как (180, 80, 180).
+    t.setRotationDegrees({0.0f, 100.0f, 0.0f});
+    CHECK(near(t.rotationDegrees(), {0.0f, 100.0f, 0.0f}));
+
+    // После поворота кватернионом углы пересчитываются и описывают тот же поворот.
+    t.setRotation(glm::angleAxis(glm::radians(30.0f), Vec3(1.0f, 0.0f, 0.0f)));
+    CHECK(near(t.rotationDegrees(), {30.0f, 0.0f, 0.0f}));
 }
 
 TEST_CASE("Node3D: child transform is local to the parent")
@@ -57,16 +63,16 @@ TEST_CASE("Node3D: child transform is local to the parent")
     pivot.transform().setPosition({10.0f, 30.0f, 0.0f});
     auto& camera = pivot.addChild<Camera3D>();
 
-    // Камера стоит в начале координат родителя, а в мире — там же, где он.
+    // Камера стоит в начале координат родителя, а в мире там же, где он.
     CHECK(near(camera.transform().position(), {0.0f, 0.0f, 0.0f}));
     CHECK(near(camera.worldPosition(), {10.0f, 30.0f, 0.0f}));
 
-    // Двигаем родителя — камера едет вместе с ним, её локальные координаты не меняются.
+    // Двигаем родителя, камера едет вместе с ним, её локальные координаты не меняются.
     pivot.transform().setPosition({0.0f, 5.0f, 0.0f});
     CHECK(near(camera.transform().position(), {0.0f, 0.0f, 0.0f}));
     CHECK(near(camera.worldPosition(), {0.0f, 5.0f, 0.0f}));
 
-    // Двигаем камеру — смещение отсчитывается от родителя, сам он стоит на месте.
+    // Двигаем камеру, смещение отсчитывается от родителя, сам он стоит на месте.
     camera.transform().setPosition({1.0f, 0.0f, 0.0f});
     CHECK(near(camera.worldPosition(), {1.0f, 5.0f, 0.0f}));
     CHECK(near(pivot.worldPosition(), {0.0f, 5.0f, 0.0f}));
@@ -92,8 +98,8 @@ TEST_CASE("Transform2D: matrix applies scale, then rotation, then translation")
     t.setRotationDegrees(90.0f);
     t.setPosition({0.0f, 1.0f});
 
-    // +X после масштаба 2 и поворота на 90° против часовой смотрит в +Y.
-    const glm::vec2 p = glm::vec2(t.matrix() * glm::vec3(1.0f, 0.0f, 1.0f));
+    // +X после масштаба 2 и поворота на 90 градусов против часовой смотрит в +Y.
+    const Vec2 p = Vec2(t.matrix() * Vec3(1.0f, 0.0f, 1.0f));
     CHECK(near(p, {0.0f, 3.0f}));
     CHECK(t.rotationDegrees() == doctest::Approx(90.0f));
 }

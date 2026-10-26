@@ -36,7 +36,7 @@ add_library(yqlora STATIC
     engine/src/render/RendererFactory.cpp
 )
 add_library(yqlora::yqlora ALIAS yqlora)
-target_link_libraries(yqlora PUBLIC yqlora::core)
+target_link_libraries(yqlora PUBLIC yqlora::internal)
 if(YQLORA_BACKEND_OPENGL)
     target_link_libraries(yqlora PRIVATE yqlora::opengl)
     target_compile_definitions(yqlora PRIVATE YQLORA_HAS_OPENGL=1)

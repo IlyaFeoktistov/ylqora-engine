@@ -24,6 +24,7 @@ void prepareWindowForApi(GraphicsApi api)
     case GraphicsApi::OpenGL:
 #if YQLORA_HAS_OPENGL
         OpenGLRenderer::prepareWindow();
+
         return;
 #else
         break;
@@ -40,6 +41,7 @@ std::unique_ptr<Renderer> createRenderer(GraphicsApi api, [[maybe_unused]] Windo
     switch (api) {
     case GraphicsApi::OpenGL:
 #if YQLORA_HAS_OPENGL
+
         return std::make_unique<OpenGLRenderer>(window);
 #else
         break;

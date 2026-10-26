@@ -17,6 +17,7 @@ constexpr std::string_view toString(GraphicsApi api)
     case GraphicsApi::Vulkan: return "Vulkan";
     case GraphicsApi::Direct3D12: return "Direct3D12";
     }
+
     return "Unknown";
 }
 

@@ -20,8 +20,10 @@ nlohmann::json readJson(const std::filesystem::path& file)
     auto json = nlohmann::json::parse(in, nullptr, /*allow_exceptions=*/false);
     if (json.is_discarded() || !json.is_object()) {
         log::warn("Settings file '{}' is corrupted, using defaults", file.string());
+
         return nlohmann::json::object();
     }
+
     return json;
 }
 
@@ -44,6 +46,7 @@ bool Settings::load()
     if (const auto it = json.find("language"); it != json.end() && it->is_string()) {
         language = it->get<std::string>();
     }
+
     return true;
 }
 
@@ -62,6 +65,7 @@ bool Settings::save() const
         std::ofstream out(tmp, std::ios::trunc);
         if (!out) {
             log::error("Cannot write settings to '{}'", tmp.string());
+
             return false;
         }
         out << json.dump(4) << '\n';
@@ -69,8 +73,10 @@ bool Settings::save() const
     std::filesystem::rename(tmp, m_path, ec);
     if (ec) {
         log::error("Cannot save settings to '{}': {}", m_path.string(), ec.message());
+
         return false;
     }
+
     return true;
 }
 

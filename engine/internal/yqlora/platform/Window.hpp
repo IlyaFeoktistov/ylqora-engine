@@ -1,6 +1,6 @@
 #pragma once
 
-#include "yqlora/platform/Key.hpp"
+#include "yqlora/input/Key.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 
 #include <functional>
@@ -42,7 +42,10 @@ public:
     int heightInPixels() const;
 
     // Для бэкендов рендеринга: им нужно окно SDL, чтобы создать контекст/поверхность.
-    SDL_Window* sdlWindow() const { return m_window; }
+    SDL_Window* sdlWindow() const
+    {
+        return m_window;
+    }
 
 private:
     SDL_Window* m_window = nullptr;

@@ -19,15 +19,23 @@ public:
     virtual std::string_view typeName() const = 0;
 
     // Узел, к которому подключён компонент; nullptr, пока не подключён.
-    Node* owner() const { return m_owner; }
+    Node* owner() const
+    {
+        return m_owner;
+    }
 
-    // Встроенные компоненты (Transform) нельзя снять с узла.
-    virtual bool removable() const { return true; }
+    // Встроенный компонент (Transform) создаётся вместе с узлом, и снять его нельзя.
+    // Флаг ставит только узел, сам компонент объявить себя встроенным не может.
+    bool builtin() const
+    {
+        return m_builtin;
+    }
 
 private:
     friend class Node;
 
     Node* m_owner = nullptr;
+    bool m_builtin = false;
 };
 
 } // namespace yqlora

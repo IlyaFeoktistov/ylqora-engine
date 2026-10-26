@@ -4,10 +4,11 @@ add_executable(yqlora_tests
     test_component.cpp
     test_node.cpp
     test_camera.cpp
+    test_scene.cpp
     test_localization.cpp
     test_settings.cpp
 )
-target_link_libraries(yqlora_tests PRIVATE yqlora::core doctest::doctest)
+target_link_libraries(yqlora_tests PRIVATE yqlora::internal doctest::doctest)
 target_compile_definitions(yqlora_tests PRIVATE
     YQLORA_LOCALES_DIR="${PROJECT_SOURCE_DIR}/assets/locales"
 )

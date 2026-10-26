@@ -14,14 +14,27 @@ add_library(yqlora_core STATIC
     src/scene/Node3D.cpp
     src/scene/Camera3D.cpp
     src/scene/Scene.cpp
+    src/render/FrameBuilder.cpp
 )
 add_library(yqlora::core ALIAS yqlora_core)
 
-target_include_directories(yqlora_core PUBLIC include)
+# include/ - публичный API для игр: математика, сцена, ввод, лог, tr().
+# internal/ - окно, платформа, рендер, Application. Игре недоступно.
+target_include_directories(yqlora_core
+    PUBLIC include
+    PRIVATE internal
+)
 target_link_libraries(yqlora_core
     PUBLIC glm::glm
     PRIVATE SDL3::SDL3-static nlohmann_json::nlohmann_json
 )
-# Кватернионы и углы в радианах — единые правила для всего движка.
+# Кватернионы и углы в радианах: единые правила для всего движка.
 target_compile_definitions(yqlora_core PUBLIC GLM_FORCE_RADIANS GLM_ENABLE_EXPERIMENTAL)
 yqlora_set_warnings(yqlora_core)
+
+# Доступ к внутренним заголовкам: для бэкендов, хост-приложений (sandbox,
+# будущий редактор) и тестов движка. Игровой код подключает только yqlora::core.
+add_library(yqlora_internal INTERFACE)
+add_library(yqlora::internal ALIAS yqlora_internal)
+target_include_directories(yqlora_internal INTERFACE internal)
+target_link_libraries(yqlora_internal INTERFACE yqlora::core)

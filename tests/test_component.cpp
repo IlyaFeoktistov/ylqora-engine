@@ -13,7 +13,11 @@ struct Health final : Component {
         : value(initial)
     {
     }
-    std::string_view typeName() const override { return "Health"; }
+    std::string_view typeName() const override
+    {
+        return "Health";
+    }
+
     int value;
 };
 
@@ -65,7 +69,20 @@ TEST_CASE("Component: add, find and remove")
 TEST_CASE("Component: Transform cannot be removed")
 {
     Node3D node;
+    CHECK(node.transform().builtin());
+    CHECK_FALSE(node.canRemoveComponent(node.transform()));
     CHECK(node.removeComponent(node.transform()) == nullptr);
     CHECK(node.components().size() == 1);
     CHECK(node.transform().owner() == &node);
+}
+
+TEST_CASE("Component: canRemoveComponent only for own non-builtin components")
+{
+    Node3D node;
+    auto& health = node.addComponent<Health>();
+    CHECK_FALSE(health.builtin());
+    CHECK(node.canRemoveComponent(health));
+
+    Node3D other;
+    CHECK_FALSE(other.canRemoveComponent(health));
 }

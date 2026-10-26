@@ -1,9 +1,7 @@
 #pragma once
 
+#include "yqlora/math/Math.hpp"
 #include "yqlora/scene/Component.hpp"
-
-#include <glm/mat3x3.hpp>
-#include <glm/vec2.hpp>
 
 #include <cstdint>
 
@@ -15,35 +13,55 @@ namespace yqlora {
 // +X вправо, +Y вверх; положительный угол поворачивает против часовой стрелки.
 class Transform2D final : public Component {
 public:
-    std::string_view typeName() const override { return "Transform2D"; }
-    bool removable() const override { return false; }
+    std::string_view typeName() const override
+    {
+        return "Transform2D";
+    }
 
-    const glm::vec2& position() const { return m_position; }
-    float rotation() const { return m_rotation; } // в радианах
-    const glm::vec2& scale() const { return m_scale; }
+    const Vec2& position() const
+    {
+        return m_position;
+    }
 
-    void setPosition(const glm::vec2& position);
+    // в радианах
+    float rotation() const
+    {
+        return m_rotation;
+    }
+
+    const Vec2& scale() const
+    {
+        return m_scale;
+    }
+
+    void setPosition(const Vec2& position);
     void setRotation(float radians);
-    void setScale(const glm::vec2& scale);
+    void setScale(const Vec2& scale);
 
     void setRotationDegrees(float degrees);
     float rotationDegrees() const;
 
     // Матрица T * R * S в пространстве родителя.
-    glm::mat3 matrix() const;
-
-    // Растёт при каждом изменении — по нему узел понимает, что кэш устарел.
-    std::uint32_t version() const { return m_version; }
+    Mat3 matrix() const;
 
 private:
     friend class Node2D;
     Transform2D() = default;
 
-    void touch() { ++m_version; }
+    // Растёт при каждом изменении, по нему узел понимает, что кэш устарел.
+    std::uint32_t version() const
+    {
+        return m_version;
+    }
 
-    glm::vec2 m_position{0.0f};
+    void touch()
+    {
+        ++m_version;
+    }
+
+    Vec2 m_position{0.0f};
     float m_rotation = 0.0f;
-    glm::vec2 m_scale{1.0f};
+    Vec2 m_scale{1.0f};
     std::uint32_t m_version = 0;
 };
 

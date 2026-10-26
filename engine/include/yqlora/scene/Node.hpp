@@ -3,6 +3,7 @@
 #include "yqlora/scene/Component.hpp"
 
 #include <concepts>
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <string>
@@ -11,10 +12,13 @@
 
 namespace yqlora {
 
+// 0 означает, что узла нет.
+using NodeId = std::uint64_t;
+
 // Базовый элемент дерева сцены. Родитель владеет детьми, ребёнок хранит
-// невладеющий указатель на родителя. Имена и типы — всегда на английском.
+// невладеющий указатель на родителя. Имена и типы всегда на английском.
 //
-// Сам Node не имеет положения — это делают Node2D и Node3D, у которых
+// Сам Node не имеет положения, это делают Node2D и Node3D, у которых
 // Transform есть всегда. Остальные компоненты подключаются по необходимости.
 class Node {
 public:
@@ -24,13 +28,37 @@ public:
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
 
-    virtual std::string_view typeName() const { return "Node"; }
+    virtual std::string_view typeName() const
+    {
+        return "Node";
+    }
 
-    const std::string& name() const { return m_name; }
-    void setName(std::string name) { m_name = std::move(name); }
+    // Уникален и не меняется за жизнь узла: по нему узлы ссылаются друг
+    // на друга в файлах сцен и в редакторе. Выдаётся случайно при создании.
+    NodeId id() const
+    {
+        return m_id;
+    }
 
-    Node* parent() const { return m_parent; }
-    std::span<const std::unique_ptr<Node>> children() const { return m_children; }
+    const std::string& name() const
+    {
+        return m_name;
+    }
+
+    void setName(std::string name)
+    {
+        m_name = std::move(name);
+    }
+
+    Node* parent() const
+    {
+        return m_parent;
+    }
+
+    std::span<const std::unique_ptr<Node>> children() const
+    {
+        return m_children;
+    }
 
     // Создаёт узел типа T и делает его последним ребёнком.
     template <std::derived_from<Node> T, typename... Args>
@@ -39,6 +67,7 @@ public:
         auto node = std::make_unique<T>(std::forward<Args>(args)...);
         T& ref = *node;
         addChild(std::move(node));
+
         return ref;
     }
 
@@ -50,7 +79,10 @@ public:
     // Поиск среди прямых детей по имени.
     Node* findChild(std::string_view name) const;
 
-    std::span<const std::unique_ptr<Component>> components() const { return m_components; }
+    std::span<const std::unique_ptr<Component>> components() const
+    {
+        return m_components;
+    }
 
     // Создаёт компонент типа T и подключает к узлу.
     template <std::derived_from<Component> T, typename... Args>
@@ -59,6 +91,7 @@ public:
         auto component = std::make_unique<T>(std::forward<Args>(args)...);
         T& ref = *component;
         addComponent(std::move(component));
+
         return ref;
     }
 
@@ -73,21 +106,38 @@ public:
                 return typed;
             }
         }
+
         return nullptr;
     }
 
-    // Отключает компонент и возвращает владение им; nullptr, если он не наш
-    // или его нельзя снять (Transform).
+    // Компонент наш и не встроенный.
+    bool canRemoveComponent(const Component& component) const;
+
+    // Отключает компонент и возвращает владение им; nullptr, если снять нельзя
+    // (см. canRemoveComponent).
     std::unique_ptr<Component> removeComponent(Component& component);
 
     // Обновляет узел, затем всех детей (сверху вниз).
     void update(float deltaSeconds);
 
 protected:
-    virtual void onUpdate(float /*deltaSeconds*/) {}
-    virtual void onParentChanged() {}
+    // Для Node2D/Node3D: подключает компонент, который нельзя снять.
+    Component& addBuiltinComponent(std::unique_ptr<Component> component);
+
+    virtual void onUpdate(float /*deltaSeconds*/)
+    {
+    }
+
+    virtual void onParentChanged()
+    {
+    }
 
 private:
+    // ID из файла сцены выставляет только загрузчик.
+    friend class SceneLoader;
+    void setId(NodeId id);
+
+    NodeId m_id;
     std::string m_name;
     Node* m_parent = nullptr;
     std::vector<std::unique_ptr<Component>> m_components;

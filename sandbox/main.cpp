@@ -28,7 +28,7 @@ public:
 protected:
     void onStart() override
     {
-        auto& root = scene().root();
+        auto& root = scene().createRoot<yqlora::Node>("Root");
 
         // Пустой объект: центр сцены, вокруг которого будет летать камера.
         m_pivot = &root.addChild<yqlora::Node3D>("Pivot");
@@ -44,11 +44,11 @@ protected:
 
     void onUpdate(float deltaSeconds) override
     {
-        // Вращаем пустой объект — камера, как его ребёнок, облетает центр.
+        // Вращаем пустой объект, камера как его ребёнок облетает центр.
         m_angle += deltaSeconds * 30.0f;
         m_pivot->transform().setRotationDegrees({0.0f, m_angle, 0.0f});
 
-        // Фон слегка «дышит», чтобы было видно, что кадры идут.
+        // Фон слегка меняется, чтобы было видно, что кадры идут.
         const float t = 0.5f + 0.5f * std::sin(m_angle * 0.05f);
         scene().setClearColor({0.08f, 0.09f + 0.05f * t, 0.12f + 0.08f * t, 1.0f});
     }
@@ -85,5 +85,6 @@ private:
 int main()
 {
     SandboxApp app;
+
     return app.run();
 }

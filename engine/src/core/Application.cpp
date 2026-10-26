@@ -5,6 +5,7 @@
 #include "yqlora/i18n/Localization.hpp"
 #include "yqlora/platform/Platform.hpp"
 #include "yqlora/platform/Window.hpp"
+#include "yqlora/render/FrameBuilder.hpp"
 #include "yqlora/render/Renderer.hpp"
 
 #include <algorithm>
@@ -52,11 +53,12 @@ int Application::run()
         exitCode = 1;
     }
 
-    // Рендерер держит контекст окна — уничтожаем строго в обратном порядке.
+    // Рендерер держит контекст окна, поэтому уничтожаем строго в обратном порядке.
     m_renderer.reset();
     m_window.reset();
     Localization::setActive(nullptr);
     platform::shutdown();
+
     return exitCode;
 }
 
@@ -75,6 +77,7 @@ void Application::initSettingsAndLanguage()
 
     if (savedIsValid) {
         m_localization->load(m_settings->language);
+
         return;
     }
 
@@ -94,15 +97,22 @@ bool Application::setLanguage(std::string_view language)
     if (m_window) {
         m_window->setTitle(tr(m_config.titleKey));
     }
+
     return true;
 }
 
 void Application::mainLoop()
 {
     const WindowEvents events{
-        .onCloseRequested = [this] { quit(); },
-        .onResized = [this](int width, int height) { m_renderer->resize(width, height); },
-        .onKeyPressed = [this](Key key) { onKeyPressed(key); },
+        .onCloseRequested = [this] {
+            quit();
+        },
+        .onResized = [this](int width, int height) {
+            m_renderer->resize(width, height);
+        },
+        .onKeyPressed = [this](Key key) {
+            onKeyPressed(key);
+        },
     };
 
     m_running = true;
@@ -126,7 +136,7 @@ void Application::mainLoop()
         const int height = std::max(m_window->heightInPixels(), 1);
         const float aspect = static_cast<float>(width) / static_cast<float>(height);
 
-        m_renderer->render(m_scene.buildFrameData(aspect, m_renderer->depthRange()));
+        m_renderer->render(buildFrameData(m_scene, aspect, m_renderer->depthRange()));
     }
 }
 

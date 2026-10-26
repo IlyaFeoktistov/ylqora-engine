@@ -1,29 +1,29 @@
 #include "yqlora/scene/Scene.hpp"
 
-#include "yqlora/scene/Camera3D.hpp"
+#include <cassert>
 
 namespace yqlora {
 
-Scene::Scene()
-    : m_root("Root")
+void Scene::setRoot(std::unique_ptr<Node> root)
 {
+    assert((!root || !root->parent()) && "setRoot: node already has a parent");
+    // Камера могла жить в старом дереве, указатель на неё сейчас станет висячим.
+    m_activeCamera = nullptr;
+    m_root = std::move(root);
+}
+
+std::unique_ptr<Node> Scene::takeRoot()
+{
+    m_activeCamera = nullptr;
+
+    return std::move(m_root);
 }
 
 void Scene::update(float deltaSeconds)
 {
-    m_root.update(deltaSeconds);
-}
-
-FrameData Scene::buildFrameData(float aspect, DepthRange depthRange) const
-{
-    FrameData frame;
-    frame.clearColor = m_clearColor;
-    if (m_activeCamera) {
-        frame.camera.view = m_activeCamera->viewMatrix();
-        frame.camera.projection = m_activeCamera->projectionMatrix(aspect, depthRange);
-        frame.camera.position = m_activeCamera->worldPosition();
+    if (m_root) {
+        m_root->update(deltaSeconds);
     }
-    return frame;
 }
 
 } // namespace yqlora

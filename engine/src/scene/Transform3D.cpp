@@ -5,48 +5,47 @@
 
 namespace yqlora {
 
-void Transform3D::setPosition(const glm::vec3& position)
+void Transform3D::setPosition(const Vec3& position)
 {
     m_position = position;
     touch();
 }
 
-void Transform3D::setRotation(const glm::quat& rotation)
+void Transform3D::setRotation(const Quat& rotation)
 {
     m_rotation = glm::normalize(rotation);
+    m_rotationDegrees = glm::degrees(glm::eulerAngles(m_rotation));
     touch();
 }
 
-void Transform3D::setScale(const glm::vec3& scale)
+void Transform3D::setScale(const Vec3& scale)
 {
     m_scale = scale;
     touch();
 }
 
-void Transform3D::setRotationDegrees(const glm::vec3& eulerDegrees)
+void Transform3D::setRotationDegrees(const Vec3& eulerDegrees)
 {
-    setRotation(glm::quat(glm::radians(eulerDegrees)));
+    m_rotation = glm::normalize(Quat(glm::radians(eulerDegrees)));
+    m_rotationDegrees = eulerDegrees;
+    touch();
 }
 
-glm::vec3 Transform3D::rotationDegrees() const
+void Transform3D::lookAt(const Vec3& target, const Vec3& up)
 {
-    return glm::degrees(glm::eulerAngles(m_rotation));
-}
-
-void Transform3D::lookAt(const glm::vec3& target, const glm::vec3& up)
-{
-    const glm::vec3 direction = target - m_position;
+    const Vec3 direction = target - m_position;
     if (glm::length(direction) < 1e-6f) {
         return;
     }
     setRotation(glm::quatLookAt(glm::normalize(direction), up));
 }
 
-glm::mat4 Transform3D::matrix() const
+Mat4 Transform3D::matrix() const
 {
-    glm::mat4 m = glm::translate(glm::mat4(1.0f), m_position);
+    Mat4 m = glm::translate(Mat4(1.0f), m_position);
     m *= glm::toMat4(m_rotation);
     m = glm::scale(m, m_scale);
+
     return m;
 }
 

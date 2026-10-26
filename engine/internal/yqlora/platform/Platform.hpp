@@ -11,7 +11,7 @@ namespace yqlora::platform {
 bool initialize();
 void shutdown();
 
-// Папка, где лежит исполняемый файл (рядом с ним — assets/).
+// Папка, где лежит исполняемый файл (рядом с ним лежит assets/).
 std::filesystem::path executableDir();
 
 // Папка для пользовательских данных: ~/.local/share/<org>/<app> на Linux,

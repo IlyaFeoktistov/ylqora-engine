@@ -15,6 +15,7 @@ SDL_WindowFlags apiFlag(GraphicsApi api)
     case GraphicsApi::Vulkan: return SDL_WINDOW_VULKAN;
     case GraphicsApi::Direct3D12: return 0;
     }
+
     return 0;
 }
 
@@ -83,6 +84,7 @@ int Window::widthInPixels() const
 {
     int w = 0;
     SDL_GetWindowSizeInPixels(m_window, &w, nullptr);
+
     return w;
 }
 
@@ -90,6 +92,7 @@ int Window::heightInPixels() const
 {
     int h = 0;
     SDL_GetWindowSizeInPixels(m_window, nullptr, &h);
+
     return h;
 }
 

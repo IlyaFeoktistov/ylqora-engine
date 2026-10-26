@@ -24,18 +24,19 @@ void Camera3D::setClipPlanes(float nearPlane, float farPlane)
     m_far = farPlane;
 }
 
-glm::mat4 Camera3D::viewMatrix() const
+Mat4 Camera3D::viewMatrix() const
 {
-    // View — обратное преобразование к положению камеры в мире.
+    // View это обратное преобразование к положению камеры в мире.
     return glm::inverse(worldMatrix());
 }
 
-glm::mat4 Camera3D::projectionMatrix(float aspect, DepthRange depthRange) const
+Mat4 Camera3D::projectionMatrix(float aspect, DepthRange depthRange) const
 {
     const float fovY = glm::radians(m_fovDegrees);
     if (depthRange == DepthRange::ZeroToOne) {
         return glm::perspectiveRH_ZO(fovY, aspect, m_near, m_far);
     }
+
     return glm::perspectiveRH_NO(fovY, aspect, m_near, m_far);
 }
 

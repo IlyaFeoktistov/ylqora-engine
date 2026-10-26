@@ -9,7 +9,7 @@ using namespace yqlora;
 
 namespace {
 
-bool near(const glm::vec3& a, const glm::vec3& b)
+bool near(const Vec3& a, const Vec3& b)
 {
     return glm::all(glm::epsilonEqual(a, b, 1e-4f));
 }
@@ -39,6 +39,15 @@ TEST_CASE("Node: typeName is English and does not depend on the node name")
     CHECK(camera.name() == "Camera3D");
 }
 
+TEST_CASE("Node: every node gets a unique non-zero id")
+{
+    Node a;
+    Node3D b;
+    CHECK(a.id() != 0);
+    CHECK(b.id() != 0);
+    CHECK(a.id() != b.id());
+}
+
 TEST_CASE("Node: removeChild returns ownership")
 {
     Node root;
@@ -62,7 +71,7 @@ TEST_CASE("Node3D: world transform follows the parent")
     parent.transform().setPosition({0.0f, 5.0f, 0.0f});
     CHECK(near(child.worldPosition(), {1.0f, 5.0f, 0.0f}));
 
-    // Поворот родителя на 90° вокруг Y переносит +X ребёнка в -Z.
+    // Поворот родителя на 90 градусов вокруг Y переносит +X ребёнка в -Z.
     parent.transform().setRotationDegrees({0.0f, 90.0f, 0.0f});
     CHECK(near(child.worldPosition(), {0.0f, 5.0f, -1.0f}));
 }

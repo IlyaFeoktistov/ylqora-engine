@@ -35,6 +35,7 @@ std::string normalizeLanguageCode(std::string_view code)
         }
         result += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
+
     return result;
 }
 
@@ -51,15 +52,18 @@ bool Localization::loadFile(std::string_view language, Strings& out) const
     std::ifstream in(file);
     if (!in) {
         log::error("Locale file '{}' not found", file.string());
+
         return false;
     }
     const auto json = nlohmann::json::parse(in, nullptr, /*allow_exceptions=*/false);
     if (json.is_discarded() || !json.is_object()) {
         log::error("Locale file '{}' is not a valid JSON object", file.string());
+
         return false;
     }
     out.clear();
     flatten(json, {}, out);
+
     return true;
 }
 
@@ -77,6 +81,7 @@ bool Localization::load(std::string_view language)
     m_strings = std::move(strings);
     m_language = language;
     log::info("Language: {}", m_language);
+
     return true;
 }
 
@@ -88,6 +93,7 @@ std::string Localization::translate(std::string_view key) const
     if (const auto it = m_fallback.find(key); it != m_fallback.end()) {
         return it->second;
     }
+
     return std::string(key);
 }
 
@@ -101,6 +107,7 @@ std::vector<std::string> Localization::availableLanguages() const
         }
     }
     std::ranges::sort(result);
+
     return result;
 }
 
@@ -113,6 +120,7 @@ std::string Localization::pickLanguage(std::span<const std::string> preferred,
             return normalized;
         }
     }
+
     return std::string(kFallbackLanguage);
 }
 

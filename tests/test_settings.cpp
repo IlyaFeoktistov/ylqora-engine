@@ -16,6 +16,7 @@ std::filesystem::path tempSettingsFile(const char* name)
     std::filesystem::create_directories(dir);
     const auto file = dir / name;
     std::filesystem::remove(file);
+
     return file;
 }
 
@@ -24,6 +25,7 @@ std::string readAll(const std::filesystem::path& file)
     std::ifstream in(file);
     std::stringstream ss;
     ss << in.rdbuf();
+
     return ss.str();
 }
 

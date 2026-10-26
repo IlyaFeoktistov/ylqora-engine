@@ -38,7 +38,7 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
         throw std::runtime_error("Failed to load OpenGL functions");
     }
 
-    // VSync: не крутим кадры быстрее монитора. Не везде поддерживается — не критично.
+    // VSync: не крутим кадры быстрее монитора. Не везде поддерживается, это не критично.
     if (!SDL_GL_SetSwapInterval(1)) {
         log::warn("VSync is not available: {}", SDL_GetError());
     }
