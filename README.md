@@ -43,7 +43,8 @@ cmake --build --preset debug
 .\build\debug\bin\yqlora.exe
 ```
 
-The program starts without a console; `yqlora.exe --debug` shows the log in one.
+The program starts without a console and logs only warnings and errors;
+`yqlora.exe --debug` logs everything and shows the log in a console.
 
 ## Third-party
 

@@ -1,7 +1,7 @@
 #include "yqlora/core/Application.hpp"
 
 #include "yqlora/core/Log.hpp"
-#include "yqlora/core/LogFile.hpp"
+#include "yqlora/core/LogSettings.hpp"
 #include "yqlora/core/Settings.hpp"
 #include "yqlora/i18n/Localization.hpp"
 #include "yqlora/platform/InputFeeder.hpp"

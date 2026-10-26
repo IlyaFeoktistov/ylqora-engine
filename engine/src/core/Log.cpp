@@ -1,7 +1,8 @@
 #include "yqlora/core/Log.hpp"
 
-#include "yqlora/core/LogFile.hpp"
+#include "yqlora/core/LogSettings.hpp"
 
+#include <atomic>
 #include <cstdio>
 #include <fstream>
 #include <mutex>
@@ -13,6 +14,7 @@ namespace {
 // Лог могут писать и из других потоков: например, ответ системного диалога.
 std::mutex g_mutex;
 std::ofstream g_file;
+std::atomic<Level> g_minimumLevel = Level::Warning;
 
 const char* prefix(Level level)
 {
@@ -26,6 +28,16 @@ const char* prefix(Level level)
 }
 
 } // namespace
+
+bool isEnabled(Level level)
+{
+    return level >= g_minimumLevel.load(std::memory_order_relaxed);
+}
+
+void setMinimumLevel(Level level)
+{
+    g_minimumLevel.store(level, std::memory_order_relaxed);
+}
 
 void openFile(const std::filesystem::path& file)
 {

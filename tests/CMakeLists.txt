@@ -12,6 +12,7 @@ add_executable(yqlora_tests
     test_editor.cpp
     test_project.cpp
     test_session.cpp
+    test_log.cpp
     test_localization.cpp
     test_settings.cpp
 )
