@@ -7,6 +7,7 @@ namespace yqlora {
 enum class Key {
     Unknown,
     Escape,
+    Tab,
     F1,
     F2,
 };

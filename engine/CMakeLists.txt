@@ -13,11 +13,13 @@ add_library(yqlora_core STATIC
     src/scene/Node2D.cpp
     src/scene/Node3D.cpp
     src/scene/Camera3D.cpp
+    src/scene/MeshInstance3D.cpp
     src/scene/Scene.cpp
     src/scene/SceneSerializer.cpp
     src/reflection/Property.cpp
     src/reflection/TypeRegistry.cpp
     src/render/FrameBuilder.cpp
+    src/render/MeshData.cpp
 )
 add_library(yqlora::core ALIAS yqlora_core)
 

@@ -1,6 +1,9 @@
 #include "OpenGLRenderer.hpp"
 
+#include "GlMesh.hpp"
 #include "GridPass.hpp"
+#include "MeshPass.hpp"
+#include "OutlinePass.hpp"
 
 #include "yqlora/core/Log.hpp"
 #include "yqlora/platform/Window.hpp"
@@ -50,14 +53,20 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
               reinterpret_cast<const char*>(glGetString(GL_VERSION)));
 
     glEnable(GL_DEPTH_TEST);
+    m_meshes = std::make_unique<GlMeshCache>();
+    m_meshPass = std::make_unique<MeshPass>(*m_meshes);
     m_grid = std::make_unique<GridPass>();
+    m_outline = std::make_unique<OutlinePass>(*m_meshes);
     resize(window.widthInPixels(), window.heightInPixels());
 }
 
 OpenGLRenderer::~OpenGLRenderer()
 {
     // GL-объекты удаляются, пока контекст ещё жив.
+    m_outline.reset();
     m_grid.reset();
+    m_meshPass.reset();
+    m_meshes.reset();
     SDL_GL_DestroyContext(m_context);
 }
 
@@ -67,12 +76,13 @@ void OpenGLRenderer::render(const FrameData& frame)
     glClearColor(frame.clearColor.r, frame.clearColor.g, frame.clearColor.b, frame.clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Здесь появится отрисовка frame.drawItems с frame.camera.view/projection.
+    m_meshPass->draw(frame);
 
     // Сетка полупрозрачная, поэтому рисуется после объектов сцены.
     if (frame.editor.grid) {
         m_grid->draw(frame.camera);
     }
+    m_outline->draw(frame, m_width, m_height);
 }
 
 void OpenGLRenderer::present()

@@ -11,6 +11,18 @@
 #include <algorithm>
 #include <exception>
 
+#ifdef _WIN32
+// На ноутбуках с двумя видеокартами драйвер по умолчанию запускает программу
+// на встроенной. По этим экспортам из exe драйверы NVIDIA и AMD выбирают
+// дискретную. Код приложения всегда подтягивает этот файл, поэтому экспорты
+// попадают в любой exe на движке. Пользователь может переопределить выбор
+// в настройках графики Windows.
+extern "C" {
+__declspec(dllexport) unsigned long NvOptimusEnablement = 1;
+__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
+
 namespace yqlora {
 
 namespace {

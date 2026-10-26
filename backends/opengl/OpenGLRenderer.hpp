@@ -9,7 +9,10 @@ struct SDL_GLContextState;
 
 namespace yqlora {
 
+class GlMeshCache;
 class GridPass;
+class MeshPass;
+class OutlinePass;
 
 class OpenGLRenderer final : public Renderer {
 public:
@@ -42,7 +45,10 @@ public:
 private:
     Window& m_window;
     SDL_GLContextState* m_context = nullptr;
+    std::unique_ptr<GlMeshCache> m_meshes;
+    std::unique_ptr<MeshPass> m_meshPass;
     std::unique_ptr<GridPass> m_grid;
+    std::unique_ptr<OutlinePass> m_outline;
     int m_width = 0;
     int m_height = 0;
 };

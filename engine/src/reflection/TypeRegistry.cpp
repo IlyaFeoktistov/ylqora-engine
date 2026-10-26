@@ -1,6 +1,7 @@
 #include "yqlora/reflection/TypeRegistry.hpp"
 
 #include "yqlora/scene/Camera3D.hpp"
+#include "yqlora/scene/MeshInstance3D.hpp"
 #include "yqlora/scene/Node3D.hpp"
 #include "yqlora/scene/Transform3D.hpp"
 
@@ -54,6 +55,10 @@ void registerEngineTypes(TypeRegistry& registry)
         .property("fov", &Camera3D::fovDegrees, &Camera3D::setFovDegrees)
         .property("near", &Camera3D::nearPlane, &Camera3D::setNearPlane)
         .property("far", &Camera3D::farPlane, &Camera3D::setFarPlane);
+
+    registry.registerNode<MeshInstance3D, Node3D>("MeshInstance3D")
+        .property("mesh", &MeshInstance3D::mesh, &MeshInstance3D::setMesh)
+        .property("color", &MeshInstance3D::color, &MeshInstance3D::setColor);
 
     registry.registerComponent<Transform3D>("Transform3D")
         .property("position", &Transform3D::position, &Transform3D::setPosition)

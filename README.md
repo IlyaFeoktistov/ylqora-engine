@@ -24,6 +24,8 @@ and a renderer hidden behind an API-agnostic interface.
 - **Public API boundary.** Game code sees only `engine/include/`; windowing, platform and
   rendering live in `engine/internal/`, and CMake enforces the split.
 - **Pluggable renderer.** OpenGL 3.3 backend today; Vulkan and Direct3D 12 are planned.
+- **Editor visuals:** an infinite grid that fades with distance and a pixel-wide outline
+  around the selected object.
 - **Localization** of the engine UI (English, Russian).
 - **Unit tests** with doctest.
 
@@ -31,7 +33,8 @@ and a renderer hidden behind an API-agnostic interface.
 
 - [x] Scene tree, components, transforms
 - [x] Type registry and scene serialization
-- [ ] Renderer: offscreen targets, shaders, meshes, infinite editor grid
+- [x] Renderer basics: shaders, primitive meshes, infinite editor grid, selection outline
+- [ ] Offscreen render targets for the editor viewport
 - [ ] Input: mouse and held keys, editor fly camera
 - [ ] Editor (Dear ImGui): project manager, scene tree, inspector, file browser, 3D viewport
 - [ ] Scripting
@@ -69,8 +72,13 @@ ctest --preset debug
 ./build/debug/bin/sandbox
 ```
 
-On WSL, Mesa may fall back to software rendering (`llvmpipe`).
-To render on the GPU: `export GALLIUM_DRIVER=d3d12`.
+On WSL, Mesa falls back to software rendering (`llvmpipe`) by default. To render on the GPU
+through Direct3D 12, and to pick a specific adapter on a machine with two GPUs:
+
+```bash
+export GALLIUM_DRIVER=d3d12
+export MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA   # part of the adapter name
+```
 
 ### Windows (Visual Studio 2022)
 
@@ -83,10 +91,13 @@ ctest --preset vs2022-debug
 
 Visual Studio 2022 and VS Code (CMake Tools) pick up `CMakePresets.json` automatically.
 
+On laptops with two GPUs, applications built on the engine ask the NVIDIA and AMD drivers
+for the discrete GPU. The choice can be overridden in Windows graphics settings.
+
 ### Sandbox
 
 A small app for trying the engine by hand until the editor arrives.
-`Esc` quits, `F2` switches the UI language.
+`Esc` quits, `Tab` selects the next object, `F2` switches the UI language.
 
 ## Project structure
 

@@ -15,6 +15,9 @@
         "Camera3D": {
             "description": "Perspective camera. The scene is shown through the active camera."
         },
+        "MeshInstance3D": {
+            "description": "Draws a mesh at the node position."
+        },
         "Transform3D": {
             "description": "Position, rotation and scale relative to the parent node."
         }

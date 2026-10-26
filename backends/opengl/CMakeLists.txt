@@ -2,6 +2,9 @@ add_library(yqlora_opengl STATIC
     OpenGLRenderer.cpp
     GlShader.cpp
     GridPass.cpp
+    GlMesh.cpp
+    MeshPass.cpp
+    OutlinePass.cpp
 )
 add_library(yqlora::opengl ALIAS yqlora_opengl)
 

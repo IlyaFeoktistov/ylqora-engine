@@ -23,6 +23,7 @@ Key toKey(SDL_Scancode scancode)
 {
     switch (scancode) {
     case SDL_SCANCODE_ESCAPE: return Key::Escape;
+    case SDL_SCANCODE_TAB: return Key::Tab;
     case SDL_SCANCODE_F1: return Key::F1;
     case SDL_SCANCODE_F2: return Key::F2;
     default: return Key::Unknown;

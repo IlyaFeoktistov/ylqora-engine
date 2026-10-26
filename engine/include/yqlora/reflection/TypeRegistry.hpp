@@ -224,7 +224,7 @@ private:
     std::map<std::type_index, TypeInfo*> m_byCppType;
 };
 
-// Типы движка: Node, Node3D, Camera3D, Transform3D.
+// Типы движка: Node, Node3D, Camera3D, MeshInstance3D, Transform3D.
 void registerEngineTypes(TypeRegistry& registry);
 
 } // namespace yqlora
