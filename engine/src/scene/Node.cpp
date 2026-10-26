@@ -37,6 +37,32 @@ std::unique_ptr<Node> Node::removeChild(Node& child)
     return result;
 }
 
+Component& Node::addComponent(std::unique_ptr<Component> component)
+{
+    assert(component && "addComponent: component is null");
+    assert(!component->m_owner && "addComponent: component already has an owner");
+
+    component->m_owner = this;
+    Component& ref = *component;
+    m_components.push_back(std::move(component));
+    return ref;
+}
+
+std::unique_ptr<Component> Node::removeComponent(Component& component)
+{
+    if (!component.removable()) {
+        return nullptr;
+    }
+    const auto it = std::ranges::find_if(m_components, [&](const auto& c) { return c.get() == &component; });
+    if (it == m_components.end()) {
+        return nullptr;
+    }
+    std::unique_ptr<Component> result = std::move(*it);
+    m_components.erase(it);
+    result->m_owner = nullptr;
+    return result;
+}
+
 Node* Node::findChild(std::string_view name) const
 {
     const auto it = std::ranges::find_if(m_children, [&](const auto& c) { return c->name() == name; });

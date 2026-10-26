@@ -1,5 +1,7 @@
 #pragma once
 
+#include "yqlora/scene/Component.hpp"
+
 #include <concepts>
 #include <memory>
 #include <span>
@@ -11,6 +13,9 @@ namespace yqlora {
 
 // Базовый элемент дерева сцены. Родитель владеет детьми, ребёнок хранит
 // невладеющий указатель на родителя. Имена и типы — всегда на английском.
+//
+// Сам Node не имеет положения — это делают Node2D и Node3D, у которых
+// Transform есть всегда. Остальные компоненты подключаются по необходимости.
 class Node {
 public:
     explicit Node(std::string name = "Node");
@@ -45,6 +50,36 @@ public:
     // Поиск среди прямых детей по имени.
     Node* findChild(std::string_view name) const;
 
+    std::span<const std::unique_ptr<Component>> components() const { return m_components; }
+
+    // Создаёт компонент типа T и подключает к узлу.
+    template <std::derived_from<Component> T, typename... Args>
+    T& addComponent(Args&&... args)
+    {
+        auto component = std::make_unique<T>(std::forward<Args>(args)...);
+        T& ref = *component;
+        addComponent(std::move(component));
+        return ref;
+    }
+
+    Component& addComponent(std::unique_ptr<Component> component);
+
+    // Первый компонент типа T (или его наследника); nullptr, если такого нет.
+    template <std::derived_from<Component> T>
+    T* getComponent() const
+    {
+        for (const auto& c : m_components) {
+            if (auto* typed = dynamic_cast<T*>(c.get())) {
+                return typed;
+            }
+        }
+        return nullptr;
+    }
+
+    // Отключает компонент и возвращает владение им; nullptr, если он не наш
+    // или его нельзя снять (Transform).
+    std::unique_ptr<Component> removeComponent(Component& component);
+
     // Обновляет узел, затем всех детей (сверху вниз).
     void update(float deltaSeconds);
 
@@ -55,6 +90,7 @@ protected:
 private:
     std::string m_name;
     Node* m_parent = nullptr;
+    std::vector<std::unique_ptr<Component>> m_components;
     std::vector<std::unique_ptr<Node>> m_children;
 };
 

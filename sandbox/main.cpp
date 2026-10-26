@@ -34,8 +34,8 @@ protected:
         m_pivot = &root.addChild<yqlora::Node3D>("Pivot");
 
         m_camera = &m_pivot->addChild<yqlora::Camera3D>("MainCamera");
-        m_camera->setPosition({0.0f, 2.0f, 5.0f});
-        m_camera->lookAt({0.0f, 0.0f, 0.0f});
+        m_camera->transform().setPosition({0.0f, 2.0f, 5.0f});
+        m_camera->transform().lookAt({0.0f, 0.0f, 0.0f});
         scene().setActiveCamera(m_camera);
 
         printTree(root);
@@ -46,7 +46,7 @@ protected:
     {
         // Вращаем пустой объект — камера, как его ребёнок, облетает центр.
         m_angle += deltaSeconds * 30.0f;
-        m_pivot->setRotationDegrees({0.0f, m_angle, 0.0f});
+        m_pivot->transform().setRotationDegrees({0.0f, m_angle, 0.0f});
 
         // Фон слегка «дышит», чтобы было видно, что кадры идут.
         const float t = 0.5f + 0.5f * std::sin(m_angle * 0.05f);

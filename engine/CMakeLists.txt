@@ -7,6 +7,10 @@ add_library(yqlora_core STATIC
     src/platform/Platform.cpp
     src/platform/Window.cpp
     src/scene/Node.cpp
+    src/scene/Component.cpp
+    src/scene/Transform2D.cpp
+    src/scene/Transform3D.cpp
+    src/scene/Node2D.cpp
     src/scene/Node3D.cpp
     src/scene/Camera3D.cpp
     src/scene/Scene.cpp

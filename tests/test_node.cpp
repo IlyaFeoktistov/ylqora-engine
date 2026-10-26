@@ -57,20 +57,20 @@ TEST_CASE("Node3D: world transform follows the parent")
 {
     Node3D parent;
     auto& child = parent.addChild<Node3D>();
-    child.setPosition({1.0f, 0.0f, 0.0f});
+    child.transform().setPosition({1.0f, 0.0f, 0.0f});
 
-    parent.setPosition({0.0f, 5.0f, 0.0f});
+    parent.transform().setPosition({0.0f, 5.0f, 0.0f});
     CHECK(near(child.worldPosition(), {1.0f, 5.0f, 0.0f}));
 
     // Поворот родителя на 90° вокруг Y переносит +X ребёнка в -Z.
-    parent.setRotationDegrees({0.0f, 90.0f, 0.0f});
+    parent.transform().setRotationDegrees({0.0f, 90.0f, 0.0f});
     CHECK(near(child.worldPosition(), {0.0f, 5.0f, -1.0f}));
 }
 
 TEST_CASE("Node3D: reparenting invalidates cached world matrix")
 {
     Node3D a;
-    a.setPosition({10.0f, 0.0f, 0.0f});
+    a.transform().setPosition({10.0f, 0.0f, 0.0f});
     Node3D b;
 
     auto& child = a.addChild<Node3D>();
@@ -86,7 +86,7 @@ TEST_CASE("Node3D: default forward is -Z, lookAt turns towards target")
     Node3D node;
     CHECK(near(node.forward(), {0.0f, 0.0f, -1.0f}));
 
-    node.setPosition({0.0f, 0.0f, 0.0f});
-    node.lookAt({5.0f, 0.0f, 0.0f});
+    node.transform().setPosition({0.0f, 0.0f, 0.0f});
+    node.transform().lookAt({5.0f, 0.0f, 0.0f});
     CHECK(near(node.forward(), {1.0f, 0.0f, 0.0f}));
 }

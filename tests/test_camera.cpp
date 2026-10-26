@@ -10,7 +10,7 @@ using namespace yqlora;
 TEST_CASE("Camera3D: view matrix moves the world opposite to the camera")
 {
     Camera3D camera;
-    camera.setPosition({0.0f, 0.0f, 5.0f});
+    camera.transform().setPosition({0.0f, 0.0f, 5.0f});
 
     // Начало координат оказывается в 5 единицах перед камерой (по -Z).
     const glm::vec4 origin = camera.viewMatrix() * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
@@ -37,7 +37,7 @@ TEST_CASE("Scene: frame data comes from the active camera")
 {
     Scene scene;
     auto& camera = scene.root().addChild<Camera3D>("MainCamera");
-    camera.setPosition({1.0f, 2.0f, 3.0f});
+    camera.transform().setPosition({1.0f, 2.0f, 3.0f});
     scene.setActiveCamera(&camera);
     scene.setClearColor({0.1f, 0.2f, 0.3f, 1.0f});
 

@@ -1,5 +1,7 @@
 add_executable(yqlora_tests
     main.cpp
+    test_transform.cpp
+    test_component.cpp
     test_node.cpp
     test_camera.cpp
     test_localization.cpp
