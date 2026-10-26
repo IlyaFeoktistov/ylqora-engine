@@ -3,6 +3,7 @@
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Settings.hpp"
 #include "yqlora/i18n/Localization.hpp"
+#include "yqlora/platform/InputFeeder.hpp"
 #include "yqlora/platform/Platform.hpp"
 #include "yqlora/platform/Window.hpp"
 #include "yqlora/render/FrameBuilder.hpp"
@@ -113,6 +114,29 @@ bool Application::setLanguage(std::string_view language)
     return true;
 }
 
+void Application::setMouseCaptured(bool captured)
+{
+    m_window->setMouseCaptured(captured);
+}
+
+Vec2 Application::windowSize() const
+{
+    return m_window->sizeInPoints();
+}
+
+float Application::aspectRatio() const
+{
+    const int width = m_window->widthInPixels();
+    const int height = std::max(m_window->heightInPixels(), 1);
+
+    return static_cast<float>(width) / static_cast<float>(height);
+}
+
+DepthRange Application::depthRange() const
+{
+    return m_renderer->depthRange();
+}
+
 void Application::mainLoop()
 {
     const WindowEvents events{
@@ -122,11 +146,9 @@ void Application::mainLoop()
         .onResized = [this](int width, int height) {
             m_renderer->resize(width, height);
         },
-        .onKeyPressed = [this](Key key) {
-            onKeyPressed(key);
-        },
     };
 
+    InputFeeder input(m_input);
     m_running = true;
     double previousTime = platform::timeSeconds();
 
@@ -136,7 +158,8 @@ void Application::mainLoop()
         const auto deltaSeconds = static_cast<float>(std::min(now - previousTime, 0.1));
         previousTime = now;
 
-        m_window->pollEvents(events);
+        input.beginFrame();
+        m_window->pollEvents(events, input);
         if (!m_running) {
             break;
         }
@@ -144,11 +167,7 @@ void Application::mainLoop()
         m_scene.update(deltaSeconds);
         onUpdate(deltaSeconds);
 
-        const int width = m_window->widthInPixels();
-        const int height = std::max(m_window->heightInPixels(), 1);
-        const float aspect = static_cast<float>(width) / static_cast<float>(height);
-
-        FrameData frame = buildFrameData(m_scene, aspect, m_renderer->depthRange());
+        FrameData frame = buildFrameData(m_scene, aspectRatio(), depthRange());
         onPrepareFrame(frame);
         m_renderer->render(frame);
         m_renderer->present();

@@ -8,10 +8,12 @@ add_executable(yqlora_tests
     test_reflection.cpp
     test_serializer.cpp
     test_mesh.cpp
+    test_input.cpp
+    test_editor.cpp
     test_localization.cpp
     test_settings.cpp
 )
-target_link_libraries(yqlora_tests PRIVATE yqlora::internal doctest::doctest)
+target_link_libraries(yqlora_tests PRIVATE yqlora::internal yqlora::editor doctest::doctest)
 target_compile_definitions(yqlora_tests PRIVATE
     YQLORA_LOCALES_DIR="${PROJECT_SOURCE_DIR}/assets/locales"
 )

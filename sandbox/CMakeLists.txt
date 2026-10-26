@@ -1,5 +1,5 @@
 add_executable(sandbox main.cpp)
-target_link_libraries(sandbox PRIVATE yqlora::yqlora)
+target_link_libraries(sandbox PRIVATE yqlora::yqlora yqlora::editor)
 yqlora_set_warnings(sandbox)
 
 # Ресурсы движка кладём рядом с исполняемым файлом.

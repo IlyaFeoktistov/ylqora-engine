@@ -26,6 +26,8 @@ and a renderer hidden behind an API-agnostic interface.
 - **Pluggable renderer.** OpenGL 3.3 backend today; Vulkan and Direct3D 12 are planned.
 - **Editor visuals:** an infinite grid that fades with distance and a pixel-wide outline
   around the selected object.
+- **Editor camera and picking.** A fly camera that lives outside the scene, and object
+  selection by clicking, precise to the triangle.
 - **Localization** of the engine UI (English, Russian).
 - **Unit tests** with doctest.
 
@@ -35,7 +37,7 @@ and a renderer hidden behind an API-agnostic interface.
 - [x] Type registry and scene serialization
 - [x] Renderer basics: shaders, primitive meshes, infinite editor grid, selection outline
 - [ ] Offscreen render targets for the editor viewport
-- [ ] Input: mouse and held keys, editor fly camera
+- [x] Input: keyboard, mouse, wheel; editor fly camera; picking objects with the mouse
 - [ ] Editor (Dear ImGui): project manager, scene tree, inspector, file browser, 3D viewport
 - [ ] Scripting
 - [ ] 2D
@@ -97,7 +99,15 @@ for the discrete GPU. The choice can be overridden in Windows graphics settings.
 ### Sandbox
 
 A small app for trying the engine by hand until the editor arrives.
-`Esc` quits, `Tab` selects the next object, `F2` switches the UI language.
+
+| Input | Action |
+|---|---|
+| Left click | Select an object, click on empty space to deselect |
+| Hold right button + mouse | Look around |
+| Hold right button + `W` `A` `S` `D` | Fly, `Q` / `E` down and up, `Shift` faster |
+| Mouse wheel | Change the fly speed |
+| `F2` | Switch the UI language |
+| `Esc` | Quit |
 
 ## Project structure
 
@@ -105,6 +115,7 @@ A small app for trying the engine by hand until the editor arrives.
 |---|---|
 | `engine/include/` | Public API for games: math (`Vec3`, `Quat`, ...), scene, reflection, input, logging, `tr()` |
 | `engine/internal/` | Engine internals: window, platform, rendering, `Application`, settings |
+| `editor/` | Editor tools: fly camera, picking, selection |
 | `backends/opengl/` | OpenGL renderer backend |
 | `sandbox/` | Manual testing app |
 | `tests/` | Unit tests |

@@ -6,6 +6,8 @@ add_library(yqlora_core STATIC
     src/i18n/Localization.cpp
     src/platform/Platform.cpp
     src/platform/Window.cpp
+    src/platform/InputFeeder.cpp
+    src/input/Input.cpp
     src/scene/Node.cpp
     src/scene/Component.cpp
     src/scene/Transform2D.cpp

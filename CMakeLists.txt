@@ -43,6 +43,8 @@ if(YQLORA_BACKEND_OPENGL)
 endif()
 yqlora_set_warnings(yqlora)
 
+add_subdirectory(editor)
+
 if(YQLORA_BUILD_SANDBOX)
     add_subdirectory(sandbox)
 endif()

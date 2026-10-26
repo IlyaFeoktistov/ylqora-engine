@@ -1,13 +1,14 @@
 #include <yqlora/core/Application.hpp>
 #include <yqlora/core/Log.hpp>
+#include <yqlora/editor/EditorCamera.hpp>
+#include <yqlora/editor/Picking.hpp>
+#include <yqlora/editor/Selection.hpp>
 #include <yqlora/i18n/Localization.hpp>
 #include <yqlora/scene/Camera3D.hpp>
 #include <yqlora/scene/MeshInstance3D.hpp>
-#include <yqlora/scene/Node3D.hpp>
 
 #include <algorithm>
 #include <iterator>
-#include <vector>
 
 namespace {
 
@@ -31,13 +32,11 @@ protected:
     {
         auto& root = scene().createRoot<yqlora::Node>("Root");
 
-        // Пустой объект: центр сцены, вокруг которого будет летать камера.
-        m_pivot = &root.addChild<yqlora::Node3D>("Pivot");
-
-        m_camera = &m_pivot->addChild<yqlora::Camera3D>("MainCamera");
-        m_camera->transform().setPosition({0.0f, 2.0f, 5.0f});
-        m_camera->transform().lookAt({0.0f, 0.0f, 0.0f});
-        scene().setActiveCamera(m_camera);
+        // Камера игры. Смотрим через камеру редактора, эта просто лежит в сцене.
+        auto& camera = root.addChild<yqlora::Camera3D>("MainCamera");
+        camera.transform().setPosition({0.0f, 2.0f, 5.0f});
+        camera.transform().lookAt({0.0f, 0.0f, 0.0f});
+        scene().setActiveCamera(&camera);
 
         addMesh(root, "Cube", "cube", {0.0f, 0.5f, 0.0f}, {0.85f, 0.45f, 0.3f, 1.0f});
         addMesh(root, "Sphere", "sphere", {1.5f, 0.5f, 0.0f}, {0.35f, 0.65f, 0.9f, 1.0f});
@@ -45,45 +44,42 @@ protected:
         box.transform().setScale({0.7f, 0.7f, 0.7f});
         box.transform().setRotationDegrees({0.0f, 30.0f, 0.0f});
 
+        m_editorCamera.setPosition({0.0f, 2.0f, 5.0f});
+        m_editorCamera.lookAt({0.0f, 0.5f, 0.0f});
+
         printTree(root);
-        yqlora::log::info("Esc - quit, Tab - select next object, F2 - switch language");
+        yqlora::log::info("Esc - quit, F2 - switch language");
+        yqlora::log::info("Left click - select, hold right button - look around, WASD/QE - fly, wheel - speed");
     }
 
     void onUpdate(float deltaSeconds) override
     {
-        // Вращаем пустой объект, камера как его ребёнок облетает центр.
-        m_angle += deltaSeconds * 30.0f;
-        m_pivot->transform().setRotationDegrees({0.0f, m_angle, 0.0f});
+        const yqlora::Input& in = input();
+        if (in.wasKeyPressed(yqlora::Key::Escape)) {
+            quit();
+        }
+        if (in.wasKeyPressed(yqlora::Key::F2)) {
+            switchLanguage();
+        }
+
+        const bool wasFlying = m_editorCamera.flying();
+        m_editorCamera.update(in, deltaSeconds);
+        if (m_editorCamera.flying() != wasFlying) {
+            setMouseCaptured(m_editorCamera.flying());
+        }
+
+        // Клик в пустоту снимает выделение.
+        if (!m_editorCamera.flying() && in.wasMouseButtonPressed(yqlora::MouseButton::Left)) {
+            const yqlora::Ray ray = m_editorCamera.screenRay(in.mousePosition(), windowSize());
+            m_selection.select(yqlora::pickNode(scene(), ray));
+        }
     }
 
     void onPrepareFrame(yqlora::FrameData& frame) override
     {
+        frame.camera = m_editorCamera.cameraData(aspectRatio(), depthRange());
         frame.editor.grid = true;
-        frame.editor.selected = m_meshes[m_selected]->id();
-    }
-
-    void onKeyPressed(yqlora::Key key) override
-    {
-        switch (key) {
-        case yqlora::Key::Escape:
-            quit();
-            break;
-        case yqlora::Key::Tab:
-            m_selected = (m_selected + 1) % m_meshes.size();
-            break;
-        case yqlora::Key::F2: {
-            // Следующий язык по кругу из доступных в assets/locales.
-            const auto languages = localization().availableLanguages();
-            auto it = std::ranges::find(languages, localization().language());
-            it = (it == languages.end() || std::next(it) == languages.end()) ? languages.begin() : std::next(it);
-            if (it != languages.end()) {
-                setLanguage(*it);
-            }
-            break;
-        }
-        default:
-            break;
-        }
+        frame.editor.selected = m_selection.selected();
     }
 
 private:
@@ -94,16 +90,23 @@ private:
         instance.setMesh(std::move(mesh));
         instance.setColor(color);
         instance.transform().setPosition(position);
-        m_meshes.push_back(&instance);
 
         return instance;
     }
 
-    yqlora::Node3D* m_pivot = nullptr;
-    yqlora::Camera3D* m_camera = nullptr;
-    float m_angle = 0.0f;
-    std::vector<yqlora::MeshInstance3D*> m_meshes;
-    std::size_t m_selected = 0;
+    // Следующий язык по кругу из доступных в assets/locales.
+    void switchLanguage()
+    {
+        const auto languages = localization().availableLanguages();
+        auto it = std::ranges::find(languages, localization().language());
+        it = (it == languages.end() || std::next(it) == languages.end()) ? languages.begin() : std::next(it);
+        if (it != languages.end()) {
+            setLanguage(*it);
+        }
+    }
+
+    yqlora::EditorCamera m_editorCamera;
+    yqlora::Selection m_selection;
 };
 
 } // namespace

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "yqlora/input/Key.hpp"
+#include "yqlora/input/Input.hpp"
 #include "yqlora/render/FrameData.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 #include "yqlora/scene/Scene.hpp"
@@ -58,6 +58,22 @@ public:
         return *m_localization;
     }
 
+    const Input& input() const
+    {
+        return m_input;
+    }
+
+    // См. Window::setMouseCaptured.
+    void setMouseCaptured(bool captured);
+
+    // Размер окна в тех же единицах, что положение мыши.
+    Vec2 windowSize() const;
+
+    // Ширина к высоте области вывода и диапазон глубины рендерера:
+    // нужны, чтобы построить проекцию своей камеры.
+    float aspectRatio() const;
+    DepthRange depthRange() const;
+
     // Переключает язык интерфейса и сохраняет выбор в настройках.
     bool setLanguage(std::string_view language);
 
@@ -67,10 +83,6 @@ protected:
     }
 
     virtual void onUpdate(float /*deltaSeconds*/)
-    {
-    }
-
-    virtual void onKeyPressed(Key /*key*/)
     {
     }
 
@@ -89,6 +101,7 @@ private:
 
     ApplicationConfig m_config;
     Scene m_scene;
+    Input m_input;
     std::unique_ptr<Settings> m_settings;
     std::unique_ptr<Localization> m_localization;
     std::unique_ptr<Window> m_window;

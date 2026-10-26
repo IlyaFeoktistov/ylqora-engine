@@ -1,7 +1,10 @@
 #include "yqlora/platform/Window.hpp"
 
+#include "yqlora/platform/InputFeeder.hpp"
+
 #include <SDL3/SDL.h>
 
+#include <optional>
 #include <stdexcept>
 
 namespace yqlora {
@@ -19,14 +22,55 @@ SDL_WindowFlags apiFlag(GraphicsApi api)
     return 0;
 }
 
+Key offsetKey(Key first, int offset)
+{
+    return static_cast<Key>(static_cast<int>(first) + offset);
+}
+
 Key toKey(SDL_Scancode scancode)
 {
+    // Буквы и F1-F12 идут подряд и в SDL, и у нас.
+    if (scancode >= SDL_SCANCODE_A && scancode <= SDL_SCANCODE_Z) {
+        return offsetKey(Key::A, scancode - SDL_SCANCODE_A);
+    }
+    if (scancode >= SDL_SCANCODE_F1 && scancode <= SDL_SCANCODE_F12) {
+        return offsetKey(Key::F1, scancode - SDL_SCANCODE_F1);
+    }
+    // Цифры в SDL идут от 1 до 9, а 0 после них.
+    if (scancode >= SDL_SCANCODE_1 && scancode <= SDL_SCANCODE_9) {
+        return offsetKey(Key::Num1, scancode - SDL_SCANCODE_1);
+    }
+
     switch (scancode) {
+    case SDL_SCANCODE_0: return Key::Num0;
     case SDL_SCANCODE_ESCAPE: return Key::Escape;
     case SDL_SCANCODE_TAB: return Key::Tab;
-    case SDL_SCANCODE_F1: return Key::F1;
-    case SDL_SCANCODE_F2: return Key::F2;
+    case SDL_SCANCODE_SPACE: return Key::Space;
+    case SDL_SCANCODE_RETURN: return Key::Enter;
+    case SDL_SCANCODE_BACKSPACE: return Key::Backspace;
+    case SDL_SCANCODE_DELETE: return Key::Delete;
+    case SDL_SCANCODE_LSHIFT: return Key::LeftShift;
+    case SDL_SCANCODE_RSHIFT: return Key::RightShift;
+    case SDL_SCANCODE_LCTRL: return Key::LeftCtrl;
+    case SDL_SCANCODE_RCTRL: return Key::RightCtrl;
+    case SDL_SCANCODE_LALT: return Key::LeftAlt;
+    case SDL_SCANCODE_RALT: return Key::RightAlt;
+    case SDL_SCANCODE_UP: return Key::Up;
+    case SDL_SCANCODE_DOWN: return Key::Down;
+    case SDL_SCANCODE_LEFT: return Key::Left;
+    case SDL_SCANCODE_RIGHT: return Key::Right;
     default: return Key::Unknown;
+    }
+}
+
+// Боковые кнопки мыши пока не поддерживаем.
+std::optional<MouseButton> toMouseButton(std::uint8_t sdlButton)
+{
+    switch (sdlButton) {
+    case SDL_BUTTON_LEFT: return MouseButton::Left;
+    case SDL_BUTTON_RIGHT: return MouseButton::Right;
+    case SDL_BUTTON_MIDDLE: return MouseButton::Middle;
+    default: return std::nullopt;
     }
 }
 
@@ -49,7 +93,7 @@ Window::~Window()
     SDL_DestroyWindow(m_window);
 }
 
-void Window::pollEvents(const WindowEvents& events)
+void Window::pollEvents(const WindowEvents& events, InputFeeder& input)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -65,20 +109,60 @@ void Window::pollEvents(const WindowEvents& events)
                 events.onResized(event.window.data1, event.window.data2);
             }
             break;
+        case SDL_EVENT_WINDOW_FOCUS_LOST:
+            input.releaseAll();
+            break;
         case SDL_EVENT_KEY_DOWN:
-            if (!event.key.repeat && events.onKeyPressed) {
-                events.onKeyPressed(toKey(event.key.scancode));
+            // Автоповтор при удержании не считаем новым нажатием.
+            if (!event.key.repeat) {
+                input.keyDown(toKey(event.key.scancode));
             }
             break;
+        case SDL_EVENT_KEY_UP:
+            input.keyUp(toKey(event.key.scancode));
+            break;
+        case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            if (const auto button = toMouseButton(event.button.button)) {
+                input.mouseButtonDown(*button);
+            }
+            break;
+        case SDL_EVENT_MOUSE_BUTTON_UP:
+            if (const auto button = toMouseButton(event.button.button)) {
+                input.mouseButtonUp(*button);
+            }
+            break;
+        case SDL_EVENT_MOUSE_MOTION:
+            input.mouseMoved({event.motion.x, event.motion.y}, {event.motion.xrel, event.motion.yrel});
+            break;
+        case SDL_EVENT_MOUSE_WHEEL: {
+            // В некоторых системах направление прокрутки перевёрнуто, приводим к одному виду.
+            const float delta = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y : event.wheel.y;
+            input.wheelScrolled(delta);
+            break;
+        }
         default:
             break;
         }
     }
 }
 
+void Window::setMouseCaptured(bool captured)
+{
+    SDL_SetWindowRelativeMouseMode(m_window, captured);
+}
+
 void Window::setTitle(const std::string& title)
 {
     SDL_SetWindowTitle(m_window, title.c_str());
+}
+
+Vec2 Window::sizeInPoints() const
+{
+    int w = 0;
+    int h = 0;
+    SDL_GetWindowSize(m_window, &w, &h);
+
+    return {static_cast<float>(w), static_cast<float>(h)};
 }
 
 int Window::widthInPixels() const
