@@ -26,13 +26,17 @@ float axis(const Input& input, Key negative, Key positive)
 
 } // namespace
 
-void EditorCamera::update(const Input& input, float deltaSeconds)
+void EditorCamera::update(const Input& input, float deltaSeconds, bool hovered)
 {
-    if (input.wheelDelta() != 0.0f) {
-        setSpeed(m_speed * std::pow(kWheelStep, input.wheelDelta()));
+    if (!input.isMouseButtonDown(MouseButton::Right)) {
+        m_flying = false;
+    } else if (hovered && input.wasMouseButtonPressed(MouseButton::Right)) {
+        m_flying = true;
     }
 
-    m_flying = input.isMouseButtonDown(MouseButton::Right);
+    if ((hovered || m_flying) && input.wheelDelta() != 0.0f) {
+        setSpeed(m_speed * std::pow(kWheelStep, input.wheelDelta()));
+    }
     if (!m_flying) {
         return;
     }

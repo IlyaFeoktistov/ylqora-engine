@@ -1,6 +1,7 @@
 #include "OpenGLRenderer.hpp"
 
 #include "GlMesh.hpp"
+#include "GlRenderTarget.hpp"
 #include "GridPass.hpp"
 #include "MeshPass.hpp"
 #include "OutlinePass.hpp"
@@ -10,6 +11,9 @@
 
 #include <SDL3/SDL.h>
 #include <glad/gl.h>
+#include <imgui.h>
+#include <imgui_impl_opengl3.h>
+#include <imgui_impl_sdl3.h>
 
 #include <stdexcept>
 #include <string>
@@ -72,7 +76,64 @@ OpenGLRenderer::~OpenGLRenderer()
 
 void OpenGLRenderer::render(const FrameData& frame)
 {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    drawScene(frame, m_width, m_height);
+}
+
+void OpenGLRenderer::render(const FrameData& frame, RenderTarget& target)
+{
+    // Цели создаёт только этот рендерер, так что тип известен.
+    auto& glTarget = static_cast<GlRenderTarget&>(target);
+    glBindFramebuffer(GL_FRAMEBUFFER, glTarget.framebuffer());
+    drawScene(frame, glTarget.width(), glTarget.height());
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+std::unique_ptr<RenderTarget> OpenGLRenderer::createRenderTarget(int width, int height)
+{
+    return std::make_unique<GlRenderTarget>(width, height);
+}
+
+void OpenGLRenderer::clearWindow(const Vec4& color)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, m_width, m_height);
+    glClearColor(color.r, color.g, color.b, color.a);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void OpenGLRenderer::initUi()
+{
+    ImGui_ImplSDL3_InitForOpenGL(m_window.sdlWindow(), m_context);
+    ImGui_ImplOpenGL3_Init("#version 330 core");
+}
+
+void OpenGLRenderer::shutdownUi()
+{
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+}
+
+void OpenGLRenderer::beginUiFrame()
+{
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
+}
+
+void OpenGLRenderer::renderUi()
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, m_width, m_height);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void OpenGLRenderer::drawScene(const FrameData& frame, int width, int height)
+{
+    // Отрисовка интерфейса меняет состояние GL, возвращаем нужное сцене.
+    glDisable(GL_SCISSOR_TEST);
+    glEnable(GL_DEPTH_TEST);
+
+    glViewport(0, 0, width, height);
     glClearColor(frame.clearColor.r, frame.clearColor.g, frame.clearColor.b, frame.clearColor.a);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -82,7 +143,7 @@ void OpenGLRenderer::render(const FrameData& frame)
     if (frame.editor.grid) {
         m_grid->draw(frame.camera);
     }
-    m_outline->draw(frame, m_width, m_height);
+    m_outline->draw(frame, width, height);
 }
 
 void OpenGLRenderer::present()

@@ -67,6 +67,17 @@ bool Localization::loadFile(std::string_view language, Strings& out) const
     return true;
 }
 
+std::string Localization::displayName(std::string_view language) const
+{
+    Strings strings;
+    if (!loadFile(language, strings)) {
+        return std::string(language);
+    }
+    const auto it = strings.find("language.name");
+
+    return it != strings.end() ? it->second : std::string(language);
+}
+
 bool Localization::load(std::string_view language)
 {
     Strings strings;

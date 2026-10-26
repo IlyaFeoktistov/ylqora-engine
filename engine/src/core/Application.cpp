@@ -9,6 +9,8 @@
 #include "yqlora/render/FrameBuilder.hpp"
 #include "yqlora/render/Renderer.hpp"
 
+#include <imgui.h>
+
 #include <algorithm>
 #include <exception>
 
@@ -57,6 +59,9 @@ int Application::run()
             .api = m_config.api,
         });
         m_renderer = createRenderer(m_config.api, *m_window);
+        if (m_config.ui) {
+            initUi();
+        }
 
         onStart();
         mainLoop();
@@ -65,6 +70,8 @@ int Application::run()
         log::error("Fatal: {}", e.what());
         exitCode = 1;
     }
+
+    shutdownUi();
 
     // Рендерер держит контекст окна, поэтому уничтожаем строго в обратном порядке.
     m_renderer.reset();
@@ -114,9 +121,42 @@ bool Application::setLanguage(std::string_view language)
     return true;
 }
 
-void Application::setMouseCaptured(bool captured)
+void Application::initUi()
 {
-    m_window->setMouseCaptured(captured);
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
+
+    // Раскладку окон храним рядом с настройками, а не в текущей папке.
+    m_uiIniPath = (platform::userDataPath(kOrganization, m_config.name) / "imgui.ini").string();
+    io.IniFilename = m_uiIniPath.c_str();
+
+    ImGui::StyleColorsDark();
+
+    // Встроенный шрифт ImGui без кириллицы. Глифы из файла подгружаются по мере надобности.
+    const auto font = platform::executableDir() / "assets" / "fonts" / "NotoSans-Regular.ttf";
+    if (!io.Fonts->AddFontFromFileTTF(font.string().c_str(), 17.0f)) {
+        log::warn("UI font '{}' not found, using the built-in one", font.string());
+    }
+
+    m_renderer->initUi();
+}
+
+void Application::shutdownUi()
+{
+    if (!ImGui::GetCurrentContext()) {
+        return;
+    }
+    if (m_renderer) {
+        m_renderer->shutdownUi();
+    }
+    ImGui::DestroyContext();
+}
+
+void Application::setMouseWrapping(bool wrapping)
+{
+    m_window->setMouseWrapping(wrapping);
 }
 
 Vec2 Application::windowSize() const
@@ -167,9 +207,18 @@ void Application::mainLoop()
         m_scene.update(deltaSeconds);
         onUpdate(deltaSeconds);
 
-        FrameData frame = buildFrameData(m_scene, aspectRatio(), depthRange());
-        onPrepareFrame(frame);
-        m_renderer->render(frame);
+        if (m_config.ui) {
+            m_renderer->beginUiFrame();
+            ImGui::NewFrame();
+            onGui();
+            ImGui::Render();
+            m_renderer->clearWindow({0.1f, 0.1f, 0.11f, 1.0f});
+            m_renderer->renderUi();
+        } else {
+            FrameData frame = buildFrameData(m_scene, aspectRatio(), depthRange());
+            onPrepareFrame(frame);
+            m_renderer->render(frame);
+        }
         m_renderer->present();
     }
 }

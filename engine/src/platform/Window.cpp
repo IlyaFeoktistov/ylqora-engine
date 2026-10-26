@@ -1,8 +1,11 @@
 #include "yqlora/platform/Window.hpp"
 
+#include "yqlora/core/Log.hpp"
 #include "yqlora/platform/InputFeeder.hpp"
 
 #include <SDL3/SDL.h>
+#include <imgui.h>
+#include <imgui_impl_sdl3.h>
 
 #include <optional>
 #include <stdexcept>
@@ -95,8 +98,14 @@ Window::~Window()
 
 void Window::pollEvents(const WindowEvents& events, InputFeeder& input)
 {
+    // Интерфейс включён, только если рендерер уже подключил к ImGui окно.
+    const bool ui = ImGui::GetCurrentContext() && ImGui::GetIO().BackendPlatformUserData;
+
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        if (ui) {
+            ImGui_ImplSDL3_ProcessEvent(&event);
+        }
         switch (event.type) {
         case SDL_EVENT_QUIT:
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
@@ -131,9 +140,16 @@ void Window::pollEvents(const WindowEvents& events, InputFeeder& input)
                 input.mouseButtonUp(*button);
             }
             break;
-        case SDL_EVENT_MOUSE_MOTION:
-            input.mouseMoved({event.motion.x, event.motion.y}, {event.motion.xrel, event.motion.yrel});
+        case SDL_EVENT_MOUSE_MOTION: {
+            const Vec2 position(event.motion.x, event.motion.y);
+            Vec2 delta(event.motion.xrel, event.motion.yrel);
+            // При переносе курсора xrel содержал бы скачок через всё окно.
+            if (m_mouseWrapping && !m_warpUnsupported) {
+                delta = wrappedMouseDelta(position);
+            }
+            input.mouseMoved(position, delta);
             break;
+        }
         case SDL_EVENT_MOUSE_WHEEL: {
             // В некоторых системах направление прокрутки перевёрнуто, приводим к одному виду.
             const float delta = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y : event.wheel.y;
@@ -146,9 +162,34 @@ void Window::pollEvents(const WindowEvents& events, InputFeeder& input)
     }
 }
 
-void Window::setMouseCaptured(bool captured)
+void Window::setMouseWrapping(bool wrapping)
 {
-    SDL_SetWindowRelativeMouseMode(m_window, captured);
+    m_mouseWrapping = wrapping;
+    if (!wrapping) {
+        return;
+    }
+    float x = 0.0f;
+    float y = 0.0f;
+    SDL_GetMouseState(&x, &y);
+    m_mouseWrap.reset({x, y});
+}
+
+Vec2 Window::wrappedMouseDelta(const Vec2& position)
+{
+    const Vec2 size = sizeInPoints();
+    const Vec2 delta = m_mouseWrap.delta(position, size);
+    if (m_mouseWrap.warpIgnored()) {
+        m_warpUnsupported = true;
+        log::warn("Mouse warping does not work here, the cursor will not wrap around the window edges");
+
+        return delta;
+    }
+    if (const auto target = m_mouseWrap.wrapTarget(position, size)) {
+        SDL_WarpMouseInWindow(m_window, target->x, target->y);
+        m_mouseWrap.warped(*target);
+    }
+
+    return delta;
 }
 
 void Window::setTitle(const std::string& title)

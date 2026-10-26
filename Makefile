@@ -1,7 +1,7 @@
 # Короткие команды для Linux/WSL. Вся логика сборки в CMakeLists.txt и CMakePresets.json.
 #   make            собрать (debug)
 #   make test       собрать и прогнать тесты
-#   make run        собрать и запустить sandbox
+#   make run        собрать и запустить движок с редактором
 #   make release    собрать release; PRESET=release работает и с остальными целями
 #   make clean      удалить результаты сборки текущего пресета
 #   make distclean  удалить папку build целиком, вместе со скачанными зависимостями
@@ -24,7 +24,7 @@ test: build
 	ctest --preset $(PRESET)
 
 run: build
-	./$(BUILD_DIR)/bin/sandbox
+	./$(BUILD_DIR)/bin/yqlora
 
 release:
 	$(MAKE) build PRESET=release

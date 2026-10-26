@@ -3,7 +3,7 @@
         "name": "Русский"
     },
     "app": {
-        "title": "Yqlora Песочница"
+        "title": "Yqlora"
     },
     "type": {
         "Node": {
@@ -20,6 +20,22 @@
         },
         "Transform3D": {
             "description": "Положение, поворот и масштаб относительно родителя."
+        }
+    },
+    "editor": {
+        "title": "Yqlora Engine",
+        "menu": {
+            "file": "Файл",
+            "quit": "Выход",
+            "view": "Вид",
+            "language": "Язык"
+        },
+        "window": {
+            "scene": "Сцена",
+            "viewport": "Вид"
+        },
+        "scene": {
+            "empty": "Сцена пуста"
         }
     }
 }

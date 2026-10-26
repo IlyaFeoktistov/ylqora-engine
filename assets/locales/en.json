@@ -3,7 +3,7 @@
         "name": "English"
     },
     "app": {
-        "title": "Yqlora Sandbox"
+        "title": "Yqlora"
     },
     "type": {
         "Node": {
@@ -20,6 +20,22 @@
         },
         "Transform3D": {
             "description": "Position, rotation and scale relative to the parent node."
+        }
+    },
+    "editor": {
+        "title": "Yqlora Engine",
+        "menu": {
+            "file": "File",
+            "quit": "Quit",
+            "view": "View",
+            "language": "Language"
+        },
+        "window": {
+            "scene": "Scene",
+            "viewport": "Viewport"
+        },
+        "scene": {
+            "empty": "The scene is empty"
         }
     }
 }

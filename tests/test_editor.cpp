@@ -32,15 +32,37 @@ TEST_CASE("EditorCamera: moves only while the right mouse button is held")
     feeder.beginFrame();
     feeder.keyDown(Key::W);
 
-    camera.update(input, 1.0f);
+    camera.update(input, 1.0f, true);
     CHECK_FALSE(camera.flying());
     CHECK(near(camera.position(), {0.0f, 0.0f, 0.0f}));
 
     feeder.mouseButtonDown(MouseButton::Right);
-    camera.update(input, 1.0f);
+    camera.update(input, 1.0f, true);
     CHECK(camera.flying());
     // Вперёд вдоль -Z со скоростью 2 метра в секунду.
     CHECK(near(camera.position(), {0.0f, 0.0f, -2.0f}));
+
+    // Курсор ушёл с окна сцены, а кнопка всё ещё зажата: полёт продолжается.
+    feeder.beginFrame();
+    camera.update(input, 1.0f, false);
+    CHECK(camera.flying());
+}
+
+TEST_CASE("EditorCamera: right button pressed outside the viewport does not start flying")
+{
+    EditorCamera camera;
+
+    Input input;
+    InputFeeder feeder(input);
+    feeder.beginFrame();
+    feeder.mouseButtonDown(MouseButton::Right);
+    camera.update(input, 0.016f, false);
+    CHECK_FALSE(camera.flying());
+
+    // Кнопку так и не отпустили, но курсор зашёл на окно сцены: полёт не начинается.
+    feeder.beginFrame();
+    camera.update(input, 0.016f, true);
+    CHECK_FALSE(camera.flying());
 }
 
 TEST_CASE("EditorCamera: wheel changes speed within limits")
@@ -52,12 +74,19 @@ TEST_CASE("EditorCamera: wheel changes speed within limits")
     InputFeeder feeder(input);
     feeder.beginFrame();
     feeder.wheelScrolled(1.0f);
-    camera.update(input, 0.016f);
+    camera.update(input, 0.016f, true);
     CHECK(camera.speed() > 5.0f);
+
+    // Колесо над другой панелью камеру не трогает.
+    const float speed = camera.speed();
+    feeder.beginFrame();
+    feeder.wheelScrolled(1.0f);
+    camera.update(input, 0.016f, false);
+    CHECK(camera.speed() == doctest::Approx(speed));
 
     feeder.beginFrame();
     feeder.wheelScrolled(-1000.0f);
-    camera.update(input, 0.016f);
+    camera.update(input, 0.016f, true);
     CHECK(camera.speed() == doctest::Approx(0.1f));
 }
 

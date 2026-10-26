@@ -24,6 +24,9 @@ struct ApplicationConfig {
     int width = 1280;
     int height = 720;
     GraphicsApi api = GraphicsApi::OpenGL;
+    // Интерфейс на Dear ImGui. С ним приложение само решает, куда рисовать
+    // сцену (обычно в RenderTarget внутри окна интерфейса) в onGui().
+    bool ui = false;
 };
 
 // Владеет окном, рендерером, сценой, настройками и локализацией,
@@ -63,8 +66,8 @@ public:
         return m_input;
     }
 
-    // См. Window::setMouseCaptured.
-    void setMouseCaptured(bool captured);
+    // См. Window::setMouseWrapping.
+    void setMouseWrapping(bool wrapping);
 
     // Размер окна в тех же единицах, что положение мыши.
     Vec2 windowSize() const;
@@ -73,6 +76,11 @@ public:
     // нужны, чтобы построить проекцию своей камеры.
     float aspectRatio() const;
     DepthRange depthRange() const;
+
+    Renderer& renderer()
+    {
+        return *m_renderer;
+    }
 
     // Переключает язык интерфейса и сохраняет выбор в настройках.
     bool setLanguage(std::string_view language);
@@ -91,12 +99,19 @@ protected:
     {
     }
 
+    // Только при ApplicationConfig::ui: строит интерфейс кадра вызовами ImGui.
+    virtual void onGui()
+    {
+    }
+
     virtual void onShutdown()
     {
     }
 
 private:
     void initSettingsAndLanguage();
+    void initUi();
+    void shutdownUi();
     void mainLoop();
 
     ApplicationConfig m_config;
@@ -107,6 +122,8 @@ private:
     std::unique_ptr<Window> m_window;
     std::unique_ptr<Renderer> m_renderer;
     bool m_running = false;
+    // ImGui хранит только указатель на строку с путём, поэтому она живёт здесь.
+    std::string m_uiIniPath;
 };
 
 } // namespace yqlora

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "yqlora/math/Math.hpp"
+#include "yqlora/platform/MouseWrap.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 
 #include <functional>
@@ -38,9 +39,13 @@ public:
     // во ввод, остальное в обработчики.
     void pollEvents(const WindowEvents& events, InputFeeder& input);
 
-    // Захваченный курсор скрыт и не упирается в края окна, а мышь отдаёт
-    // только смещение. Так работает обзор камерой в редакторе.
-    void setMouseCaptured(bool captured);
+    // Пока включено, курсор, дошедший до края окна, переносится к противоположному
+    // краю, а смещение мыши считается без скачка. Так обзор камерой в редакторе
+    // не упирается в край экрана, а курсор остаётся видно.
+    //
+    // Если система молча не переносит курсор (так в WSLg), перенос выключается
+    // до конца работы: обзор работает, но у края экрана поворот останавливается.
+    void setMouseWrapping(bool wrapping);
 
     void setTitle(const std::string& title);
 
@@ -58,7 +63,14 @@ public:
     }
 
 private:
+    // Смещение мыши в режиме переноса; переносит курсор, если он у края.
+    Vec2 wrappedMouseDelta(const Vec2& position);
+
     SDL_Window* m_window = nullptr;
+    MouseWrap m_mouseWrap;
+    bool m_mouseWrapping = false;
+    // Выяснилось, что система не переносит курсор: больше не пытаемся.
+    bool m_warpUnsupported = false;
 };
 
 } // namespace yqlora

@@ -35,6 +35,10 @@ public:
     // Коды языков, для которых есть файл в localesDir, отсортированы.
     std::vector<std::string> availableLanguages() const;
 
+    // Название языка на нём самом ("Русский"), из ключа language.name его файла.
+    // Если файла или ключа нет, возвращается код.
+    std::string displayName(std::string_view language) const;
+
     // Первый язык из preferred (в порядке предпочтения пользователя), который
     // есть в available. "ru_RU" и "ru-RU" сводятся к "ru".
     static std::string pickLanguage(std::span<const std::string> preferred,

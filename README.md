@@ -33,13 +33,23 @@ and a renderer hidden behind an API-agnostic interface.
 
 ## Roadmap
 
+MVP: a minimal editor in the spirit of Godot.
+
 - [x] Scene tree, components, transforms
 - [x] Type registry and scene serialization
 - [x] Renderer basics: shaders, primitive meshes, infinite editor grid, selection outline
 - [ ] Offscreen render targets for the editor viewport
 - [x] Input: keyboard, mouse, wheel; editor fly camera; picking objects with the mouse
-- [ ] Editor (Dear ImGui): project manager, scene tree, inspector, file browser, 3D viewport
+- [ ] Editor (Dear ImGui)
+  - [x] Docked layout, scene tree and 3D viewport with shared selection
+  - [ ] Inspector and the "Add node" dialog
+  - [ ] Project manager and file browser
+- [ ] Public API documentation
+
+Later:
+
 - [ ] Scripting
+- [ ] Vulkan and Direct3D 12 backends, GPU selection in settings
 - [ ] 2D
 
 ## Getting started
@@ -47,10 +57,10 @@ and a renderer hidden behind an API-agnostic interface.
 ### Requirements
 
 - CMake 3.24+
-- A C++20 compiler: GCC 13+ or Visual Studio 2022
-- Ninja (Linux)
+- A C++20 compiler: GCC 13+ (Linux, or MinGW-w64 on Windows) or Visual Studio 2022
+- Ninja (not needed with Visual Studio)
 
-SDL3, glm, nlohmann/json and doctest are downloaded by CMake during configuration.
+Libraries are downloaded by CMake during configuration, see [Third-party](#third-party).
 
 ### Linux / WSL
 
@@ -61,7 +71,7 @@ sudo apt install build-essential cmake ninja-build libx11-dev libxext-dev libxra
 
 make            # build (debug)
 make test       # build and run the tests
-make run        # build and run the sandbox
+make run        # build and run the engine with its editor
 make release    # build release; PRESET=release also works with test and run
 ```
 
@@ -71,7 +81,7 @@ The `Makefile` is a thin wrapper over CMake presets, which can be used directly:
 cmake --preset debug
 cmake --build --preset debug
 ctest --preset debug
-./build/debug/bin/sandbox
+./build/debug/bin/yqlora
 ```
 
 On WSL, Mesa falls back to software rendering (`llvmpipe`) by default. To render on the GPU
@@ -82,13 +92,24 @@ export GALLIUM_DRIVER=d3d12
 export MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA   # part of the adapter name
 ```
 
-### Windows (Visual Studio 2022)
+### Windows
+
+With Visual Studio 2022:
 
 ```powershell
 cmake --preset vs2022
 cmake --build --preset vs2022-debug
 ctest --preset vs2022-debug
-.\build\vs2022\bin\Debug\sandbox.exe
+.\build\vs2022\bin\Debug\yqlora.exe
+```
+
+With MinGW-w64 and Ninja in `PATH`, the same presets as on Linux work:
+
+```powershell
+cmake --preset debug
+cmake --build --preset debug
+ctest --preset debug
+.\build\debug\bin\yqlora.exe
 ```
 
 Visual Studio 2022 and VS Code (CMake Tools) pick up `CMakePresets.json` automatically.
@@ -96,18 +117,18 @@ Visual Studio 2022 and VS Code (CMake Tools) pick up `CMakePresets.json` automat
 On laptops with two GPUs, applications built on the engine ask the NVIDIA and AMD drivers
 for the discrete GPU. The choice can be overridden in Windows graphics settings.
 
-### Sandbox
+## Editor
 
-A small app for trying the engine by hand until the editor arrives.
+`yqlora` is a single program: the engine together with its editor, like `godot` for Godot.
+Panels can be dragged and docked; the layout is remembered between runs.
+The UI language is switched in View > Language. Controls in the 3D viewport:
 
 | Input | Action |
 |---|---|
-| Left click | Select an object, click on empty space to deselect |
-| Hold right button + mouse | Look around |
+| Left click | Select an object (also selects it in the scene tree), click on empty space to deselect |
+| Hold right button + mouse | Look around; the cursor wraps around the window edges |
 | Hold right button + `W` `A` `S` `D` | Fly, `Q` / `E` down and up, `Shift` faster |
 | Mouse wheel | Change the fly speed |
-| `F2` | Switch the UI language |
-| `Esc` | Quit |
 
 ## Project structure
 
@@ -115,12 +136,24 @@ A small app for trying the engine by hand until the editor arrives.
 |---|---|
 | `engine/include/` | Public API for games: math (`Vec3`, `Quat`, ...), scene, reflection, input, logging, `tr()` |
 | `engine/internal/` | Engine internals: window, platform, rendering, `Application`, settings |
-| `editor/` | Editor tools: fly camera, picking, selection |
+| `editor/` | Editor: fly camera, picking, selection; the `yqlora` program itself in `editor/app/` |
 | `backends/opengl/` | OpenGL renderer backend |
-| `sandbox/` | Manual testing app |
 | `tests/` | Unit tests |
 | `assets/locales/` | UI translations |
+| `assets/fonts/` | UI font |
 | `third_party/glad/` | Generated OpenGL loader |
+
+## Third-party
+
+| Component | License |
+|---|---|
+| [SDL3](https://github.com/libsdl-org/SDL) | zlib |
+| [glm](https://github.com/g-truc/glm) | MIT |
+| [nlohmann/json](https://github.com/nlohmann/json) | MIT |
+| [Dear ImGui](https://github.com/ocornut/imgui) | MIT |
+| [doctest](https://github.com/doctest/doctest) | MIT |
+| [glad](https://github.com/Dav1dde/glad) (generated loader) | CC0-1.0 or WTFPL; Khronos parts Apache-2.0 |
+| [Noto Sans](https://github.com/notofonts/latin-greek-cyrillic) font | [SIL OFL 1.1](assets/fonts/OFL.txt) |
 
 ## License
 

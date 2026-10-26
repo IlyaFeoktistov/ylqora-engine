@@ -30,7 +30,27 @@ FetchContent_Declare(nlohmann_json
     GIT_SHALLOW TRUE
 )
 
-FetchContent_MakeAvailable(SDL3 glm nlohmann_json)
+# Dear ImGui (ветка docking) для интерфейса редактора. Своего CMakeLists у неё нет,
+# поэтому цели собираем сами: ядро плюс платформенная часть на SDL3.
+# Часть для конкретного графического API собирает соответствующий бэкенд.
+FetchContent_Declare(imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG v1.92.9b-docking
+    GIT_SHALLOW TRUE
+)
+
+FetchContent_MakeAvailable(SDL3 glm nlohmann_json imgui)
+
+add_library(imgui STATIC
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
+)
+# SYSTEM: наши строгие предупреждения не распространяются на заголовки ImGui.
+target_include_directories(imgui SYSTEM PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+target_link_libraries(imgui PUBLIC SDL3::SDL3-static)
 
 if(YQLORA_BUILD_TESTS)
     FetchContent_Declare(doctest

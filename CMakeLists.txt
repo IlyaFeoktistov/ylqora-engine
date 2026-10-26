@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Все исполняемые файлы и ресурсы складываем в одну папку, чтобы sandbox и тесты
+# Все исполняемые файлы и ресурсы складываем в одну папку, чтобы программа и тесты
 # находили assets/ рядом с собой и на Linux, и на Windows (в т.ч. multi-config MSVC).
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 foreach(config ${CMAKE_CONFIGURATION_TYPES})
@@ -16,7 +16,6 @@ foreach(config ${CMAKE_CONFIGURATION_TYPES})
 endforeach()
 
 option(YQLORA_BACKEND_OPENGL "Build the OpenGL renderer backend" ON)
-option(YQLORA_BUILD_SANDBOX "Build the sandbox application" ON)
 option(YQLORA_BUILD_TESTS "Build unit tests" ON)
 
 include(cmake/Dependencies.cmake)
@@ -36,7 +35,7 @@ add_library(yqlora STATIC
     engine/src/render/RendererFactory.cpp
 )
 add_library(yqlora::yqlora ALIAS yqlora)
-target_link_libraries(yqlora PUBLIC yqlora::internal)
+target_link_libraries(yqlora PUBLIC yqlora::internal PRIVATE imgui)
 if(YQLORA_BACKEND_OPENGL)
     target_link_libraries(yqlora PRIVATE yqlora::opengl)
     target_compile_definitions(yqlora PRIVATE YQLORA_HAS_OPENGL=1)
@@ -44,10 +43,6 @@ endif()
 yqlora_set_warnings(yqlora)
 
 add_subdirectory(editor)
-
-if(YQLORA_BUILD_SANDBOX)
-    add_subdirectory(sandbox)
-endif()
 
 if(YQLORA_BUILD_TESTS)
     enable_testing()

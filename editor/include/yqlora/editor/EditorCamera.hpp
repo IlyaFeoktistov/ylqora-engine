@@ -13,7 +13,9 @@ namespace yqlora {
 // Q и E опускают и поднимают, Shift ускоряет. Колесо мыши меняет скорость.
 class EditorCamera {
 public:
-    void update(const Input& input, float deltaSeconds);
+    // hovered: курсор над окном сцены. Полёт начинается, только если правую
+    // кнопку нажали над ним, и длится, пока её не отпустят, даже если курсор ушёл.
+    void update(const Input& input, float deltaSeconds, bool hovered);
 
     // Правая кнопка зажата: курсор стоит захватить, а клики не считать выбором.
     bool flying() const

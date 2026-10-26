@@ -39,10 +39,22 @@ public:
     }
 
     void render(const FrameData& frame) override;
+    void render(const FrameData& frame, RenderTarget& target) override;
+    std::unique_ptr<RenderTarget> createRenderTarget(int width, int height) override;
+    void clearWindow(const Vec4& color) override;
+
+    void initUi() override;
+    void shutdownUi() override;
+    void beginUiFrame() override;
+    void renderUi() override;
+
     void present() override;
     void resize(int width, int height) override;
 
 private:
+    // Рисует сцену в привязанный сейчас framebuffer размером width x height.
+    void drawScene(const FrameData& frame, int width, int height);
+
     Window& m_window;
     SDL_GLContextState* m_context = nullptr;
     std::unique_ptr<GlMeshCache> m_meshes;
