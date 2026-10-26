@@ -43,6 +43,8 @@ cmake --build --preset debug
 .\build\debug\bin\yqlora.exe
 ```
 
+The program starts without a console; `yqlora.exe --debug` shows the log in one.
+
 ## Third-party
 
 | Component | License |

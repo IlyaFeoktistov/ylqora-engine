@@ -31,7 +31,12 @@ add_executable(yqlora_app
     ui/ViewportPanel.cpp
 )
 target_include_directories(yqlora_app PRIVATE ui)
-set_target_properties(yqlora_app PROPERTIES OUTPUT_NAME yqlora)
+# WIN32_EXECUTABLE: на Windows без окна консоли, она открывается флагом --debug.
+set_target_properties(yqlora_app PROPERTIES OUTPUT_NAME yqlora WIN32_EXECUTABLE TRUE)
+if(MSVC)
+    # Оконное приложение MSVC по умолчанию начинается с WinMain, у нас обычный main.
+    target_link_options(yqlora_app PRIVATE /ENTRY:mainCRTStartup)
+endif()
 target_link_libraries(yqlora_app PRIVATE yqlora::yqlora yqlora::editor imgui nlohmann_json::nlohmann_json)
 yqlora_set_warnings(yqlora_app)
 

@@ -43,6 +43,8 @@ cmake --build --preset debug
 .\build\debug\bin\yqlora.exe
 ```
 
+Программа запускается без консоли; `yqlora.exe --debug` показывает лог в консоли.
+
 ## Сторонние компоненты
 
 | Компонент | Лицензия |

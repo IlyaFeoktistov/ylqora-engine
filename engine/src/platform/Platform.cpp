@@ -4,7 +4,29 @@
 
 #include <SDL3/SDL.h>
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+
+#include <cstdio>
+#endif
+
 namespace yqlora::platform {
+
+void openConsole()
+{
+#ifdef _WIN32
+    if (!AttachConsole(ATTACH_PARENT_PROCESS) && !AllocConsole()) {
+        return;
+    }
+    FILE* stream = nullptr;
+    freopen_s(&stream, "CONOUT$", "w", stdout);
+    freopen_s(&stream, "CONOUT$", "w", stderr);
+    // Лог в UTF-8, иначе кириллица в путях превратится в кракозябры.
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+}
 
 bool initialize()
 {

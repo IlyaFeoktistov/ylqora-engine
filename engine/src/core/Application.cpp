@@ -1,6 +1,7 @@
 #include "yqlora/core/Application.hpp"
 
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/LogFile.hpp"
 #include "yqlora/core/Settings.hpp"
 #include "yqlora/i18n/Localization.hpp"
 #include "yqlora/platform/InputFeeder.hpp"
@@ -43,6 +44,7 @@ Application::~Application() = default;
 
 int Application::run()
 {
+    log::openFile(userDataDirectory() / "yqlora.log");
     if (!platform::initialize()) {
         return 1;
     }
