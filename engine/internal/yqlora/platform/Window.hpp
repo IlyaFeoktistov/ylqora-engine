@@ -4,7 +4,10 @@
 #include "yqlora/platform/MouseWrap.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 
+#include <filesystem>
 #include <functional>
+#include <memory>
+#include <optional>
 #include <string>
 
 struct SDL_Window;
@@ -47,6 +50,12 @@ public:
     // до конца работы: обзор работает, но у края экрана поворот останавливается.
     void setMouseWrapping(bool wrapping);
 
+    // Системный диалог выбора папки. Ответ придёт в callback из pollEvents,
+    // в главном потоке; nullopt, если выбор отменили или диалог недоступен.
+    // Пока открыт один диалог, второй не открывается.
+    using FolderCallback = std::function<void(std::optional<std::filesystem::path>)>;
+    void showFolderDialog(const std::filesystem::path& start, FolderCallback callback);
+
     void setTitle(const std::string& title);
 
     // В тех же единицах, что положение мыши. На экранах с масштабом
@@ -66,7 +75,13 @@ private:
     // Смещение мыши в режиме переноса; переносит курсор, если он у края.
     Vec2 wrappedMouseDelta(const Vec2& position);
 
+    // Диалог SDL может ответить из другого потока: ответ кладётся сюда,
+    // а отдаётся в pollEvents.
+    struct FolderDialog;
+    void deliverFolderDialog();
+
     SDL_Window* m_window = nullptr;
+    std::unique_ptr<FolderDialog> m_folderDialog;
     MouseWrap m_mouseWrap;
     bool m_mouseWrapping = false;
     // Выяснилось, что система не переносит курсор: больше не пытаемся.

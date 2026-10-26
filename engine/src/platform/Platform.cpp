@@ -45,6 +45,18 @@ std::filesystem::path userDataPath(std::string_view organization, std::string_vi
     return result;
 }
 
+std::filesystem::path documentsPath()
+{
+    if (const char* documents = SDL_GetUserFolder(SDL_FOLDER_DOCUMENTS)) {
+        return std::filesystem::path(reinterpret_cast<const char8_t*>(documents));
+    }
+    if (const char* home = SDL_GetUserFolder(SDL_FOLDER_HOME)) {
+        return std::filesystem::path(reinterpret_cast<const char8_t*>(home));
+    }
+
+    return std::filesystem::current_path();
+}
+
 std::vector<std::string> preferredLanguages()
 {
     std::vector<std::string> result;

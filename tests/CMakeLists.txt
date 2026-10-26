@@ -10,6 +10,7 @@ add_executable(yqlora_tests
     test_mesh.cpp
     test_input.cpp
     test_editor.cpp
+    test_project.cpp
     test_localization.cpp
     test_settings.cpp
 )

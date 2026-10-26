@@ -2,18 +2,24 @@
 add_library(yqlora_editor STATIC
     src/EditorCamera.cpp
     src/Picking.cpp
+    src/Project.cpp
+    src/ProjectList.cpp
 )
 add_library(yqlora::editor ALIAS yqlora_editor)
 
 target_include_directories(yqlora_editor PUBLIC include)
-target_link_libraries(yqlora_editor PUBLIC yqlora::internal)
+target_link_libraries(yqlora_editor
+    PUBLIC yqlora::internal
+    PRIVATE nlohmann_json::nlohmann_json
+)
 yqlora_set_warnings(yqlora_editor)
 
-# Сама программа: движок с редактором, как godot у Godot. Цель называется
-# иначе, потому что имя yqlora уже у библиотеки движка.
+# Программа yqlora: движок с редактором. Имя цели другое, потому что
+# yqlora уже занято библиотекой движка.
 add_executable(yqlora_app
     app/main.cpp
     app/EditorApp.cpp
+    app/ProjectManagerPanel.cpp
     app/SceneTreePanel.cpp
     app/ViewportPanel.cpp
 )

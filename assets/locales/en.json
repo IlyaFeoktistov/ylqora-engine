@@ -28,7 +28,9 @@
             "file": "File",
             "quit": "Quit",
             "view": "View",
-            "language": "Language"
+            "language": "Language",
+            "save": "Save scene",
+            "closeProject": "Close project"
         },
         "window": {
             "scene": "Scene",
@@ -36,6 +38,37 @@
         },
         "scene": {
             "empty": "The scene is empty"
+        }
+    },
+    "projects": {
+        "title": "Projects",
+        "new": "New project",
+        "import": "Import",
+        "open": "Open",
+        "remove": "Remove",
+        "empty": "No projects yet. Create a new one or import an existing one.",
+        "missing": "folder not found",
+        "column": {
+            "name": "Name",
+            "path": "Folder"
+        },
+        "name": "Name",
+        "location": "Location",
+        "browse": "Browse...",
+        "create": "Create",
+        "cancel": "Cancel",
+        "importPath": "Project folder",
+        "add": "Import",
+        "removeTitle": "Remove project",
+        "removeQuestion": "Remove the project from the list?",
+        "deleteFolder": "Also delete the project folder from disk",
+        "deleteWarning": "The folder will be deleted for good.",
+        "error": {
+            "invalidName": "The name must not be empty or contain / \\ : * ? \" < > |",
+            "exists": "A folder with this name already exists",
+            "cannotCreate": "Could not create the project folder",
+            "notProject": "There is no project.yqlora in this folder",
+            "cannotDelete": "Could not delete the project folder"
         }
     }
 }

@@ -84,7 +84,7 @@ int Application::run()
 
 void Application::initSettingsAndLanguage()
 {
-    const auto settingsFile = platform::userDataPath(kOrganization, m_config.name) / "settings.json";
+    const auto settingsFile = userDataDirectory() / "settings.json";
     m_settings = std::make_unique<Settings>(settingsFile);
     m_settings->load();
     log::info("Settings: {}", settingsFile.string());
@@ -114,11 +114,35 @@ bool Application::setLanguage(std::string_view language)
     }
     m_settings->language = std::string(language);
     m_settings->save();
-    if (m_window) {
-        m_window->setTitle(tr(m_config.titleKey));
-    }
+    updateTitle();
 
     return true;
+}
+
+std::filesystem::path Application::userDataDirectory() const
+{
+    return platform::userDataPath(kOrganization, m_config.name);
+}
+
+void Application::setTitleDetail(std::string detail)
+{
+    m_titleDetail = std::move(detail);
+    updateTitle();
+}
+
+void Application::updateTitle()
+{
+    if (!m_window) {
+        return;
+    }
+    const std::string title = tr(m_config.titleKey);
+    m_window->setTitle(m_titleDetail.empty() ? title : m_titleDetail + " - " + title);
+}
+
+void Application::showFolderDialog(const std::filesystem::path& start,
+                                   std::function<void(std::optional<std::filesystem::path>)> callback)
+{
+    m_window->showFolderDialog(start, std::move(callback));
 }
 
 void Application::initUi()
@@ -129,7 +153,7 @@ void Application::initUi()
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
     // Раскладку окон храним рядом с настройками, а не в текущей папке.
-    m_uiIniPath = (platform::userDataPath(kOrganization, m_config.name) / "imgui.ini").string();
+    m_uiIniPath = (userDataDirectory() / "imgui.ini").string();
     io.IniFilename = m_uiIniPath.c_str();
 
     ImGui::StyleColorsDark();

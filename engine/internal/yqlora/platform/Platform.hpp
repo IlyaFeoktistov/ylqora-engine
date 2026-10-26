@@ -18,6 +18,9 @@ std::filesystem::path executableDir();
 // %APPDATA%\<org>\<app> на Windows. Создаётся при первом обращении.
 std::filesystem::path userDataPath(std::string_view organization, std::string_view application);
 
+// Папка "Документы" пользователя; если система её не знает, домашняя папка.
+std::filesystem::path documentsPath();
+
 // Языки пользователя в порядке предпочтения, как их отдаёт ОС: "ru_RU", "en"...
 std::vector<std::string> preferredLanguages();
 

@@ -5,7 +5,10 @@
 #include "yqlora/render/GraphicsApi.hpp"
 #include "yqlora/scene/Scene.hpp"
 
+#include <filesystem>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -85,6 +88,17 @@ public:
     // Переключает язык интерфейса и сохраняет выбор в настройках.
     bool setLanguage(std::string_view language);
 
+    // Папка для данных приложения в профиле пользователя (настройки, списки).
+    std::filesystem::path userDataDirectory() const;
+
+    // Уточнение в заголовке окна перед названием программы, например имя проекта.
+    // Пустая строка - только название.
+    void setTitleDetail(std::string detail);
+
+    // См. Window::showFolderDialog.
+    void showFolderDialog(const std::filesystem::path& start,
+                          std::function<void(std::optional<std::filesystem::path>)> callback);
+
 protected:
     virtual void onStart()
     {
@@ -110,6 +124,7 @@ protected:
 
 private:
     void initSettingsAndLanguage();
+    void updateTitle();
     void initUi();
     void shutdownUi();
     void mainLoop();
@@ -124,6 +139,7 @@ private:
     bool m_running = false;
     // ImGui хранит только указатель на строку с путём, поэтому она живёт здесь.
     std::string m_uiIniPath;
+    std::string m_titleDetail;
 };
 
 } // namespace yqlora
