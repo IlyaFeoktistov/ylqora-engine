@@ -7,6 +7,7 @@ add_library(yqlora_editor STATIC
     src/EditorSession.cpp
     src/Project.cpp
     src/ProjectList.cpp
+    src/TransformEdit.cpp
 )
 add_library(yqlora::editor ALIAS yqlora_editor)
 
@@ -38,7 +39,7 @@ if(MSVC)
     # Оконное приложение MSVC по умолчанию начинается с WinMain, у нас обычный main.
     target_link_options(yqlora_app PRIVATE /ENTRY:mainCRTStartup)
 endif()
-target_link_libraries(yqlora_app PRIVATE yqlora::yqlora yqlora::editor imgui nlohmann_json::nlohmann_json)
+target_link_libraries(yqlora_app PRIVATE yqlora::yqlora yqlora::editor imgui imguizmo nlohmann_json::nlohmann_json)
 yqlora_set_warnings(yqlora_app)
 
 # Ресурсы движка кладём рядом с исполняемым файлом.

@@ -54,6 +54,7 @@ cmake --build --preset debug
 | [glm](https://github.com/g-truc/glm) | MIT |
 | [nlohmann/json](https://github.com/nlohmann/json) | MIT |
 | [Dear ImGui](https://github.com/ocornut/imgui) | MIT |
+| [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) | MIT |
 | [doctest](https://github.com/doctest/doctest) | MIT |
 | [glad](https://github.com/Dav1dde/glad) (сгенерированный загрузчик) | CC0-1.0 или WTFPL; части Khronos - Apache-2.0 |
 | Шрифт [Noto Sans](https://github.com/notofonts/latin-greek-cyrillic) | [SIL OFL 1.1](assets/fonts/OFL.txt) |

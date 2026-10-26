@@ -39,7 +39,17 @@ FetchContent_Declare(imgui
     GIT_SHALLOW TRUE
 )
 
-FetchContent_MakeAvailable(SDL3 glm nlohmann_json imgui)
+# ImGuizmo: манипуляторы перемещения, поворота и масштаба в окне сцены редактора.
+# Её CMakeLists собирает лишнее, поэтому только скачиваем (SOURCE_SUBDIR без
+# CMakeLists) и собираем один нужный файл сами.
+FetchContent_Declare(imguizmo
+    GIT_REPOSITORY https://github.com/CedricGuillemet/ImGuizmo.git
+    GIT_TAG 1.10
+    GIT_SHALLOW TRUE
+    SOURCE_SUBDIR do-not-build
+)
+
+FetchContent_MakeAvailable(SDL3 glm nlohmann_json imgui imguizmo)
 
 add_library(imgui STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
@@ -52,6 +62,10 @@ add_library(imgui STATIC
 # SYSTEM: наши строгие предупреждения не распространяются на заголовки ImGui.
 target_include_directories(imgui SYSTEM PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${imgui_SOURCE_DIR}/misc/cpp)
 target_link_libraries(imgui PUBLIC SDL3::SDL3-static)
+
+add_library(imguizmo STATIC ${imguizmo_SOURCE_DIR}/src/ImGuizmo.cpp)
+target_include_directories(imguizmo SYSTEM PUBLIC ${imguizmo_SOURCE_DIR}/src)
+target_link_libraries(imguizmo PUBLIC imgui)
 
 if(YQLORA_BUILD_TESTS)
     FetchContent_Declare(doctest

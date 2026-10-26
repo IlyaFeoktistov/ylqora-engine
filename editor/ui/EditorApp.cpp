@@ -9,6 +9,8 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
+// ImGuizmo.h использует типы ImGui и должен идти после imgui.h.
+#include <ImGuizmo.h>
 
 namespace yqlora {
 
@@ -41,6 +43,7 @@ void EditorApp::onUpdate(float deltaSeconds)
 
 void EditorApp::onGui()
 {
+    ImGuizmo::BeginFrame();
     drawMenuBar();
 
     drawUnsavedDialog();

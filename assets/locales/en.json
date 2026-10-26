@@ -63,6 +63,15 @@
             "question": "Save changes to the scene?",
             "save": "Save",
             "discard": "Don't save"
+        },
+        "tool": {
+            "select": "Select",
+            "move": "Move",
+            "rotate": "Rotate",
+            "scale": "Scale",
+            "local": "Local",
+            "global": "Global",
+            "spaceHint": "Manipulator axes: the object's own or the world ones"
         }
     },
     "projects": {

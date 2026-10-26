@@ -3,6 +3,8 @@
 #include "yqlora/core/Log.hpp"
 
 #include <imgui.h>
+// ImGuizmo.h использует типы ImGui и должен идти после imgui.h.
+#include <ImGuizmo.h>
 #include <nlohmann/json.hpp>
 
 #include <fstream>
@@ -146,6 +148,22 @@ void applyEditorColors(const Json& json)
     read("axisW", g_colors.axisW);
 }
 
+// Манипуляторы окрашены в те же цвета осей, что и поля X, Y, Z в инспекторе.
+void applyManipulatorColors()
+{
+    ImGuizmo::Style& style = ImGuizmo::GetStyle();
+    const auto set = [&](ImGuizmo::COLOR slot, const Vec4& color) {
+        style.Colors[slot] = ImVec4(color.r, color.g, color.b, color.a);
+    };
+    set(ImGuizmo::DIRECTION_X, g_colors.axisX);
+    set(ImGuizmo::DIRECTION_Y, g_colors.axisY);
+    set(ImGuizmo::DIRECTION_Z, g_colors.axisZ);
+    set(ImGuizmo::PLANE_X, g_colors.axisX * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
+    set(ImGuizmo::PLANE_Y, g_colors.axisY * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
+    set(ImGuizmo::PLANE_Z, g_colors.axisZ * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
+    set(ImGuizmo::SELECTION, g_colors.selectionOutline);
+}
+
 } // namespace
 
 bool load(const std::filesystem::path& file, const std::filesystem::path& assetsDir)
@@ -165,6 +183,7 @@ bool load(const std::filesystem::path& file, const std::filesystem::path& assets
     applyStyle(json.value("style", Json()), style);
     applyColors(json.value("colors", Json()), style);
     applyEditorColors(json.value("editor", Json()));
+    applyManipulatorColors();
 
     return true;
 }

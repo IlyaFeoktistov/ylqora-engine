@@ -54,6 +54,7 @@ The program starts without a console and logs only warnings and errors;
 | [glm](https://github.com/g-truc/glm) | MIT |
 | [nlohmann/json](https://github.com/nlohmann/json) | MIT |
 | [Dear ImGui](https://github.com/ocornut/imgui) | MIT |
+| [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) | MIT |
 | [doctest](https://github.com/doctest/doctest) | MIT |
 | [glad](https://github.com/Dav1dde/glad) (generated loader) | CC0-1.0 or WTFPL; Khronos parts Apache-2.0 |
 | [Noto Sans](https://github.com/notofonts/latin-greek-cyrillic) font | [SIL OFL 1.1](assets/fonts/OFL.txt) |
