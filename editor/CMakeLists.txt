@@ -31,8 +31,13 @@ add_executable(yqlora_app
     ui/PropertyEditor.cpp
     ui/SceneTreePanel.cpp
     ui/Theme.cpp
-    ui/ViewportGizmos.cpp
     ui/ViewportPanel.cpp
+    ui/gizmos/AxisGizmo.cpp
+    ui/gizmos/CameraGizmo.cpp
+    ui/gizmos/GizmoLayer.cpp
+    ui/gizmos/GridGizmo.cpp
+    ui/gizmos/ManipulatorGizmo.cpp
+    ui/gizmos/SelectionGizmo.cpp
 )
 target_include_directories(yqlora_app PRIVATE ui)
 # WIN32_EXECUTABLE: на Windows без окна консоли, она открывается флагом --debug.

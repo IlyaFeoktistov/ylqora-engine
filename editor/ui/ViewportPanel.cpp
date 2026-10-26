@@ -1,33 +1,39 @@
 #include "ViewportPanel.hpp"
 
-#include "Icons.hpp"
 #include "Theme.hpp"
-#include "ViewportGizmos.hpp"
+#include "gizmos/AxisGizmo.hpp"
+#include "gizmos/CameraGizmo.hpp"
+#include "gizmos/GridGizmo.hpp"
+#include "gizmos/ManipulatorGizmo.hpp"
+#include "gizmos/SelectionGizmo.hpp"
 
 #include "yqlora/core/Application.hpp"
-#include "yqlora/editor/Picking.hpp"
-#include "yqlora/editor/TransformEdit.hpp"
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/render/FrameBuilder.hpp"
 #include "yqlora/render/Renderer.hpp"
 #include "yqlora/scene/Camera3D.hpp"
-#include "yqlora/scene/Node3D.hpp"
 #include "yqlora/scene/Scene.hpp"
 
-#include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
-// ImGuizmo.h использует типы ImGui и должен идти после imgui.h.
-#include <ImGuizmo.h>
 
 #include <string>
 
 namespace yqlora {
 
+ViewportPanel::ViewportPanel()
+{
+    // Порядок - приоритет мыши: манипулятор и оси раньше выбора кликом.
+    m_gizmos.add(std::make_unique<ManipulatorGizmo>());
+    m_gizmos.add(std::make_unique<AxisGizmo>());
+    m_gizmos.add(std::make_unique<CameraGizmo>());
+    m_gizmos.add(std::make_unique<SelectionGizmo>());
+    m_gizmos.add(std::make_unique<GridGizmo>());
+}
+
 void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSeconds)
 {
     Scene& scene = session.scene();
-    Selection& selection = session.selection();
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     const std::string title = tr("editor.window.viewport") + "###Viewport";
@@ -55,54 +61,38 @@ void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSe
     const UiTexture texture = m_target->uiTexture();
     ImGui::Image(ImTextureRef(texture.id), size, ImVec2(texture.uv0.x, texture.uv0.y),
                  ImVec2(texture.uv1.x, texture.uv1.y));
-    // Во время игры окно показывает игру: камера сцены, без инструментов редактора.
+    const bool hovered = ImGui::IsWindowHovered()
+                         && ImGui::IsMouseHoveringRect(origin, ImVec2(origin.x + size.x, origin.y + size.y));
+
+    // Игра показывается через свою камеру, и инструменты редактора ей не нужны.
     const bool playing = session.playing();
     const Camera3D* gameCamera = playing ? scene.activeCamera() : nullptr;
+    m_gizmos.setEnabled(!playing);
 
-    const bool toolbarHovered = !playing && drawToolbar(origin);
-    const bool hovered = ImGui::IsWindowHovered() && !toolbarHovered
-                         && ImGui::IsMouseHoveringRect(origin, ImVec2(origin.x + size.x, origin.y + size.y));
-    if (!playing && hovered && !m_camera.flying()) {
-        handleToolHotkeys();
-    }
-
-    m_camera.update(app.input(), deltaSeconds, hovered && !gameCamera);
+    m_camera.update(app.input(), deltaSeconds, hovered && !gameCamera && !m_mouseOverGizmo);
     setFlying(m_camera.flying());
 
-    // Камера уже на новом месте: рисунки поверх кадра строим по ней.
-    const CameraData view = m_camera.cameraData(size.x / size.y, app.depthRange());
-    if (const Node* root = scene.root(); root && !playing) {
-        gizmos::drawCameras(*root, selection.selected(), view, origin, size);
-    }
-    bool overWidget = false;
-    if (!playing) {
-        const bool manipulatorActive = drawManipulator(session, view, origin, size);
-        const gizmos::AxisGizmoResult axes = gizmos::drawAxes(view.view, origin, size);
-        if (axes.lookAlong) {
-            m_camera.lookAlong(*axes.lookAlong);
-        }
-        overWidget = axes.hovered || manipulatorActive;
-    } else {
+    const float aspect = size.x / size.y;
+    GizmoContext context{
+        .session = session,
+        .camera = m_camera,
+        .view = m_camera.cameraData(aspect, app.depthRange()),
+        .origin = origin,
+        .size = size,
+        .mouseFree = hovered && !m_camera.flying(),
+    };
+    m_mouseOverGizmo = m_gizmos.draw(context);
+    if (playing) {
         drawPlayModeFrame(origin, size, gameCamera != nullptr);
-    }
-
-    if (!playing && hovered && !overWidget && !m_camera.flying() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-        const ImVec2 mouse = ImGui::GetMousePos();
-        const Ray ray = m_camera.screenRay({mouse.x - origin.x, mouse.y - origin.y}, {size.x, size.y});
-        selection.select(pickNode(scene, ray));
     }
 
     // Текстура уже стоит в списке отрисовки интерфейса, а нарисуется он позже,
     // так что кадр сцены успевает попасть в неё в этом же кадре.
-    FrameData frame = buildFrameData(scene, size.x / size.y, app.depthRange());
+    FrameData frame = buildFrameData(scene, aspect, app.depthRange());
     if (!gameCamera) {
-        frame.camera = m_camera.cameraData(size.x / size.y, app.depthRange());
+        frame.camera = m_camera.cameraData(aspect, app.depthRange());
     }
-    if (!playing) {
-        frame.editor.grid = true;
-        frame.editor.selected = selection.selected();
-        frame.editor.outlineColor = theme::colors().selectionOutline;
-    }
+    m_gizmos.prepareFrame(frame, session);
     app.renderer().render(frame, *m_target);
 
     ImGui::End();
@@ -110,118 +100,15 @@ void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSe
 
 void ViewportPanel::drawPlayModeFrame(const ImVec2& origin, const ImVec2& size, bool hasCamera)
 {
-    const Vec4& color = theme::colors().playMode;
     ImDrawList& list = *ImGui::GetWindowDrawList();
-    list.AddRect(origin, ImVec2(origin.x + size.x, origin.y + size.y),
-                 ImGui::GetColorU32(ImVec4(color.r, color.g, color.b, color.a)), 0.0f, 0, 2.0f);
+    list.AddRect(origin, ImVec2(origin.x + size.x, origin.y + size.y), theme::toImU32(theme::colors().playMode), 0.0f,
+                 0, 2.0f);
     if (!hasCamera) {
         // Без активной камеры игре не через что показываться: смотрим через камеру редактора.
         const std::string text = tr("editor.play.noCamera");
         list.AddText(ImVec2(origin.x + 12.0f, origin.y + size.y - ImGui::GetTextLineHeight() - 10.0f),
                      ImGui::GetColorU32(ImGuiCol_Text), text.c_str());
     }
-}
-
-bool ViewportPanel::drawToolbar(const ImVec2& origin)
-{
-    struct Button {
-        Tool tool;
-        const char* icon;
-        const char* labelKey;
-        const char* hotkey;
-    };
-    static constexpr Button kButtons[] = {
-        {Tool::Select, icons::kSelect, "editor.tool.select", "Q"},
-        {Tool::Move, icons::kMove, "editor.tool.move", "W"},
-        {Tool::Rotate, icons::kRotate, "editor.tool.rotate", "E"},
-        {Tool::Scale, icons::kScale, "editor.tool.scale", "R"},
-    };
-
-    const ImVec2 start(origin.x + 8.0f, origin.y + 8.0f);
-    ImGui::SetCursorScreenPos(start);
-    bool toolbarHovered = false;
-    for (const Button& button : kButtons) {
-        const bool active = m_tool == button.tool;
-        if (active) {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-        }
-        if (ImGui::Button(button.icon)) {
-            m_tool = button.tool;
-        }
-        if (active) {
-            ImGui::PopStyleColor();
-        }
-        toolbarHovered = toolbarHovered || ImGui::IsItemHovered();
-        ImGui::SetItemTooltip("%s (%s)", tr(button.labelKey).c_str(), button.hotkey);
-        ImGui::SameLine(0.0f, 2.0f);
-    }
-
-    ImGui::SameLine(0.0f, 12.0f);
-    if (ImGui::Button(m_localSpace ? icons::kLocal : icons::kGlobal)) {
-        m_localSpace = !m_localSpace;
-    }
-    toolbarHovered = toolbarHovered || ImGui::IsItemHovered();
-    ImGui::SetItemTooltip("%s: %s", tr(m_localSpace ? "editor.tool.local" : "editor.tool.global").c_str(),
-                          tr("editor.tool.spaceHint").c_str());
-
-    return toolbarHovered;
-}
-
-void ViewportPanel::handleToolHotkeys()
-{
-    // Пока печатают в поле ввода, буквы - это текст, а не инструменты.
-    if (ImGui::GetIO().WantTextInput) {
-        return;
-    }
-    if (ImGui::IsKeyPressed(ImGuiKey_Q, false)) {
-        m_tool = Tool::Select;
-    } else if (ImGui::IsKeyPressed(ImGuiKey_W, false)) {
-        m_tool = Tool::Move;
-    } else if (ImGui::IsKeyPressed(ImGuiKey_E, false)) {
-        m_tool = Tool::Rotate;
-    } else if (ImGui::IsKeyPressed(ImGuiKey_R, false)) {
-        m_tool = Tool::Scale;
-    }
-}
-
-bool ViewportPanel::drawManipulator(EditorSession& session, const CameraData& view, const ImVec2& origin,
-                                    const ImVec2& size)
-{
-    auto* node = dynamic_cast<Node3D*>(session.selectedNode());
-    if (!node || m_tool == Tool::Select || m_camera.flying()) {
-        return false;
-    }
-
-    ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
-    switch (m_tool) {
-    case Tool::Rotate:
-        operation = ImGuizmo::ROTATE;
-        break;
-    case Tool::Scale:
-        operation = ImGuizmo::SCALE;
-        break;
-    case Tool::Select:
-    case Tool::Move:
-        break;
-    }
-    // Масштаб в ImGuizmo бывает только по своим осям объекта.
-    const ImGuizmo::MODE mode = m_localSpace || m_tool == Tool::Scale ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
-
-    // Доля высоты окна, которую занимает манипулятор. Стандартный (0.1) мелковат.
-    constexpr float kManipulatorSize = 0.15f;
-    ImGuizmo::SetGizmoSizeClipSpace(kManipulatorSize);
-    ImGuizmo::SetDrawlist();
-    ImGuizmo::SetRect(origin.x, origin.y, size.x, size.y);
-    ImGuizmo::SetOrthographic(false);
-
-    Mat4 world = node->worldMatrix();
-    if (ImGuizmo::Manipulate(glm::value_ptr(view.view), glm::value_ptr(view.projection), operation, mode,
-                             glm::value_ptr(world))) {
-        setWorldMatrix(*node, world);
-        session.markModified();
-    }
-
-    return ImGuizmo::IsOver() || ImGuizmo::IsUsing();
 }
 
 void ViewportPanel::setFlying(bool flying)

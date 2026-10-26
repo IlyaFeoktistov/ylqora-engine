@@ -36,6 +36,11 @@ public:
         return m_selection;
     }
 
+    const Selection& selection() const
+    {
+        return m_selection;
+    }
+
     // Открывает проект и его главную сцену. Если сцена не читается, проект
     // всё равно открывается с пустой сценой, а метод возвращает false.
     bool open(const Project& project);

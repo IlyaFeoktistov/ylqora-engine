@@ -124,7 +124,7 @@ void FileSystemPanel::drawEntry(const projectfiles::Entry& entry, EditorSession&
     // Открытая сцена выделена цветом, чтобы было видно, что сейчас правится.
     if (openScene) {
         const Vec4& accent = theme::colors().selectionOutline;
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(accent.r, accent.g, accent.b, accent.a));
+        ImGui::PushStyleColor(ImGuiCol_Text, theme::toImVec4(accent));
     }
     const std::string id = toUtf8(entry.path);
     // Иконка папки зависит от того, раскрыта ли она, а это известно до отрисовки узла.
@@ -221,7 +221,7 @@ void FileSystemPanel::drawRenameDialog(EditorSession& session)
     const bool entered = ImGui::InputText("##name", &m_newName, ImGuiInputTextFlags_EnterReturnsTrue);
     if (!m_error.empty()) {
         const Vec4& color = theme::colors().errorText;
-        ImGui::TextColored(ImVec4(color.r, color.g, color.b, color.a), "%s", tr(m_error).c_str());
+        ImGui::TextColored(theme::toImVec4(color), "%s", tr(m_error).c_str());
     }
 
     if (ImGui::Button(tr("editor.files.rename").c_str()) || entered) {

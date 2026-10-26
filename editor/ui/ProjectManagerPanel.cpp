@@ -33,7 +33,7 @@ void drawError(const std::string& errorKey)
 {
     if (!errorKey.empty()) {
         const Vec4& color = theme::colors().errorText;
-        ImGui::TextColored(ImVec4(color.r, color.g, color.b, color.a), "%s", tr(errorKey).c_str());
+        ImGui::TextColored(theme::toImVec4(color), "%s", tr(errorKey).c_str());
     }
 }
 

@@ -2,6 +2,8 @@
 
 #include "yqlora/math/Math.hpp"
 
+#include <imgui.h>
+
 #include <filesystem>
 
 namespace yqlora {
@@ -31,6 +33,17 @@ namespace theme {
 bool load(const std::filesystem::path& file, const std::filesystem::path& assetsDir);
 
 const EditorColors& colors();
+
+// Цвет темы в виде, который принимает ImGui. alpha умножается на прозрачность цвета.
+inline ImVec4 toImVec4(const Vec4& color, float alpha = 1.0f)
+{
+    return {color.r, color.g, color.b, color.a * alpha};
+}
+
+inline ImU32 toImU32(const Vec4& color, float alpha = 1.0f)
+{
+    return ImGui::GetColorU32(toImVec4(color, alpha));
+}
 
 } // namespace theme
 

@@ -30,11 +30,6 @@ float dragSpeed(const Property& property)
     }
 }
 
-ImVec4 toImVec4(const Vec4& color)
-{
-    return {color.r, color.g, color.b, color.a};
-}
-
 // Подпись, которую можно тянуть мышью, как в Unity. Меняет value и
 // отмечает в result, что значение тянут.
 void dragLabel(const char* id, const char* text, const ImVec4& color, float& value, float speed, PropertyResult& result)
@@ -80,8 +75,8 @@ void vectorFields(float* values, int count, float speed, PropertyResult& result)
 {
     static constexpr const char* kNames[] = {"X", "Y", "Z", "W"};
     const EditorColors& colors = theme::colors();
-    const ImVec4 axisColors[] = {toImVec4(colors.axisX), toImVec4(colors.axisY), toImVec4(colors.axisZ),
-                                 toImVec4(colors.axisW)};
+    const ImVec4 axisColors[] = {theme::toImVec4(colors.axisX), theme::toImVec4(colors.axisY), theme::toImVec4(colors.axisZ),
+                                 theme::toImVec4(colors.axisW)};
 
     const ImGuiStyle& style = ImGui::GetStyle();
     const float labelWidth = ImGui::CalcTextSize("X").x + style.FramePadding.x * 2.0f;

@@ -99,7 +99,8 @@ void EditorApp::onCloseRequested()
 void EditorApp::openProject(const Project& project)
 {
     m_session.open(project);
-    m_viewport.camera().setPosition({0.0f, 2.5f, 6.0f});
+    // Наискосок сверху, как вид по умолчанию в Blender: видно все три оси сразу.
+    m_viewport.camera().setPosition({6.0f, 4.5f, 6.0f});
     m_viewport.camera().lookAt({0.0f, 0.5f, 0.0f});
     m_files.refresh();
     updateTitle();
@@ -246,7 +247,7 @@ void EditorApp::drawPlayControls()
     const Vec4& accent = theme::colors().playMode;
     const bool playing = m_session.playing();
     if (playing) {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(accent.r, accent.g, accent.b, accent.a));
+        ImGui::PushStyleColor(ImGuiCol_Text, theme::toImVec4(accent));
     }
     if (ImGui::SmallButton(icons::kPlay)) {
         togglePlay();
@@ -259,7 +260,7 @@ void EditorApp::drawPlayControls()
     ImGui::BeginDisabled(!playing);
     const bool paused = m_session.paused();
     if (paused) {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(accent.r, accent.g, accent.b, accent.a));
+        ImGui::PushStyleColor(ImGuiCol_Text, theme::toImVec4(accent));
     }
     if (ImGui::SmallButton(icons::kPause)) {
         m_session.setPaused(!paused);

@@ -162,7 +162,7 @@ void applyManipulatorColors()
 {
     ImGuizmo::Style& style = ImGuizmo::GetStyle();
     const auto set = [&](ImGuizmo::COLOR slot, const Vec4& color) {
-        style.Colors[slot] = ImVec4(color.r, color.g, color.b, color.a);
+        style.Colors[slot] = theme::toImVec4(color);
     };
     set(ImGuizmo::DIRECTION_X, g_colors.axisX);
     set(ImGuizmo::DIRECTION_Y, g_colors.axisY);
