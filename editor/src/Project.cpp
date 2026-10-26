@@ -115,6 +115,25 @@ std::optional<Project> Project::create(const std::filesystem::path& location, co
     return project;
 }
 
+bool Project::deleteFolder(const std::filesystem::path& directory, std::string& error)
+{
+    std::error_code ec;
+    if (!std::filesystem::is_regular_file(directory / kFileName, ec)) {
+        error = "projects.error.notProject";
+
+        return false;
+    }
+    std::filesystem::remove_all(directory, ec);
+    if (ec) {
+        log::error("Cannot delete project folder '{}': {}", toUtf8(directory), ec.message());
+        error = "projects.error.cannotDelete";
+
+        return false;
+    }
+
+    return true;
+}
+
 bool Project::isValidName(std::string_view name)
 {
     if (name.empty() || name.size() > 64 || name == "." || name == "..") {

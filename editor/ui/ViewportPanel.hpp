@@ -8,14 +8,13 @@
 namespace yqlora {
 
 class Application;
-class Scene;
-class Selection;
+class EditorSession;
 
 // Окно сцены: кадр рисуется в текстуру и показывается внутри окна интерфейса.
 // Над ним работают камера редактора и выбор объектов кликом.
 class ViewportPanel {
 public:
-    void draw(Application& app, Scene& scene, Selection& selection, float deltaSeconds);
+    void draw(Application& app, EditorSession& session, float deltaSeconds);
 
     EditorCamera& camera()
     {

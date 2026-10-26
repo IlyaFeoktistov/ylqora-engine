@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/Project.hpp>
 #include <yqlora/editor/ProjectList.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
@@ -100,4 +101,70 @@ TEST_CASE("ProjectList: missing file means an empty list")
     ProjectList list(freshDirectory("project_list_missing") / "projects.json");
     list.load();
     CHECK(list.entries().empty());
+}
+
+TEST_CASE("EditorSession: open, change, save and reopen a project")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    const SceneSerializer serializer(registry);
+    std::string error;
+    const auto project = Project::create(freshDirectory("session"), "Game", serializer, error);
+    REQUIRE(project);
+
+    Scene scene;
+    EditorSession session(scene, serializer);
+    CHECK_FALSE(session.saveScene()); // проект ещё не открыт
+
+    REQUIRE(session.open(*project));
+    REQUIRE(scene.root());
+    session.selection().select(scene.root()->id());
+    scene.root()->setName("Renamed");
+    REQUIRE(session.saveScene());
+
+    session.close();
+    CHECK(scene.empty());
+    CHECK_FALSE(session.project());
+    CHECK(session.selection().selected() == 0);
+
+    REQUIRE(session.open(*project));
+    CHECK(scene.root()->name() == "Renamed");
+}
+
+TEST_CASE("EditorSession: a project with a broken scene opens with an empty scene")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    const SceneSerializer serializer(registry);
+    std::string error;
+    const auto project = Project::create(freshDirectory("session_broken"), "Game", serializer, error);
+    REQUIRE(project);
+    std::filesystem::remove(project->mainScenePath());
+
+    Scene scene;
+    scene.createRoot<Node>("FromBefore");
+    EditorSession session(scene, serializer);
+    CHECK_FALSE(session.open(*project));
+    CHECK(session.project());
+    CHECK(scene.empty());
+}
+
+TEST_CASE("Project: deleteFolder removes only real project folders")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    const SceneSerializer serializer(registry);
+    const auto location = freshDirectory("project_delete");
+    std::string error;
+    const auto project = Project::create(location, "Game", serializer, error);
+    REQUIRE(project);
+
+    const auto notProject = location / "Photos";
+    std::filesystem::create_directories(notProject);
+    CHECK_FALSE(Project::deleteFolder(notProject, error));
+    CHECK(error == "projects.error.notProject");
+    CHECK(std::filesystem::exists(notProject));
+
+    CHECK(Project::deleteFolder(project->directory, error));
+    CHECK_FALSE(std::filesystem::exists(project->directory));
 }

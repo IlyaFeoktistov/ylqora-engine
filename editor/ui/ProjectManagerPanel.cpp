@@ -1,5 +1,7 @@
 #include "ProjectManagerPanel.hpp"
 
+#include "Theme.hpp"
+
 #include "yqlora/core/Application.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/editor/ProjectList.hpp"
@@ -29,7 +31,8 @@ std::filesystem::path fromUtf8(const std::string& text)
 void drawError(const std::string& errorKey)
 {
     if (!errorKey.empty()) {
-        ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.4f, 1.0f), "%s", tr(errorKey).c_str());
+        const Vec4& color = theme::colors().errorText;
+        ImGui::TextColored(ImVec4(color.r, color.g, color.b, color.a), "%s", tr(errorKey).c_str());
     }
 }
 
@@ -286,17 +289,7 @@ void ProjectManagerPanel::drawRemoveDialog()
 
     ImGui::Separator();
     if (ImGui::Button(tr("projects.remove").c_str())) {
-        bool removed = true;
-        // Удаляем только папку, в которой действительно лежит проект.
-        if (m_deleteFolder && !row.missing && Project::load(row.directory)) {
-            std::error_code ec;
-            std::filesystem::remove_all(row.directory, ec);
-            if (ec) {
-                log::error("Cannot delete project folder '{}': {}", toUtf8(row.directory), ec.message());
-                m_error = "projects.error.cannotDelete";
-                removed = false;
-            }
-        }
+        const bool removed = !m_deleteFolder || row.missing || Project::deleteFolder(row.directory, m_error);
         if (removed) {
             m_projects.remove(row.directory);
             m_selected = -1;

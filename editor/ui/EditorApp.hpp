@@ -1,18 +1,18 @@
 #pragma once
 
+#include "InspectorPanel.hpp"
 #include "ProjectManagerPanel.hpp"
 #include "SceneTreePanel.hpp"
 #include "ViewportPanel.hpp"
 
 #include "yqlora/core/Application.hpp"
+#include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/editor/Project.hpp"
 #include "yqlora/editor/ProjectList.hpp"
-#include "yqlora/editor/Selection.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
 
 #include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,11 +29,24 @@ protected:
     void onStart() override;
     void onUpdate(float deltaSeconds) override;
     void onGui() override;
+    void onCloseRequested() override;
 
 private:
+    // Что сделать после ответа на вопрос о несохранённых изменениях.
+    enum class PendingAction {
+        None,
+        CloseProject,
+        Quit,
+    };
+
     void openProject(const Project& project);
     void closeProject();
     void saveScene();
+    // Если есть несохранённые изменения, сначала спрашивает, сохранить ли их.
+    void request(PendingAction action);
+    void perform(PendingAction action);
+    void drawUnsavedDialog();
+    void updateTitle();
 
     void drawMenuBar();
     void drawLanguageMenu();
@@ -45,11 +58,15 @@ private:
     SceneSerializer m_serializer{m_registry};
     std::unique_ptr<ProjectList> m_projects;
     std::unique_ptr<ProjectManagerPanel> m_projectManager;
-    std::optional<Project> m_project;
+    EditorSession m_session{scene(), m_serializer};
 
-    Selection m_selection;
     SceneTreePanel m_sceneTree;
+    InspectorPanel m_inspector;
     ViewportPanel m_viewport;
+    PendingAction m_pending = PendingAction::None;
+    bool m_unsavedRequested = false;
+    // Что сейчас в заголовке окна, чтобы не менять его каждый кадр.
+    bool m_titleModified = false;
     float m_deltaSeconds = 0.0f;
     bool m_layoutChecked = false;
     // Языки с названиями. Названия читаются из файлов, поэтому один раз при старте.

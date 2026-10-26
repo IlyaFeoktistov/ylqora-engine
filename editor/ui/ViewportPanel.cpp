@@ -1,8 +1,10 @@
 #include "ViewportPanel.hpp"
 
+#include "Theme.hpp"
+
 #include "yqlora/core/Application.hpp"
 #include "yqlora/editor/Picking.hpp"
-#include "yqlora/editor/Selection.hpp"
+#include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/render/FrameBuilder.hpp"
 #include "yqlora/render/Renderer.hpp"
@@ -13,8 +15,11 @@
 
 namespace yqlora {
 
-void ViewportPanel::draw(Application& app, Scene& scene, Selection& selection, float deltaSeconds)
+void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSeconds)
 {
+    Scene& scene = session.scene();
+    Selection& selection = session.selection();
+
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     const std::string title = tr("editor.window.viewport") + "###Viewport";
     const bool visible = ImGui::Begin(title.c_str());
@@ -58,6 +63,7 @@ void ViewportPanel::draw(Application& app, Scene& scene, Selection& selection, f
     frame.camera = m_camera.cameraData(size.x / size.y, app.depthRange());
     frame.editor.grid = true;
     frame.editor.selected = selection.selected();
+    frame.editor.outlineColor = theme::colors().selectionOutline;
     app.renderer().render(frame, *m_target);
 
     ImGui::End();

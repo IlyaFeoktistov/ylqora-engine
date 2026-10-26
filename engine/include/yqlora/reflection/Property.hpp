@@ -51,6 +51,13 @@ constexpr PropertyType propertyTypeOf()
     }
 }
 
+// Как показывать свойство в инспекторе, если обычного поля для его типа мало.
+enum class PropertyHint {
+    None,
+    Color, // Vec4 как цвет RGBA с палитрой
+    Mesh,  // строка с именем меша: выбор из доступных мешей
+};
+
 // Свойство узла или компонента: имя, тип и доступ к значению. Создаётся
 // через TypeBuilder при регистрации типа в TypeRegistry.
 class Property {
@@ -63,6 +70,11 @@ public:
     PropertyType type() const
     {
         return m_type;
+    }
+
+    PropertyHint hint() const
+    {
+        return m_hint;
     }
 
     // Объект должен быть того типа, для которого зарегистрировано свойство, или его наследником.
@@ -84,6 +96,7 @@ private:
 
     std::string m_name;
     PropertyType m_type = PropertyType::Bool;
+    PropertyHint m_hint = PropertyHint::None;
     bool m_forNode = false;
     Getter m_get;
     Setter m_set;

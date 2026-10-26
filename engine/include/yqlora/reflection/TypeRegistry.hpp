@@ -92,13 +92,14 @@ public:
     // Свойство через getter и setter: методы класса или любые вызываемые объекты
     // вида Value(const Class&) и void(Class&, Value).
     template <typename Getter, typename Setter>
-    TypeBuilder& property(std::string name, Getter getter, Setter setter)
+    TypeBuilder& property(std::string name, Getter getter, Setter setter, PropertyHint hint = PropertyHint::None)
     {
         using Value = std::remove_cvref_t<std::invoke_result_t<Getter, const Class&>>;
 
         Property property;
         property.m_name = std::move(name);
         property.m_type = propertyTypeOf<Value>();
+        property.m_hint = hint;
         property.m_forNode = std::is_same_v<Root, Node>;
         property.m_get = [getter](const void* object) -> PropertyValue {
             return PropertyValue(std::in_place_type<Value>, std::invoke(getter, cast(object)));
@@ -113,7 +114,7 @@ public:
 
     // Свойство-поле, когда getter и setter не нужны: .property("radius", &SphereShape::radius);
     template <typename Value>
-    TypeBuilder& property(std::string name, Value Class::*field)
+    TypeBuilder& property(std::string name, Value Class::*field, PropertyHint hint = PropertyHint::None)
     {
         const auto getter = [field](const Class& object) -> const Value& {
             return object.*field;
@@ -122,7 +123,7 @@ public:
             object.*field = value;
         };
 
-        return property(std::move(name), getter, setter);
+        return property(std::move(name), getter, setter, hint);
     }
 
 private:

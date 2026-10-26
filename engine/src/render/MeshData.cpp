@@ -80,6 +80,13 @@ MeshData makeSphere()
 
 } // namespace
 
+std::span<const std::string_view> builtinMeshNames()
+{
+    static constexpr std::string_view kNames[] = {"cube", "sphere", "plane"};
+
+    return kNames;
+}
+
 const MeshData* findBuiltinMesh(std::string_view name)
 {
     static const MeshData cube = makeCube();

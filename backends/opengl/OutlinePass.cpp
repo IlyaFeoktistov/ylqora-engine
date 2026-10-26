@@ -11,9 +11,6 @@ namespace yqlora {
 
 namespace {
 
-// Оранжевый, как у выделения в Godot и Blender.
-const Vec4 kOutlineColor(1.0f, 0.6f, 0.1f, 1.0f);
-
 constexpr const char* kMaskVertexShader = R"(
 #version 330 core
 
@@ -148,7 +145,7 @@ void OutlinePass::draw(const FrameData& frame, int width, int height)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_maskTexture);
     glUniform1i(m_outlineMaskLocation, 0);
-    glUniform4fv(m_outlineColorLocation, 1, glm::value_ptr(kOutlineColor));
+    glUniform4fv(m_outlineColorLocation, 1, glm::value_ptr(frame.editor.outlineColor));
     glBindVertexArray(m_emptyVertexArray);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glBindVertexArray(0);

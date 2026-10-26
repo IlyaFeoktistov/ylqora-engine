@@ -39,6 +39,11 @@ struct Project {
     static std::optional<Project> create(const std::filesystem::path& location, const std::string& name,
                                          const SceneSerializer& serializer, std::string& error);
 
+    // Удаляет папку проекта с диска со всем содержимым. Только если в ней
+    // действительно лежит project.yqlora: так случайно не стереть чужую папку.
+    // При ошибке пишет ключ перевода в error.
+    static bool deleteFolder(const std::filesystem::path& directory, std::string& error);
+
     // Имя годится и как название, и как имя папки на любой системе.
     static bool isValidName(std::string_view name);
 };

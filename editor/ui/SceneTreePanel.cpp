@@ -1,6 +1,6 @@
 #include "SceneTreePanel.hpp"
 
-#include "yqlora/editor/Selection.hpp"
+#include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/scene/Scene.hpp"
 
@@ -29,25 +29,48 @@ bool contains(const Node& node, NodeId id)
 
 } // namespace
 
-void SceneTreePanel::draw(Scene& scene, Selection& selection)
+void SceneTreePanel::draw(EditorSession& session, const TypeRegistry& registry)
 {
+    const Scene& scene = session.scene();
+    Selection& selection = session.selection();
     m_reveal = selection.selected() != m_lastSelected;
 
     const std::string title = tr("editor.window.scene") + "###Scene";
     if (ImGui::Begin(title.c_str())) {
+        if (ImGui::Button("+")) {
+            m_addNode.open(selection.selected());
+        }
+        ImGui::SetItemTooltip("%s", tr("editor.tree.addNode").c_str());
+        ImGui::Separator();
+
         if (const Node* root = scene.root()) {
             drawNode(*root, selection);
         } else {
             ImGui::TextDisabled("%s", tr("editor.scene.empty").c_str());
         }
 
-        // Клик по пустому месту панели снимает выбор.
+        // Клик по пустому месту панели снимает выбор, правый клик - меню.
         if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered()) {
             selection.clear();
         }
+        if (ImGui::BeginPopupContextWindow("TreeMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+            if (ImGui::MenuItem(tr("editor.tree.addNode").c_str())) {
+                m_addNode.open(0);
+            }
+            ImGui::EndPopup();
+        }
+        if (ImGui::IsWindowFocused() && selection.selected() != 0 && ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+            m_deleteRequest = selection.selected();
+        }
+
+        m_addNode.draw(session, registry);
     }
     ImGui::End();
 
+    if (m_deleteRequest != 0) {
+        session.deleteNode(m_deleteRequest);
+        m_deleteRequest = 0;
+    }
     m_lastSelected = selection.selected();
 }
 
@@ -73,6 +96,16 @@ void SceneTreePanel::drawNode(const Node& node, Selection& selection)
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen()) {
         selection.select(node.id());
         m_reveal = false;
+    }
+    if (ImGui::BeginPopupContextItem()) {
+        selection.select(node.id());
+        if (ImGui::MenuItem(tr("editor.tree.addChild").c_str())) {
+            m_addNode.open(node.id());
+        }
+        if (ImGui::MenuItem(tr("editor.tree.delete").c_str(), "Delete")) {
+            m_deleteRequest = node.id();
+        }
+        ImGui::EndPopup();
     }
     if (selected && m_reveal) {
         ImGui::SetScrollHereY();

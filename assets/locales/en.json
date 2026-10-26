@@ -34,10 +34,35 @@
         },
         "window": {
             "scene": "Scene",
-            "viewport": "Viewport"
+            "viewport": "Viewport",
+            "inspector": "Inspector"
         },
         "scene": {
             "empty": "The scene is empty"
+        },
+        "inspector": {
+            "nothing": "Select a node to see its properties",
+            "addComponent": "Add component",
+            "noComponents": "No components to add yet"
+        },
+        "tree": {
+            "addNode": "Add node",
+            "addChild": "Add child node",
+            "delete": "Delete"
+        },
+        "addNode": {
+            "title": "Add node",
+            "search": "Search",
+            "create": "Create"
+        },
+        "common": {
+            "cancel": "Cancel"
+        },
+        "unsaved": {
+            "title": "Unsaved changes",
+            "question": "Save changes to the scene?",
+            "save": "Save",
+            "discard": "Don't save"
         }
     },
     "projects": {
@@ -70,5 +95,16 @@
             "notProject": "There is no project.yqlora in this folder",
             "cannotDelete": "Could not delete the project folder"
         }
+    },
+    "property": {
+        "name": "Name",
+        "position": "Position",
+        "rotation": "Rotation",
+        "scale": "Scale",
+        "fov": "Field of view",
+        "near": "Near plane",
+        "far": "Far plane",
+        "mesh": "Mesh",
+        "color": "Color"
     }
 }

@@ -156,14 +156,8 @@ void Application::initUi()
     m_uiIniPath = (userDataDirectory() / "imgui.ini").string();
     io.IniFilename = m_uiIniPath.c_str();
 
-    ImGui::StyleColorsDark();
-
-    // Встроенный шрифт ImGui без кириллицы. Глифы из файла подгружаются по мере надобности.
-    const auto font = platform::executableDir() / "assets" / "fonts" / "NotoSans-Regular.ttf";
-    if (!io.Fonts->AddFontFromFileTTF(font.string().c_str(), 17.0f)) {
-        log::warn("UI font '{}' not found, using the built-in one", font.string());
-    }
-
+    // Шрифт и цвета задаёт само приложение (у редактора это файл темы),
+    // движок свой внешний вид не навязывает.
     m_renderer->initUi();
 }
 
@@ -205,7 +199,7 @@ void Application::mainLoop()
 {
     const WindowEvents events{
         .onCloseRequested = [this] {
-            quit();
+            onCloseRequested();
         },
         .onResized = [this](int width, int height) {
             m_renderer->resize(width, height);

@@ -1,8 +1,11 @@
 #include "EditorApp.hpp"
 
+#include "Theme.hpp"
+
 #include "yqlora/core/Log.hpp"
 #include "yqlora/i18n/Localization.hpp"
 #include "yqlora/i18n/Translate.hpp"
+#include "yqlora/platform/Platform.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -17,6 +20,9 @@ EditorApp::EditorApp()
 
 void EditorApp::onStart()
 {
+    const auto assets = platform::executableDir() / "assets";
+    theme::load(assets / "themes" / "dark.json", assets);
+
     for (const std::string& code : localization().availableLanguages()) {
         m_languages.emplace_back(code, localization().displayName(code));
     }
@@ -37,7 +43,9 @@ void EditorApp::onGui()
 {
     drawMenuBar();
 
-    if (!m_project) {
+    drawUnsavedDialog();
+
+    if (!m_session.project()) {
         if (const auto project = m_projectManager->draw(*this)) {
             openProject(*project);
         }
@@ -55,23 +63,23 @@ void EditorApp::onGui()
         buildDefaultLayout(dockspace);
     }
 
-    m_sceneTree.draw(scene(), m_selection);
-    m_viewport.draw(*this, scene(), m_selection, m_deltaSeconds);
+    m_sceneTree.draw(m_session, m_registry);
+    m_inspector.draw(m_session, m_registry);
+    m_viewport.draw(*this, m_session, m_deltaSeconds);
+    updateTitle();
+}
+
+void EditorApp::onCloseRequested()
+{
+    request(PendingAction::Quit);
 }
 
 void EditorApp::openProject(const Project& project)
 {
-    // Загрузка при ошибке оставляет сцену как была, поэтому сначала очищаем:
-    // от прошлого проекта ничего не должно остаться.
-    scene().setRoot(nullptr);
-    if (!m_serializer.load(scene(), project.mainScenePath())) {
-        log::warn("Main scene of '{}' is not loaded, starting with an empty scene", project.name);
-    }
-
-    m_project = project;
-    m_selection.clear();
+    m_session.open(project);
     m_viewport.camera().setPosition({0.0f, 2.5f, 6.0f});
     m_viewport.camera().lookAt({0.0f, 0.5f, 0.0f});
+    m_titleModified = false;
     setTitleDetail(project.name);
 
     m_projects->markOpened(project.directory);
@@ -82,21 +90,83 @@ void EditorApp::openProject(const Project& project)
 
 void EditorApp::closeProject()
 {
-    scene().setRoot(nullptr);
-    m_project.reset();
-    m_selection.clear();
+    m_session.close();
     setTitleDetail({});
     m_projectManager->refresh();
 }
 
 void EditorApp::saveScene()
 {
-    if (!m_project) {
+    if (m_session.saveScene()) {
+        log::info("Scene saved: {}", m_session.project()->mainScene.generic_string());
+    }
+}
+
+void EditorApp::request(PendingAction action)
+{
+    if (m_session.modified()) {
+        m_pending = action;
+        m_unsavedRequested = true;
+
         return;
     }
-    if (m_serializer.save(scene(), m_project->mainScenePath())) {
-        log::info("Scene saved: {}", m_project->mainScene.generic_string());
+    perform(action);
+}
+
+void EditorApp::perform(PendingAction action)
+{
+    switch (action) {
+    case PendingAction::CloseProject:
+        closeProject();
+        break;
+    case PendingAction::Quit:
+        quit();
+        break;
+    case PendingAction::None:
+        break;
     }
+}
+
+void EditorApp::drawUnsavedDialog()
+{
+    const std::string title = tr("editor.unsaved.title") + "###Unsaved";
+    if (m_unsavedRequested) {
+        ImGui::OpenPopup(title.c_str());
+        m_unsavedRequested = false;
+    }
+    if (!ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        return;
+    }
+    ImGui::TextUnformatted(tr("editor.unsaved.question").c_str());
+    ImGui::Separator();
+
+    if (ImGui::Button(tr("editor.unsaved.save").c_str())) {
+        // Не сохранилось - остаёмся, чтобы изменения не пропали.
+        if (m_session.saveScene()) {
+            perform(std::exchange(m_pending, PendingAction::None));
+        }
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(tr("editor.unsaved.discard").c_str())) {
+        perform(std::exchange(m_pending, PendingAction::None));
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(tr("editor.common.cancel").c_str()) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        m_pending = PendingAction::None;
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+}
+
+void EditorApp::updateTitle()
+{
+    if (!m_session.project() || m_session.modified() == m_titleModified) {
+        return;
+    }
+    m_titleModified = m_session.modified();
+    setTitleDetail(m_session.project()->name + (m_titleModified ? " *" : ""));
 }
 
 void EditorApp::drawMenuBar()
@@ -105,17 +175,17 @@ void EditorApp::drawMenuBar()
         return;
     }
     if (ImGui::BeginMenu(tr("editor.menu.file").c_str())) {
-        if (m_project) {
+        if (m_session.project()) {
             if (ImGui::MenuItem(tr("editor.menu.save").c_str(), "Ctrl+S")) {
                 saveScene();
             }
             if (ImGui::MenuItem(tr("editor.menu.closeProject").c_str())) {
-                closeProject();
+                request(PendingAction::CloseProject);
             }
             ImGui::Separator();
         }
         if (ImGui::MenuItem(tr("editor.menu.quit").c_str())) {
-            quit();
+            request(PendingAction::Quit);
         }
         ImGui::EndMenu();
     }

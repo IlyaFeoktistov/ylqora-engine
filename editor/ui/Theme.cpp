@@ -1,0 +1,172 @@
+#include "Theme.hpp"
+
+#include "yqlora/core/Log.hpp"
+
+#include <imgui.h>
+#include <nlohmann/json.hpp>
+
+#include <fstream>
+#include <optional>
+#include <string>
+#include <string_view>
+
+namespace yqlora::theme {
+
+namespace {
+
+using Json = nlohmann::json;
+
+EditorColors g_colors;
+
+// "#RRGGBB" или "#RRGGBBAA".
+std::optional<Vec4> parseColor(const Json& json)
+{
+    if (!json.is_string()) {
+        return std::nullopt;
+    }
+    const std::string text = json.get<std::string>();
+    if (text.size() != 7 && text.size() != 9) {
+        return std::nullopt;
+    }
+    if (text.front() != '#') {
+        return std::nullopt;
+    }
+    unsigned int channels[4] = {0, 0, 0, 255};
+    for (std::size_t i = 0; i < (text.size() - 1) / 2; ++i) {
+        try {
+            channels[i] = static_cast<unsigned int>(std::stoul(text.substr(1 + i * 2, 2), nullptr, 16));
+        } catch (const std::exception&) {
+            return std::nullopt;
+        }
+    }
+
+    return Vec4(static_cast<float>(channels[0]), static_cast<float>(channels[1]), static_cast<float>(channels[2]),
+                static_cast<float>(channels[3]))
+           / 255.0f;
+}
+
+void applyColors(const Json& json, ImGuiStyle& style)
+{
+    if (!json.is_object()) {
+        return;
+    }
+    for (int i = 0; i < ImGuiCol_COUNT; ++i) {
+        const auto it = json.find(ImGui::GetStyleColorName(i));
+        if (it == json.end()) {
+            continue;
+        }
+        if (const auto color = parseColor(*it)) {
+            style.Colors[i] = ImVec4(color->r, color->g, color->b, color->a);
+        } else {
+            log::warn("Theme: color '{}' is not #RRGGBB or #RRGGBBAA", it.key());
+        }
+    }
+}
+
+void applyStyle(const Json& json, ImGuiStyle& style)
+{
+    if (!json.is_object()) {
+        return;
+    }
+
+    struct FloatField {
+        std::string_view name;
+        float ImGuiStyle::*field;
+    };
+    struct VectorField {
+        std::string_view name;
+        ImVec2 ImGuiStyle::*field;
+    };
+    static constexpr FloatField kFloats[] = {
+        {"indentSpacing", &ImGuiStyle::IndentSpacing},
+        {"scrollbarSize", &ImGuiStyle::ScrollbarSize},
+        {"windowRounding", &ImGuiStyle::WindowRounding},
+        {"childRounding", &ImGuiStyle::ChildRounding},
+        {"frameRounding", &ImGuiStyle::FrameRounding},
+        {"popupRounding", &ImGuiStyle::PopupRounding},
+        {"scrollbarRounding", &ImGuiStyle::ScrollbarRounding},
+        {"grabRounding", &ImGuiStyle::GrabRounding},
+        {"tabRounding", &ImGuiStyle::TabRounding},
+        {"windowBorderSize", &ImGuiStyle::WindowBorderSize},
+        {"frameBorderSize", &ImGuiStyle::FrameBorderSize},
+        {"popupBorderSize", &ImGuiStyle::PopupBorderSize},
+    };
+    static constexpr VectorField kVectors[] = {
+        {"windowPadding", &ImGuiStyle::WindowPadding},
+        {"framePadding", &ImGuiStyle::FramePadding},
+        {"itemSpacing", &ImGuiStyle::ItemSpacing},
+        {"itemInnerSpacing", &ImGuiStyle::ItemInnerSpacing},
+    };
+
+    for (const auto& [name, field] : kFloats) {
+        if (const auto it = json.find(name); it != json.end() && it->is_number()) {
+            style.*field = it->get<float>();
+        }
+    }
+    for (const auto& [name, field] : kVectors) {
+        const auto it = json.find(name);
+        if (it != json.end() && it->is_array() && it->size() == 2 && (*it)[0].is_number() && (*it)[1].is_number()) {
+            style.*field = ImVec2((*it)[0].get<float>(), (*it)[1].get<float>());
+        }
+    }
+}
+
+void applyFont(const Json& json, const std::filesystem::path& assetsDir)
+{
+    if (!json.is_object() || !json.contains("file") || !json["file"].is_string()) {
+        return;
+    }
+    const std::string file = json["file"].get<std::string>();
+    const float size = json.contains("size") && json["size"].is_number() ? json["size"].get<float>() : 17.0f;
+    const auto path = assetsDir / std::filesystem::path(std::u8string(file.begin(), file.end()));
+    // Глифы подгружаются по мере надобности, кириллица в том числе.
+    if (!ImGui::GetIO().Fonts->AddFontFromFileTTF(path.string().c_str(), size)) {
+        log::warn("Theme: font '{}' not found, using the built-in one", path.string());
+    }
+}
+
+void applyEditorColors(const Json& json)
+{
+    if (!json.is_object()) {
+        return;
+    }
+    const auto read = [&](const char* name, Vec4& out) {
+        if (const auto it = json.find(name); it != json.end()) {
+            if (const auto color = parseColor(*it)) {
+                out = *color;
+            }
+        }
+    };
+    read("errorText", g_colors.errorText);
+    read("selectionOutline", g_colors.selectionOutline);
+}
+
+} // namespace
+
+bool load(const std::filesystem::path& file, const std::filesystem::path& assetsDir)
+{
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImGui::StyleColorsDark(&style);
+
+    std::ifstream in(file);
+    const Json json = in ? Json::parse(in, nullptr, /*allow_exceptions=*/false) : Json();
+    if (!json.is_object()) {
+        log::warn("Theme '{}' is not found or broken, using the default look", file.string());
+
+        return false;
+    }
+
+    applyFont(json.value("font", Json()), assetsDir);
+    applyStyle(json.value("style", Json()), style);
+    applyColors(json.value("colors", Json()), style);
+    applyEditorColors(json.value("editor", Json()));
+
+    return true;
+}
+
+const EditorColors& colors()
+{
+    return g_colors;
+}
+
+} // namespace yqlora::theme

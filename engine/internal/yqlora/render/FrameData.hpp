@@ -29,6 +29,7 @@ struct EditorOverlay {
     bool grid = false;
     // Выбранный узел обводится контуром. 0, если ничего не выбрано.
     NodeId selected = 0;
+    Vec4 outlineColor{1.0f, 0.6f, 0.1f, 1.0f};
 };
 
 // Всё, что рендереру нужно знать о кадре. Данные собирает buildFrameData,

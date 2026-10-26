@@ -57,8 +57,8 @@ void registerEngineTypes(TypeRegistry& registry)
         .property("far", &Camera3D::farPlane, &Camera3D::setFarPlane);
 
     registry.registerNode<MeshInstance3D, Node3D>("MeshInstance3D")
-        .property("mesh", &MeshInstance3D::mesh, &MeshInstance3D::setMesh)
-        .property("color", &MeshInstance3D::color, &MeshInstance3D::setColor);
+        .property("mesh", &MeshInstance3D::mesh, &MeshInstance3D::setMesh, PropertyHint::Mesh)
+        .property("color", &MeshInstance3D::color, &MeshInstance3D::setColor, PropertyHint::Color);
 
     registry.registerComponent<Transform3D>("Transform3D")
         .property("position", &Transform3D::position, &Transform3D::setPosition)
