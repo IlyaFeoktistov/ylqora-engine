@@ -52,7 +52,7 @@ void registerEngineTypes(TypeRegistry& registry)
     registry.registerNode<Node3D>("Node3D");
 
     registry.registerNode<Camera3D, Node3D>("Camera3D")
-        .property("fov", &Camera3D::fovDegrees, &Camera3D::setFovDegrees)
+        .property("fov", &Camera3D::fovDegrees, &Camera3D::setFovDegrees, PropertyHint::Angle)
         .property("near", &Camera3D::nearPlane, &Camera3D::setNearPlane)
         .property("far", &Camera3D::farPlane, &Camera3D::setFarPlane);
 
@@ -62,7 +62,7 @@ void registerEngineTypes(TypeRegistry& registry)
 
     registry.registerComponent<Transform3D>("Transform3D")
         .property("position", &Transform3D::position, &Transform3D::setPosition)
-        .property("rotation", &Transform3D::rotationDegrees, &Transform3D::setRotationDegrees)
+        .property("rotation", &Transform3D::rotationDegrees, &Transform3D::setRotationDegrees, PropertyHint::Angle)
         .property("scale", &Transform3D::scale, &Transform3D::setScale);
 }
 

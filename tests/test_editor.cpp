@@ -3,6 +3,7 @@
 #include <yqlora/editor/EditorCamera.hpp>
 #include <yqlora/editor/Picking.hpp>
 #include <yqlora/editor/Selection.hpp>
+#include <yqlora/scene/Camera3D.hpp>
 #include <yqlora/platform/InputFeeder.hpp>
 #include <yqlora/scene/MeshInstance3D.hpp>
 #include <yqlora/scene/Scene.hpp>
@@ -151,4 +152,30 @@ TEST_CASE("Selection: one node at a time, 0 means nothing")
 
     selection.clear();
     CHECK(selection.selected() == 0);
+}
+
+TEST_CASE("Picking: a camera is picked by a sphere around it")
+{
+    Scene scene;
+    auto& root = scene.createRoot<Node>();
+    auto& camera = root.addChild<Camera3D>();
+    camera.transform().setPosition({0.0f, 0.0f, -5.0f});
+
+    CHECK(pickNode(scene, {Vec3(0.0f), {0.0f, 0.0f, -1.0f}}) == camera.id());
+    CHECK(pickNode(scene, {Vec3(0.2f, 0.0f, 0.0f), {0.0f, 0.0f, -1.0f}}) == camera.id());
+    CHECK(pickNode(scene, {Vec3(1.0f, 0.0f, 0.0f), {0.0f, 0.0f, -1.0f}}) == 0);
+}
+
+TEST_CASE("EditorCamera: lookAlong turns the view without moving")
+{
+    EditorCamera camera;
+    camera.setPosition({1.0f, 2.0f, 3.0f});
+
+    camera.lookAlong({-1.0f, 0.0f, 0.0f});
+    CHECK(near(camera.forward(), {-1.0f, 0.0f, 0.0f}));
+    CHECK(near(camera.position(), {1.0f, 2.0f, 3.0f}));
+
+    // Ровно вниз нельзя: наклон ограничен, но камера смотрит почти вниз.
+    camera.lookAlong({0.0f, -1.0f, 0.0f});
+    CHECK(camera.forward().y < -0.99f);
 }

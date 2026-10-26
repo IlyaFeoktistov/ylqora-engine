@@ -8,11 +8,22 @@ class Component;
 class Node;
 class Property;
 
-// Поле для одного свойства в таблице инспектора: подпись слева, значение справа.
-// Вид поля выбирается по типу свойства и его подсказке. Возвращает true,
-// если значение поменяли.
-bool drawProperty(const Property& property, Node& node);
-bool drawProperty(const Property& property, Component& component);
+struct PropertyResult {
+    // Значение поменяли в этом кадре.
+    bool changed = false;
+    // Значение тянут мышью: на это время стоит включить перенос курсора
+    // у края окна, чтобы тянуть можно было бесконечно.
+    bool dragging = false;
+};
+
+// Строка таблицы инспектора: подпись слева, значение справа. Вид поля
+// выбирается по типу свойства и его подсказке.
+//
+// Числа меняются перетаскиванием подписи (у векторов - подписей X, Y, Z),
+// а в само поле можно вписать значение. При перетаскивании Shift ускоряет
+// в 10 раз, Ctrl замедляет в 10 раз.
+PropertyResult drawProperty(const Property& property, Node& node);
+PropertyResult drawProperty(const Property& property, Component& component);
 
 // Подпись свойства на языке интерфейса: перевод ключа property.<имя>,
 // а без перевода - имя с заглавной буквы.

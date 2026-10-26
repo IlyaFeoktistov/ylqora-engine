@@ -58,13 +58,20 @@ void EditorCamera::update(const Input& input, float deltaSeconds, bool hovered)
 
 void EditorCamera::lookAt(const Vec3& target)
 {
-    const Vec3 direction = target - m_position;
+    lookAlong(target - m_position);
+}
+
+void EditorCamera::lookAlong(const Vec3& direction)
+{
     if (glm::length(direction) < 1e-6f) {
         return;
     }
     const Vec3 d = glm::normalize(direction);
     m_pitchDegrees = std::clamp(glm::degrees(std::asin(d.y)), -kMaxPitch, kMaxPitch);
-    m_yawDegrees = glm::degrees(std::atan2(-d.x, -d.z));
+    // Ровно вверх или вниз: направление по горизонтали не определено, поворот вокруг вертикали оставляем.
+    if (std::abs(d.x) > 1e-6f || std::abs(d.z) > 1e-6f) {
+        m_yawDegrees = glm::degrees(std::atan2(-d.x, -d.z));
+    }
 }
 
 void EditorCamera::setSpeed(float speed)

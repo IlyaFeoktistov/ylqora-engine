@@ -1,6 +1,7 @@
 #include "ViewportPanel.hpp"
 
 #include "Theme.hpp"
+#include "ViewportGizmos.hpp"
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/editor/Picking.hpp"
@@ -8,6 +9,7 @@
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/render/FrameBuilder.hpp"
 #include "yqlora/render/Renderer.hpp"
+#include "yqlora/scene/Scene.hpp"
 
 #include <imgui.h>
 
@@ -28,7 +30,7 @@ void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSe
     const ImVec2 size = ImGui::GetContentRegionAvail();
     if (!visible || size.x < 1.0f || size.y < 1.0f) {
         ImGui::End();
-        setFlying(app, false);
+        setFlying(false);
 
         return;
     }
@@ -49,9 +51,19 @@ void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSe
     const bool hovered = ImGui::IsItemHovered();
 
     m_camera.update(app.input(), deltaSeconds, hovered);
-    setFlying(app, m_camera.flying());
+    setFlying(m_camera.flying());
 
-    if (hovered && !m_camera.flying() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+    // Камера уже на новом месте: рисунки поверх кадра строим по ней.
+    const CameraData view = m_camera.cameraData(size.x / size.y, app.depthRange());
+    if (const Node* root = scene.root()) {
+        gizmos::drawCameras(*root, selection.selected(), view, origin, size);
+    }
+    const gizmos::AxisGizmoResult axes = gizmos::drawAxes(view.view, origin, size);
+    if (axes.lookAlong) {
+        m_camera.lookAlong(*axes.lookAlong);
+    }
+
+    if (hovered && !axes.hovered && !m_camera.flying() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
         const ImVec2 mouse = ImGui::GetMousePos();
         const Ray ray = m_camera.screenRay({mouse.x - origin.x, mouse.y - origin.y}, {size.x, size.y});
         selection.select(pickNode(scene, ray));
@@ -69,7 +81,7 @@ void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSe
     ImGui::End();
 }
 
-void ViewportPanel::setFlying(Application& app, bool flying)
+void ViewportPanel::setFlying(bool flying)
 {
     ImGuiIO& io = ImGui::GetIO();
     const bool wasFlying = (io.ConfigFlags & ImGuiConfigFlags_NoMouse) != 0;
@@ -86,7 +98,6 @@ void ViewportPanel::setFlying(Application& app, bool flying)
     } else {
         io.ConfigFlags &= ~captured;
     }
-    app.setMouseWrapping(flying);
 }
 
 } // namespace yqlora

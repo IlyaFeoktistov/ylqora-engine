@@ -10,6 +10,15 @@ class TypeRegistry;
 class InspectorPanel {
 public:
     void draw(EditorSession& session, const TypeRegistry& registry);
+
+    // В этом кадре тянут значение мышью: нужен перенос курсора у края окна.
+    bool draggingValue() const
+    {
+        return m_dragging;
+    }
+
+private:
+    bool m_dragging = false;
 };
 
 } // namespace yqlora

@@ -34,6 +34,8 @@ public:
     }
 
     void lookAt(const Vec3& target);
+    // Смотреть вдоль направления, не сдвигаясь с места.
+    void lookAlong(const Vec3& direction);
 
     // Метров в секунду.
     float speed() const

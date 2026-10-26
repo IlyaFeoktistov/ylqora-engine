@@ -67,6 +67,12 @@ void EditorApp::onGui()
     m_inspector.draw(m_session, m_registry);
     m_viewport.draw(*this, m_session, m_deltaSeconds);
     updateTitle();
+
+    const bool wrapping = m_viewport.camera().flying() || m_inspector.draggingValue();
+    if (wrapping != m_mouseWrapping) {
+        m_mouseWrapping = wrapping;
+        setMouseWrapping(wrapping);
+    }
 }
 
 void EditorApp::onCloseRequested()
@@ -91,6 +97,8 @@ void EditorApp::openProject(const Project& project)
 void EditorApp::closeProject()
 {
     m_session.close();
+    m_mouseWrapping = false;
+    setMouseWrapping(false);
     setTitleDetail({});
     m_projectManager->refresh();
 }
@@ -224,7 +232,7 @@ void EditorApp::buildDefaultLayout(unsigned int dockspace)
 
     ImGuiID center = dockspace;
     const ImGuiID left = ImGui::DockBuilderSplitNode(center, ImGuiDir_Left, 0.2f, nullptr, &center);
-    const ImGuiID right = ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.25f, nullptr, &center);
+    const ImGuiID right = ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.3f, nullptr, &center);
     const ImGuiID bottom = ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.25f, nullptr, &center);
 
     // Окна привязываются по ID после ###, он не зависит от языка интерфейса.

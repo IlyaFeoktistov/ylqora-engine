@@ -1,6 +1,7 @@
 #include "yqlora/editor/Picking.hpp"
 
 #include "yqlora/render/MeshData.hpp"
+#include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/MeshInstance3D.hpp"
 #include "yqlora/scene/Scene.hpp"
 
@@ -41,6 +42,27 @@ std::optional<float> intersect(const Ray& ray, const Vec3& a, const Vec3& b, con
     return t > kEpsilon ? std::optional<float>(t) : std::nullopt;
 }
 
+// Ближайшее пересечение луча со сферой; t в единицах направления луча, как у треугольников.
+std::optional<float> intersectSphere(const Ray& ray, const Vec3& center, float radius)
+{
+    const Vec3 offset = ray.origin - center;
+    const float a = glm::dot(ray.direction, ray.direction);
+    const float b = glm::dot(offset, ray.direction);
+    const float c = glm::dot(offset, offset) - radius * radius;
+    const float discriminant = b * b - a * c;
+    if (discriminant < 0.0f || a == 0.0f) {
+        return std::nullopt;
+    }
+    const float root = std::sqrt(discriminant);
+    const float nearT = (-b - root) / a;
+    const float farT = (-b + root) / a;
+    if (nearT > 0.0f) {
+        return nearT;
+    }
+
+    return farT > 0.0f ? std::optional<float>(farT) : std::nullopt;
+}
+
 struct Hit {
     NodeId node = 0;
     float t = 0.0f;
@@ -48,6 +70,12 @@ struct Hit {
 
 void pick(const Node& node, const Ray& worldRay, std::optional<Hit>& best)
 {
+    if (const auto* camera = dynamic_cast<const Camera3D*>(&node)) {
+        const auto t = intersectSphere(worldRay, camera->worldPosition(), kCameraPickRadius);
+        if (t && (!best || *t < best->t)) {
+            best = Hit{camera->id(), *t};
+        }
+    }
     if (const auto* instance = dynamic_cast<const MeshInstance3D*>(&node)) {
         if (const MeshData* mesh = findBuiltinMesh(instance->mesh())) {
             // Луч переводим в координаты меша, а не меш в мир. Направление

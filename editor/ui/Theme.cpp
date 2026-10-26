@@ -139,6 +139,11 @@ void applyEditorColors(const Json& json)
     };
     read("errorText", g_colors.errorText);
     read("selectionOutline", g_colors.selectionOutline);
+    read("cameraGizmo", g_colors.cameraGizmo);
+    read("axisX", g_colors.axisX);
+    read("axisY", g_colors.axisY);
+    read("axisZ", g_colors.axisZ);
+    read("axisW", g_colors.axisW);
 }
 
 } // namespace

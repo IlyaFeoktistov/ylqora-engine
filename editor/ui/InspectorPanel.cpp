@@ -8,6 +8,7 @@
 
 #include <imgui.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 
@@ -15,24 +16,30 @@ namespace yqlora {
 
 namespace {
 
+// Возвращает true, если какое-то значение тянут мышью.
 template <typename Object>
-void drawPropertyTable(EditorSession& session, const TypeRegistry& registry, const TypeInfo& type, Object& object)
+bool drawPropertyTable(EditorSession& session, const TypeRegistry& registry, const TypeInfo& type, Object& object)
 {
     const auto properties = registry.properties(type);
-    if (properties.empty()) {
-        return;
+    if (properties.empty() || !ImGui::BeginTable("properties", 2)) {
+        return false;
     }
-    if (!ImGui::BeginTable("properties", 2, ImGuiTableFlags_SizingStretchProp)) {
-        return;
-    }
-    ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthStretch, 0.4f);
-    ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch, 0.6f);
+    // Подписи узкой колонкой постоянной ширины, остальное место - значениям.
+    const float labelWidth = std::clamp(ImGui::GetContentRegionAvail().x * 0.3f, 70.0f, 130.0f);
+    ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, labelWidth);
+    ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
+
+    bool dragging = false;
     for (const Property* property : properties) {
-        if (drawProperty(*property, object)) {
+        const PropertyResult result = drawProperty(*property, object);
+        if (result.changed) {
             session.markModified();
         }
+        dragging = dragging || result.dragging;
     }
     ImGui::EndTable();
+
+    return dragging;
 }
 
 void drawAddComponent(EditorSession& session, const TypeRegistry& registry, Node& node)
@@ -70,6 +77,7 @@ void drawAddComponent(EditorSession& session, const TypeRegistry& registry, Node
 
 void InspectorPanel::draw(EditorSession& session, const TypeRegistry& registry)
 {
+    m_dragging = false;
     const std::string title = tr("editor.window.inspector") + "###Inspector";
     if (!ImGui::Begin(title.c_str())) {
         ImGui::End();
@@ -88,7 +96,7 @@ void InspectorPanel::draw(EditorSession& session, const TypeRegistry& registry)
 
     ImGui::TextDisabled("%s", type->name().c_str());
     ImGui::SetItemTooltip("%s", tr(type->descriptionKey()).c_str());
-    drawPropertyTable(session, registry, *type, *node);
+    m_dragging = drawPropertyTable(session, registry, *type, *node);
 
     // Удалять компонент можно только после цикла: список меняется.
     Component* toRemove = nullptr;
@@ -105,7 +113,7 @@ void InspectorPanel::draw(EditorSession& session, const TypeRegistry& registry)
         const bool removable = node->canRemoveComponent(*component);
         const std::string header = componentType->name() + "###component";
         if (ImGui::CollapsingHeader(header.c_str(), removable ? &keep : nullptr, ImGuiTreeNodeFlags_DefaultOpen)) {
-            drawPropertyTable(session, registry, *componentType, *component);
+            m_dragging = drawPropertyTable(session, registry, *componentType, *component) || m_dragging;
         }
         if (!keep) {
             toRemove = component.get();

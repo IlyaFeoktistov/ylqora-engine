@@ -65,6 +65,8 @@ private:
     ViewportPanel m_viewport;
     PendingAction m_pending = PendingAction::None;
     bool m_unsavedRequested = false;
+    // Курсор переносится у края окна: летит камера или тянут значение в инспекторе.
+    bool m_mouseWrapping = false;
     // Что сейчас в заголовке окна, чтобы не менять его каждый кадр.
     bool m_titleModified = false;
     float m_deltaSeconds = 0.0f;

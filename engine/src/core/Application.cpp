@@ -220,6 +220,14 @@ void Application::mainLoop()
 
         input.beginFrame();
         m_window->pollEvents(events, input);
+        if (m_config.ui && m_window->mouseWrapping()) {
+            // ImGui сам считает смещение мыши по положению курсора, и перенос
+            // курсора к другому краю выглядел бы для него рывком через всё окно.
+            // Подставляем прошлое положение так, чтобы смещение совпало с нашим,
+            // уже очищенным от переносов.
+            const Vec2 previous = m_input.mousePosition() - m_input.mouseDelta();
+            ImGui::GetIO().MousePosPrev = ImVec2(previous.x, previous.y);
+        }
         if (!m_running) {
             break;
         }

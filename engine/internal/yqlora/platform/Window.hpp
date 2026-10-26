@@ -50,6 +50,11 @@ public:
     // до конца работы: обзор работает, но у края экрана поворот останавливается.
     void setMouseWrapping(bool wrapping);
 
+    bool mouseWrapping() const
+    {
+        return m_mouseWrapping;
+    }
+
     // Системный диалог выбора папки. Ответ придёт в callback из pollEvents,
     // в главном потоке; nullopt, если выбор отменили или диалог недоступен.
     // Пока открыт один диалог, второй не открывается.

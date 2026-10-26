@@ -75,6 +75,11 @@
     },
     "editor": {
         "errorText": "#FF7366",
-        "selectionOutline": "#FF9A1A"
+        "selectionOutline": "#FF9A1A",
+        "cameraGizmo": "#C8CDD6",
+        "axisX": "#E5534B",
+        "axisY": "#6FBF5A",
+        "axisZ": "#4C8DF6",
+        "axisW": "#9A9EA6"
     }
 }

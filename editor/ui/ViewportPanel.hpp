@@ -22,7 +22,7 @@ public:
     }
 
 private:
-    void setFlying(Application& app, bool flying);
+    void setFlying(bool flying);
 
     EditorCamera m_camera;
     std::unique_ptr<RenderTarget> m_target;

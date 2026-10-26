@@ -28,6 +28,7 @@ add_executable(yqlora_app
     ui/PropertyEditor.cpp
     ui/SceneTreePanel.cpp
     ui/Theme.cpp
+    ui/ViewportGizmos.cpp
     ui/ViewportPanel.cpp
 )
 target_include_directories(yqlora_app PRIVATE ui)
