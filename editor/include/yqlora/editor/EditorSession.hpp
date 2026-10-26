@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <string>
 
 namespace yqlora {
 
@@ -66,10 +67,35 @@ public:
     }
 
     // Для правок, которые делаются в обход методов ниже (например, свойства в инспекторе).
+    // Во время игры ничего не помечает: по Stop сцена всё равно вернётся как была.
     void markModified()
     {
-        m_modified = true;
+        if (!m_playing) {
+            m_modified = true;
+        }
     }
+
+    bool playing() const
+    {
+        return m_playing;
+    }
+
+    bool paused() const
+    {
+        return m_paused;
+    }
+
+    // Сцене пора обновляться: игра идёт и не на паузе.
+    bool running() const
+    {
+        return m_playing && !m_paused;
+    }
+
+    // Запоминает сцену и запускает игру. Правки во время игры отбрасываются по Stop.
+    void play();
+    void setPaused(bool paused);
+    // Останавливает игру и возвращает сцену и выделение, какими они были до Play.
+    void stop();
 
     // nullptr, если такого узла в сцене нет.
     Node* findNode(NodeId id);
@@ -95,6 +121,13 @@ private:
     std::filesystem::path m_scenePath;
     Selection m_selection;
     bool m_modified = false;
+
+    bool m_playing = false;
+    bool m_paused = false;
+    // Сцена до Play, в виде файла сцены: так восстанавливаются и ID узлов.
+    std::string m_snapshot;
+    bool m_modifiedBeforePlay = false;
+    NodeId m_selectedBeforePlay = 0;
 };
 
 } // namespace yqlora

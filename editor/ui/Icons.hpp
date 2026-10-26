@@ -16,6 +16,11 @@ inline constexpr const char* kScale = "\uE2EB";  // scale-3d
 inline constexpr const char* kLocal = "\uE061";  // box
 inline constexpr const char* kGlobal = "\uE0E8"; // globe
 
+// Игра в редакторе.
+inline constexpr const char* kPlay = "\uE13C";  // play
+inline constexpr const char* kPause = "\uE12E"; // pause
+inline constexpr const char* kStop = "\uE167";  // square
+
 // Типы узлов в дереве сцены.
 inline constexpr const char* kNode = "\uE345";           // circle-dot
 inline constexpr const char* kNode3D = "\uE2FE";         // axis-3d

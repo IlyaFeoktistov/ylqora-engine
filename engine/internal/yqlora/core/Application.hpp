@@ -85,6 +85,13 @@ public:
         return *m_renderer;
     }
 
+    // Обновлять ли сцену каждый кадр. У игры всегда да; редактор включает
+    // обновление только на время Play.
+    void setSceneRunning(bool running)
+    {
+        m_sceneRunning = running;
+    }
+
     // Переключает язык интерфейса и сохраняет выбор в настройках.
     bool setLanguage(std::string_view language);
 
@@ -145,6 +152,7 @@ private:
     std::unique_ptr<Window> m_window;
     std::unique_ptr<Renderer> m_renderer;
     bool m_running = false;
+    bool m_sceneRunning = true;
     // ImGui хранит только указатель на строку с путём, поэтому она живёт здесь.
     std::string m_uiIniPath;
     std::string m_titleDetail;

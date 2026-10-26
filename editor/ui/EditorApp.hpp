@@ -52,6 +52,9 @@ private:
     void updateTitle();
 
     void drawMenuBar();
+    // Play, Pause и Stop по центру главного меню.
+    void drawPlayControls();
+    void togglePlay();
     void drawLanguageMenu();
     // При первом запуске раскладывает окна: дерево слева, инспектор справа,
     // файлы снизу, сцена в центре. Дальше раскладку помнит imgui.ini.

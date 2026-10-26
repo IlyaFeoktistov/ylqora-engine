@@ -59,6 +59,8 @@ std::unique_ptr<Node> Node::removeChild(Node& child)
     }
     std::unique_ptr<Node> result = std::move(*it);
     m_children.erase(it);
+    // Узел уходит из дерева посреди игры: он и его дети останавливаются.
+    result->stop();
     result->m_parent = nullptr;
     result->onParentChanged();
 
@@ -103,6 +105,10 @@ std::unique_ptr<Component> Node::removeComponent(Component& component)
     }
     std::unique_ptr<Component> result = std::move(*it);
     m_components.erase(it);
+    if (result->m_started) {
+        result->m_started = false;
+        result->onStop();
+    }
     result->m_owner = nullptr;
 
     return result;
@@ -119,9 +125,41 @@ Node* Node::findChild(std::string_view name) const
 
 void Node::update(float deltaSeconds)
 {
+    if (!m_started) {
+        m_started = true;
+        onStart();
+    }
     onUpdate(deltaSeconds);
+
+    // По индексу, а не итератором: во время обновления компоненты и дети
+    // могут добавляться, и вектор переедет в другую память.
+    for (std::size_t i = 0; i < m_components.size(); ++i) {
+        Component& component = *m_components[i];
+        if (!component.m_started) {
+            component.m_started = true;
+            component.onStart();
+        }
+        component.onUpdate(deltaSeconds);
+    }
+    for (std::size_t i = 0; i < m_children.size(); ++i) {
+        m_children[i]->update(deltaSeconds);
+    }
+}
+
+void Node::stop()
+{
     for (const auto& child : m_children) {
-        child->update(deltaSeconds);
+        child->stop();
+    }
+    for (const auto& component : m_components) {
+        if (component->m_started) {
+            component->m_started = false;
+            component->onStop();
+        }
+    }
+    if (m_started) {
+        m_started = false;
+        onStop();
     }
 }
 

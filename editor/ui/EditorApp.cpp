@@ -1,5 +1,6 @@
 #include "EditorApp.hpp"
 
+#include "Icons.hpp"
 #include "Theme.hpp"
 
 #include "yqlora/core/Log.hpp"
@@ -33,6 +34,9 @@ void EditorApp::onStart()
     m_projects->load();
     m_projectManager = std::make_unique<ProjectManagerPanel>(*m_projects, m_serializer);
     m_projectManager->refresh();
+
+    // В редакторе сцена стоит, пока не нажали Play.
+    setSceneRunning(false);
 }
 
 void EditorApp::onUpdate(float deltaSeconds)
@@ -59,6 +63,9 @@ void EditorApp::onGui()
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
         saveScene();
     }
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_P, ImGuiInputFlags_RouteGlobal)) {
+        togglePlay();
+    }
 
     const ImGuiID dockspace = ImGui::DockSpaceOverViewport();
     if (!m_layoutChecked) {
@@ -75,6 +82,7 @@ void EditorApp::onGui()
         request(PendingAction::OpenScene);
     }
     updateTitle();
+    setSceneRunning(m_session.running());
 
     const bool wrapping = m_viewport.camera().flying() || m_inspector.draggingValue();
     if (wrapping != m_mouseWrapping) {
@@ -204,7 +212,8 @@ void EditorApp::drawMenuBar()
     }
     if (ImGui::BeginMenu(tr("editor.menu.file").c_str())) {
         if (m_session.project()) {
-            if (ImGui::MenuItem(tr("editor.menu.save").c_str(), "Ctrl+S")) {
+            // Во время игры в сцене её состояние, а не то, что правили: сохранять нечего.
+            if (ImGui::MenuItem(tr("editor.menu.save").c_str(), "Ctrl+S", false, !m_session.playing())) {
                 saveScene();
             }
             if (ImGui::MenuItem(tr("editor.menu.closeProject").c_str())) {
@@ -221,7 +230,58 @@ void EditorApp::drawMenuBar()
         drawLanguageMenu();
         ImGui::EndMenu();
     }
+    if (m_session.project()) {
+        drawPlayControls();
+    }
     ImGui::EndMainMenuBar();
+}
+
+void EditorApp::drawPlayControls()
+{
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const float buttonWidth = ImGui::CalcTextSize(icons::kPlay).x + style.FramePadding.x * 2.0f;
+    const float width = buttonWidth * 3.0f + style.ItemSpacing.x * 2.0f;
+    ImGui::SetCursorPosX((ImGui::GetWindowWidth() - width) * 0.5f);
+
+    const Vec4& accent = theme::colors().playMode;
+    const bool playing = m_session.playing();
+    if (playing) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(accent.r, accent.g, accent.b, accent.a));
+    }
+    if (ImGui::SmallButton(icons::kPlay)) {
+        togglePlay();
+    }
+    if (playing) {
+        ImGui::PopStyleColor();
+    }
+    ImGui::SetItemTooltip("%s (Ctrl+P)", tr(playing ? "editor.play.stop" : "editor.play.play").c_str());
+
+    ImGui::BeginDisabled(!playing);
+    const bool paused = m_session.paused();
+    if (paused) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(accent.r, accent.g, accent.b, accent.a));
+    }
+    if (ImGui::SmallButton(icons::kPause)) {
+        m_session.setPaused(!paused);
+    }
+    if (paused) {
+        ImGui::PopStyleColor();
+    }
+    ImGui::SetItemTooltip("%s", tr("editor.play.pause").c_str());
+    if (ImGui::SmallButton(icons::kStop)) {
+        m_session.stop();
+    }
+    ImGui::SetItemTooltip("%s", tr("editor.play.stop").c_str());
+    ImGui::EndDisabled();
+}
+
+void EditorApp::togglePlay()
+{
+    if (m_session.playing()) {
+        m_session.stop();
+    } else {
+        m_session.play();
+    }
 }
 
 void EditorApp::drawLanguageMenu()

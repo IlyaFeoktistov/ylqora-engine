@@ -117,14 +117,33 @@ public:
     // (см. canRemoveComponent).
     std::unique_ptr<Component> removeComponent(Component& component);
 
-    // Обновляет узел, затем всех детей (сверху вниз).
+    // Кадр игры: узел, его компоненты, затем дети (сверху вниз). Кто
+    // обновляется впервые, сначала получает onStart.
     void update(float deltaSeconds);
+
+    // Игра остановлена: onStop у узла, компонентов и детей, которые успели
+    // запуститься. Следующий update снова начнёт с onStart.
+    void stop();
+
+    bool started() const
+    {
+        return m_started;
+    }
 
 protected:
     // Для Node2D/Node3D: подключает компонент, который нельзя снять.
     Component& addBuiltinComponent(std::unique_ptr<Component> component);
 
+    // Жизненный цикл узла в игре, как у компонентов.
+    virtual void onStart()
+    {
+    }
+
     virtual void onUpdate(float /*deltaSeconds*/)
+    {
+    }
+
+    virtual void onStop()
     {
     }
 
@@ -142,6 +161,7 @@ private:
     Node* m_parent = nullptr;
     std::vector<std::unique_ptr<Component>> m_components;
     std::vector<std::unique_ptr<Node>> m_children;
+    bool m_started = false;
 };
 
 } // namespace yqlora

@@ -12,6 +12,8 @@ struct EditorColors {
     Vec4 selectionOutline{1.0f, 0.6f, 0.1f, 1.0f};
     // Контур камер в окне сцены.
     Vec4 cameraGizmo{0.78f, 0.8f, 0.84f, 1.0f};
+    // Рамка окна сцены и кнопка Play, пока идёт игра.
+    Vec4 playMode{0.37f, 0.72f, 0.47f, 1.0f};
     // Подписи X, Y, Z, W у полей векторов.
     Vec4 axisX{0.9f, 0.35f, 0.33f, 1.0f};
     Vec4 axisY{0.45f, 0.75f, 0.35f, 1.0f};

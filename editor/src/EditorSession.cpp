@@ -83,6 +83,7 @@ EditorSession::EditorSession(Scene& scene, const SceneSerializer& serializer)
 
 bool EditorSession::open(const Project& project)
 {
+    stop();
     m_project = project;
     m_scenePath = project.mainScene;
     m_selection.clear();
@@ -102,6 +103,7 @@ bool EditorSession::open(const Project& project)
 
 void EditorSession::close()
 {
+    stop();
     m_scene.setRoot(nullptr);
     m_project.reset();
     m_scenePath.clear();
@@ -111,6 +113,7 @@ void EditorSession::close()
 
 bool EditorSession::openScene(const std::filesystem::path& path)
 {
+    stop();
     if (!m_project || !m_serializer.load(m_scene, m_project->directory / path)) {
         return false;
     }
@@ -119,6 +122,43 @@ bool EditorSession::openScene(const std::filesystem::path& path)
     m_modified = false;
 
     return true;
+}
+
+void EditorSession::play()
+{
+    if (m_playing) {
+        return;
+    }
+    m_snapshot = m_serializer.toJson(m_scene);
+    m_modifiedBeforePlay = m_modified;
+    m_selectedBeforePlay = m_selection.selected();
+    m_playing = true;
+    m_paused = false;
+}
+
+void EditorSession::setPaused(bool paused)
+{
+    m_paused = m_playing && paused;
+}
+
+void EditorSession::stop()
+{
+    if (!m_playing) {
+        return;
+    }
+    m_scene.stop();
+    m_playing = false;
+    m_paused = false;
+
+    const NodeId selected = m_selection.selected();
+    if (!m_serializer.fromJson(m_scene, m_snapshot)) {
+        log::error("Cannot restore the scene after Play");
+    }
+    m_snapshot.clear();
+    m_modified = m_modifiedBeforePlay;
+    // ID узлов из файла сцены те же, поэтому выделение остаётся на том же узле,
+    // если он был до Play. Узла, созданного в игре, больше нет: возвращаем прежнее выделение.
+    m_selection.select(findNode(selected) ? selected : m_selectedBeforePlay);
 }
 
 bool EditorSession::setMainScene(const std::filesystem::path& path)
@@ -153,7 +193,8 @@ void EditorSession::fileRenamed(const std::filesystem::path& from, const std::fi
 
 bool EditorSession::saveScene()
 {
-    if (!m_project) {
+    // Во время игры в сцене состояние игры, а не то, что правили.
+    if (!m_project || m_playing) {
         return false;
     }
 
@@ -190,7 +231,7 @@ Node* EditorSession::createNode(const TypeInfo& type, Node* parent)
         target.addChild(std::move(node));
     }
     m_selection.select(created->id());
-    m_modified = true;
+    markModified();
 
     return created;
 }
@@ -213,7 +254,7 @@ bool EditorSession::deleteNode(NodeId id)
         // Владение возвращается сюда и узел уничтожается вместе с детьми.
         node->parent()->removeChild(*node);
     }
-    m_modified = true;
+    markModified();
 
     return true;
 }
@@ -224,7 +265,7 @@ Component* EditorSession::addComponent(Node& node, const TypeInfo& type)
     if (!component) {
         return nullptr;
     }
-    m_modified = true;
+    markModified();
 
     return &node.addComponent(std::move(component));
 }
@@ -234,7 +275,7 @@ bool EditorSession::removeComponent(Node& node, Component& component)
     if (!node.removeComponent(component)) {
         return false;
     }
-    m_modified = true;
+    markModified();
 
     return true;
 }

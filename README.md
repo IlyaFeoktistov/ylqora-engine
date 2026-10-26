@@ -12,11 +12,19 @@ A 3D game engine with an editor, written in C++20.
 
 ## Roadmap
 
-- [x] Scene tree, components, transforms
-- [x] Type registry and scene files
+MVP: everything needed to build a small game prototype.
+
+- [x] Scene tree, components, transforms, scene files
 - [x] Renderer basics: meshes, editor grid, selection outline
-- [x] Input, editor camera, picking objects with the mouse
-- [ ] Editor: project manager, scene tree, inspector, file browser
+- [x] Editor: project manager, scene tree, inspector, files, manipulators
+- [x] Play / Stop in the editor
+- [ ] C++ scripts on nodes, hot reload
+- [ ] Meshes from files (glTF) and textures
+- [ ] Materials, custom shaders, lights
+- [ ] Physics and collisions
+- [ ] Audio
+- [ ] Game UI
+- [ ] Running a game without the editor
 - [ ] Documentation: public API, engine internals, editor user guide
 
 ## Building

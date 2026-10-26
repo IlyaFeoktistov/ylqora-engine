@@ -11,6 +11,7 @@
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/render/FrameBuilder.hpp"
 #include "yqlora/render/Renderer.hpp"
+#include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/Node3D.hpp"
 #include "yqlora/scene/Scene.hpp"
 
@@ -54,29 +55,38 @@ void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSe
     const UiTexture texture = m_target->uiTexture();
     ImGui::Image(ImTextureRef(texture.id), size, ImVec2(texture.uv0.x, texture.uv0.y),
                  ImVec2(texture.uv1.x, texture.uv1.y));
-    const bool toolbarHovered = drawToolbar(origin);
+    // Во время игры окно показывает игру: камера сцены, без инструментов редактора.
+    const bool playing = session.playing();
+    const Camera3D* gameCamera = playing ? scene.activeCamera() : nullptr;
+
+    const bool toolbarHovered = !playing && drawToolbar(origin);
     const bool hovered = ImGui::IsWindowHovered() && !toolbarHovered
                          && ImGui::IsMouseHoveringRect(origin, ImVec2(origin.x + size.x, origin.y + size.y));
-    if (hovered && !m_camera.flying()) {
+    if (!playing && hovered && !m_camera.flying()) {
         handleToolHotkeys();
     }
 
-    m_camera.update(app.input(), deltaSeconds, hovered);
+    m_camera.update(app.input(), deltaSeconds, hovered && !gameCamera);
     setFlying(m_camera.flying());
 
     // Камера уже на новом месте: рисунки поверх кадра строим по ней.
     const CameraData view = m_camera.cameraData(size.x / size.y, app.depthRange());
-    if (const Node* root = scene.root()) {
+    if (const Node* root = scene.root(); root && !playing) {
         gizmos::drawCameras(*root, selection.selected(), view, origin, size);
     }
-    const bool manipulatorActive = drawManipulator(session, view, origin, size);
-    const gizmos::AxisGizmoResult axes = gizmos::drawAxes(view.view, origin, size);
-    if (axes.lookAlong) {
-        m_camera.lookAlong(*axes.lookAlong);
+    bool overWidget = false;
+    if (!playing) {
+        const bool manipulatorActive = drawManipulator(session, view, origin, size);
+        const gizmos::AxisGizmoResult axes = gizmos::drawAxes(view.view, origin, size);
+        if (axes.lookAlong) {
+            m_camera.lookAlong(*axes.lookAlong);
+        }
+        overWidget = axes.hovered || manipulatorActive;
+    } else {
+        drawPlayModeFrame(origin, size, gameCamera != nullptr);
     }
 
-    const bool overWidget = axes.hovered || manipulatorActive;
-    if (hovered && !overWidget && !m_camera.flying() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+    if (!playing && hovered && !overWidget && !m_camera.flying() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
         const ImVec2 mouse = ImGui::GetMousePos();
         const Ray ray = m_camera.screenRay({mouse.x - origin.x, mouse.y - origin.y}, {size.x, size.y});
         selection.select(pickNode(scene, ray));
@@ -85,13 +95,31 @@ void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSe
     // Текстура уже стоит в списке отрисовки интерфейса, а нарисуется он позже,
     // так что кадр сцены успевает попасть в неё в этом же кадре.
     FrameData frame = buildFrameData(scene, size.x / size.y, app.depthRange());
-    frame.camera = m_camera.cameraData(size.x / size.y, app.depthRange());
-    frame.editor.grid = true;
-    frame.editor.selected = selection.selected();
-    frame.editor.outlineColor = theme::colors().selectionOutline;
+    if (!gameCamera) {
+        frame.camera = m_camera.cameraData(size.x / size.y, app.depthRange());
+    }
+    if (!playing) {
+        frame.editor.grid = true;
+        frame.editor.selected = selection.selected();
+        frame.editor.outlineColor = theme::colors().selectionOutline;
+    }
     app.renderer().render(frame, *m_target);
 
     ImGui::End();
+}
+
+void ViewportPanel::drawPlayModeFrame(const ImVec2& origin, const ImVec2& size, bool hasCamera)
+{
+    const Vec4& color = theme::colors().playMode;
+    ImDrawList& list = *ImGui::GetWindowDrawList();
+    list.AddRect(origin, ImVec2(origin.x + size.x, origin.y + size.y),
+                 ImGui::GetColorU32(ImVec4(color.r, color.g, color.b, color.a)), 0.0f, 0, 2.0f);
+    if (!hasCamera) {
+        // Без активной камеры игре не через что показываться: смотрим через камеру редактора.
+        const std::string text = tr("editor.play.noCamera");
+        list.AddText(ImVec2(origin.x + 12.0f, origin.y + size.y - ImGui::GetTextLineHeight() - 10.0f),
+                     ImGui::GetColorU32(ImGuiCol_Text), text.c_str());
+    }
 }
 
 bool ViewportPanel::drawToolbar(const ImVec2& origin)

@@ -31,11 +31,28 @@ public:
         return m_builtin;
     }
 
+protected:
+    // Жизненный цикл в игре. onStart - перед первым обновлением компонента:
+    // при запуске сцены и если компонент добавили во время игры. onStop - игра
+    // остановлена или компонент сняли с узла: время освободить взятое в onStart.
+    virtual void onStart()
+    {
+    }
+
+    virtual void onUpdate(float /*deltaSeconds*/)
+    {
+    }
+
+    virtual void onStop()
+    {
+    }
+
 private:
     friend class Node;
 
     Node* m_owner = nullptr;
     bool m_builtin = false;
+    bool m_started = false;
 };
 
 } // namespace yqlora

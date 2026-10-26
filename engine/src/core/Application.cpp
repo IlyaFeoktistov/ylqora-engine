@@ -232,7 +232,9 @@ void Application::mainLoop()
             break;
         }
 
-        m_scene.update(deltaSeconds);
+        if (m_sceneRunning) {
+            m_scene.update(deltaSeconds);
+        }
         onUpdate(deltaSeconds);
 
         if (m_config.ui) {

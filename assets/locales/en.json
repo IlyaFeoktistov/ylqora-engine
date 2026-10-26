@@ -88,6 +88,12 @@
             "error": {
                 "rename": "This name is not allowed or already taken"
             }
+        },
+        "play": {
+            "play": "Play",
+            "pause": "Pause",
+            "stop": "Stop",
+            "noCamera": "The scene has no active camera: showing it through the editor camera"
         }
     },
     "projects": {

@@ -70,7 +70,11 @@ public:
         return m_clearColor;
     }
 
+    // Кадр игры для всего дерева. См. Node::update.
     void update(float deltaSeconds);
+
+    // Игра остановлена: onStop у всего, что успело запуститься.
+    void stop();
 
 private:
     std::unique_ptr<Node> m_root;

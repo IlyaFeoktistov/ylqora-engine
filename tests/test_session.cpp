@@ -98,3 +98,37 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: components can be added and removed, 
     CHECK_FALSE(session.removeComponent(*node, *node->components()[0]));
     CHECK(session.addComponent(*node, type("Transform3D")) == nullptr);
 }
+
+TEST_CASE_FIXTURE(Fixture, "EditorSession: Stop returns the scene as it was before Play")
+{
+    Node* root = session.createNode(type("Node3D"), nullptr);
+    auto* cube = static_cast<Node3D*>(session.createNode(type("MeshInstance3D"), root));
+    cube->transform().setPosition({1.0f, 0.0f, 0.0f});
+    const NodeId cubeId = cube->id();
+    session.selection().select(cubeId);
+    const bool modifiedBefore = session.modified();
+
+    session.play();
+    CHECK(session.playing());
+    CHECK(session.running());
+
+    // Во время игры сцену меняют, а изменения не помечаются и не сохраняются.
+    cube->transform().setPosition({5.0f, 5.0f, 5.0f});
+    session.createNode(type("Node3D"), root);
+    session.markModified();
+    CHECK(session.modified() == modifiedBefore);
+    CHECK_FALSE(session.saveScene());
+
+    session.setPaused(true);
+    CHECK_FALSE(session.running());
+
+    session.stop();
+    CHECK_FALSE(session.playing());
+    REQUIRE(scene.root());
+    CHECK(scene.root()->children().size() == 1);
+    auto* restored = dynamic_cast<Node3D*>(session.findNode(cubeId));
+    REQUIRE(restored);
+    CHECK(restored->transform().position() == Vec3(1.0f, 0.0f, 0.0f));
+    CHECK(session.selection().selected() == cubeId);
+    CHECK(session.modified() == modifiedBefore);
+}

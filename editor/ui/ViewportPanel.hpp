@@ -34,6 +34,8 @@ public:
 
 private:
     void setFlying(bool flying);
+    // Рамка вокруг окна, пока идёт игра, и подсказка, если в сцене нет активной камеры.
+    void drawPlayModeFrame(const ImVec2& origin, const ImVec2& size, bool hasCamera);
     // Панель инструментов в углу окна. Возвращает true, если курсор над ней.
     bool drawToolbar(const ImVec2& origin);
     void handleToolHotkeys();
