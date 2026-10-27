@@ -89,38 +89,13 @@ TEST_CASE("MeshRenderer: mesh and color are saved with the scene")
     CHECK(loadedRenderer->color() == Vec4(0.2f, 0.4f, 0.6f, 1.0f));
 }
 
-TEST_CASE("SceneSerializer: a version 1 MeshInstance3D becomes a Node3D with a MeshRenderer")
+TEST_CASE("SceneSerializer: a scene from a newer engine is not opened")
 {
     TypeRegistry registry;
     registerEngineTypes(registry);
     const SceneSerializer serializer(registry);
 
-    // Так сцену сохранял движок до версии 2: ID числами, меш по имени.
-    const char* oldScene = R"({
-        "version": 1,
-        "activeCamera": 0,
-        "root": {
-            "type": "MeshInstance3D",
-            "id": 77,
-            "properties": {"name": "Ball", "mesh": "sphere", "color": [0.2, 0.4, 0.6, 1.0]},
-            "components": [{"type": "Transform3D", "properties": {"position": [1.0, 2.0, 3.0]}}],
-            "children": []
-        }
-    })";
-
     Scene scene;
-    REQUIRE(serializer.fromJson(scene, oldScene));
-    auto* ball = dynamic_cast<Node3D*>(scene.root());
-    REQUIRE(ball);
-    CHECK(ball->typeName() == "Node3D");
-    CHECK(ball->id() == 77);
-    CHECK(ball->name() == "Ball");
-    CHECK(ball->transform().position() == Vec3(1.0f, 2.0f, 3.0f));
-    const auto* renderer = ball->getComponent<MeshRenderer>();
-    REQUIRE(renderer);
-    CHECK(renderer->mesh().id == builtin::kSphereMesh);
-    CHECK(renderer->color() == Vec4(0.2f, 0.4f, 0.6f, 1.0f));
-
-    // Новые версии формата старый движок не открывает, а новый - не угадывает.
     CHECK_FALSE(serializer.fromJson(scene, R"({"version": 99, "root": null})"));
+    CHECK_FALSE(serializer.fromJson(scene, R"({"root": null})"));
 }

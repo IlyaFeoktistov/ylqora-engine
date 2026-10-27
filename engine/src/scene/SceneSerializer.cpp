@@ -2,18 +2,17 @@
 
 #include "core/JsonId.hpp"
 
+#include "yqlora/core/JsonFile.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
-#include "yqlora/render/MeshData.hpp"
 #include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
-#include <fstream>
+#include <array>
 #include <optional>
-#include <sstream>
 
 namespace yqlora {
 
@@ -23,7 +22,21 @@ using Json = nlohmann::json;
 
 // Версия формата файла сцены. Когда формат меняется, версия растёт, а в
 // kMigrations добавляется перевод с предыдущей версии: старые сцены открываются.
-constexpr int kFormatVersion = 2;
+// Ключи старой версии миграция объявляет у себя, а не берёт ключи ниже: если
+// текущий формат что-то переименует, перевод со старой версии не изменится.
+constexpr int kFirstFormatVersion = 1;
+constexpr int kFormatVersion = 1;
+
+// Ключи текущего формата.
+constexpr const char* kVersionKey = "version";
+constexpr const char* kRootKey = "root";
+constexpr const char* kClearColorKey = "clearColor";
+constexpr const char* kActiveCameraKey = "activeCamera";
+constexpr const char* kTypeKey = "type";
+constexpr const char* kIdKey = "id";
+constexpr const char* kPropertiesKey = "properties";
+constexpr const char* kComponentsKey = "components";
+constexpr const char* kChildrenKey = "children";
 
 template <typename Vec>
 Json vectorToJson(const Vec& vec)
@@ -139,74 +152,30 @@ std::optional<PropertyValue> valueFromJson(const Json& json, const Property& pro
     return std::nullopt;
 }
 
-// 1 -> 2: узел MeshInstance3D стал Node3D с компонентом MeshRenderer,
-// а меш задаётся ID ресурса вместо имени встроенного меша. ID стали строками,
-// но числа из версии 1 читаются и так (см. idFromJson).
-void migrateMeshInstances(Json& node)
-{
-    if (!node.is_object()) {
-        return;
-    }
-    if (node.value("type", "") == "MeshInstance3D") {
-        node["type"] = "Node3D";
-        Json& properties = node["properties"];
-        Json renderer = Json::object();
-        if (properties.is_object()) {
-            if (const auto it = properties.find("mesh"); it != properties.end() && it->is_string()) {
-                const auto meshes = builtinMeshes();
-                const auto builtin = std::ranges::find(meshes, it->get<std::string>(), &BuiltinMesh::name);
-                renderer["mesh"] = idToJson(builtin != meshes.end() ? builtin->id : ResourceId{0});
-                properties.erase(it);
-            }
-            if (const auto it = properties.find("color"); it != properties.end()) {
-                renderer["color"] = *it;
-                properties.erase(it);
-            }
-        }
-        node["components"].push_back({{"type", "MeshRenderer"}, {"properties", std::move(renderer)}});
-    }
-    if (const auto it = node.find("children"); it != node.end() && it->is_array()) {
-        for (Json& child : *it) {
-            migrateMeshInstances(child);
-        }
-    }
-}
-
-void migrate1To2(Json& scene)
-{
-    if (const auto it = scene.find("root"); it != scene.end()) {
-        migrateMeshInstances(*it);
-    }
-}
-
 using Migration = void (*)(Json& scene);
 
-// kMigrations[i] переводит версию i + 1 в i + 2.
-constexpr Migration kMigrations[] = {&migrate1To2};
-static_assert(
-    std::size(kMigrations) == kFormatVersion - 1,
-    "Every format version needs a migration from the previous one"
-);
+// kMigrations[i] переводит версию i + 1 в i + 2. Пока формат один, переводов нет.
+constexpr std::array<Migration, kFormatVersion - kFirstFormatVersion> kMigrations{};
 
 // Приводит файл к текущей версии. false, если версия неизвестна.
 bool migrate(Json& scene)
 {
-    const auto it = scene.find("version");
+    const auto it = scene.find(kVersionKey);
     if (it == scene.end() || !it->is_number_integer()) {
         log::error("Scene: no format version");
 
         return false;
     }
     const int version = it->get<int>();
-    if (version < 1 || version > kFormatVersion) {
+    if (version < kFirstFormatVersion || version > kFormatVersion) {
         log::error("Scene: format version {} is not supported, this engine reads up to {}", version, kFormatVersion);
 
         return false;
     }
     for (int from = version; from < kFormatVersion; ++from) {
-        kMigrations[from - 1](scene);
+        kMigrations[from - kFirstFormatVersion](scene);
     }
-    scene["version"] = kFormatVersion;
+    scene[kVersionKey] = kFormatVersion;
 
     return true;
 }
@@ -223,7 +192,7 @@ Json propertiesToJson(const TypeRegistry& registry, const TypeInfo& type, const 
 }
 
 // Отсутствующие свойства остаются значениями по умолчанию, лишние игнорируются:
-// так старые файлы читаются после добавления или удаления свойств.
+// когда в коде игры добавляют или убирают поле, уже сохранённые сцены открываются.
 template <typename Object>
 void propertiesFromJson(const TypeRegistry& registry, const TypeInfo& type, Object& object, const Json& json)
 {
@@ -254,9 +223,9 @@ Json nodeToJson(const TypeRegistry& registry, const Node& node)
     }
 
     Json result;
-    result["type"] = type->name();
-    result["id"] = idToJson(node.id());
-    result["properties"] = propertiesToJson(registry, *type, node);
+    result[kTypeKey] = type->name();
+    result[kIdKey] = idToJson(node.id());
+    result[kPropertiesKey] = propertiesToJson(registry, *type, node);
 
     Json components = Json::array();
     for (const auto& component : node.components()) {
@@ -266,11 +235,11 @@ Json nodeToJson(const TypeRegistry& registry, const Node& node)
             continue;
         }
         components.push_back({
-            {"type", componentType->name()},
-            {"properties", propertiesToJson(registry, *componentType, *component)},
+            {kTypeKey, componentType->name()},
+            {kPropertiesKey, propertiesToJson(registry, *componentType, *component)},
         });
     }
-    result["components"] = std::move(components);
+    result[kComponentsKey] = std::move(components);
 
     Json children = Json::array();
     for (const auto& child : node.children()) {
@@ -279,7 +248,7 @@ Json nodeToJson(const TypeRegistry& registry, const Node& node)
             children.push_back(std::move(childJson));
         }
     }
-    result["children"] = std::move(children);
+    result[kChildrenKey] = std::move(children);
 
     return result;
 }
@@ -300,18 +269,21 @@ Node* findById(Node& node, NodeId id)
 
 } // namespace
 
-// Вложен в SceneSerializer, чтобы вызывать закрытый assignId.
-struct SceneSerializer::Reader {
+// Чтение и запись сцены. Вложен в SceneSerializer, чтобы вызывать закрытый assignId.
+struct SceneSerializer::Format {
     const TypeRegistry& registry;
+
+    Json write(const Scene& scene) const;
+    bool readScene(Scene& scene, Json json) const;
 
     std::unique_ptr<Node> readNode(const Json& json) const
     {
-        if (!json.is_object() || !json.contains("type") || !json["type"].is_string()) {
+        if (!json.is_object() || !json.contains(kTypeKey) || !json[kTypeKey].is_string()) {
             log::error("Scene: node without a type");
 
             return nullptr;
         }
-        const std::string typeName = json["type"].get<std::string>();
+        const std::string typeName = json[kTypeKey].get<std::string>();
         const TypeInfo* type = registry.find(typeName);
         if (!type || type->kind() != TypeKind::Node) {
             log::error("Scene: unknown node type '{}'", typeName);
@@ -325,19 +297,19 @@ struct SceneSerializer::Reader {
             return nullptr;
         }
 
-        const auto id = json.contains("id") ? idFromJson(json["id"]) : std::nullopt;
+        const auto id = json.contains(kIdKey) ? idFromJson(json[kIdKey]) : std::nullopt;
         if (id && *id != 0) {
             assignId(*node, *id);
         }
-        if (const auto it = json.find("properties"); it != json.end()) {
+        if (const auto it = json.find(kPropertiesKey); it != json.end()) {
             propertiesFromJson(registry, *type, *node, *it);
         }
-        if (const auto it = json.find("components"); it != json.end() && it->is_array()) {
+        if (const auto it = json.find(kComponentsKey); it != json.end() && it->is_array()) {
             for (const Json& componentJson : *it) {
                 readComponent(*node, componentJson);
             }
         }
-        if (const auto it = json.find("children"); it != json.end() && it->is_array()) {
+        if (const auto it = json.find(kChildrenKey); it != json.end() && it->is_array()) {
             for (const Json& childJson : *it) {
                 std::unique_ptr<Node> child = readNode(childJson);
                 if (!child) {
@@ -354,12 +326,12 @@ struct SceneSerializer::Reader {
     // так сцена откроется, даже если компонент удалили из кода игры.
     void readComponent(Node& node, const Json& json) const
     {
-        if (!json.is_object() || !json.contains("type") || !json["type"].is_string()) {
+        if (!json.is_object() || !json.contains(kTypeKey) || !json[kTypeKey].is_string()) {
             log::warn("Scene: component without a type on node '{}', skipped", node.name());
 
             return;
         }
-        const std::string typeName = json["type"].get<std::string>();
+        const std::string typeName = json[kTypeKey].get<std::string>();
         const TypeInfo* type = registry.find(typeName);
         if (!type || type->kind() != TypeKind::Component) {
             log::warn("Scene: unknown component type '{}' on node '{}', skipped", typeName, node.name());
@@ -384,7 +356,7 @@ struct SceneSerializer::Reader {
 
             return;
         }
-        if (const auto it = json.find("properties"); it != json.end()) {
+        if (const auto it = json.find(kPropertiesKey); it != json.end()) {
             propertiesFromJson(registry, *type, *component, *it);
         }
     }
@@ -400,21 +372,20 @@ void SceneSerializer::assignId(Node& node, NodeId id)
     node.setId(id);
 }
 
-std::string SceneSerializer::toJson(const Scene& scene) const
+Json SceneSerializer::Format::write(const Scene& scene) const
 {
     Json json;
-    json["version"] = kFormatVersion;
-    json["clearColor"] = vectorToJson(scene.clearColor());
-    json["activeCamera"] = idToJson(scene.activeCamera() ? scene.activeCamera()->id() : NodeId{0});
-    json["root"] = scene.root() ? nodeToJson(m_registry, *scene.root()) : Json(nullptr);
+    json[kVersionKey] = kFormatVersion;
+    json[kClearColorKey] = vectorToJson(scene.clearColor());
+    json[kActiveCameraKey] = idToJson(scene.activeCamera() ? scene.activeCamera()->id() : NodeId{0});
+    json[kRootKey] = scene.root() ? nodeToJson(registry, *scene.root()) : Json(nullptr);
 
-    return json.dump(4);
+    return json;
 }
 
-bool SceneSerializer::fromJson(Scene& scene, std::string_view text) const
+bool SceneSerializer::Format::readScene(Scene& scene, Json json) const
 {
-    Json json = Json::parse(text, nullptr, /*allow_exceptions=*/false);
-    if (json.is_discarded() || !json.is_object()) {
+    if (!json.is_object()) {
         log::error("Scene: file is not a valid JSON object");
 
         return false;
@@ -425,20 +396,20 @@ bool SceneSerializer::fromJson(Scene& scene, std::string_view text) const
 
     // Дерево собираем отдельно и отдаём сцене, только если всё прочиталось.
     std::unique_ptr<Node> root;
-    if (const auto it = json.find("root"); it != json.end() && !it->is_null()) {
-        root = Reader{m_registry}.readNode(*it);
+    if (const auto it = json.find(kRootKey); it != json.end() && !it->is_null()) {
+        root = readNode(*it);
         if (!root) {
             return false;
         }
     }
 
     scene.setRoot(std::move(root));
-    if (const auto it = json.find("clearColor"); it != json.end()) {
+    if (const auto it = json.find(kClearColorKey); it != json.end()) {
         if (const auto color = vectorFromJson<Vec4>(*it)) {
             scene.setClearColor(*color);
         }
     }
-    const auto camera = json.contains("activeCamera") ? idFromJson(json["activeCamera"]) : std::nullopt;
+    const auto camera = json.contains(kActiveCameraKey) ? idFromJson(json[kActiveCameraKey]) : std::nullopt;
     if (camera && scene.root()) {
         Node* node = findById(*scene.root(), *camera);
         scene.setActiveCamera(dynamic_cast<Camera3D*>(node));
@@ -447,31 +418,44 @@ bool SceneSerializer::fromJson(Scene& scene, std::string_view text) const
     return true;
 }
 
+std::string SceneSerializer::toJson(const Scene& scene) const
+{
+    return Format{m_registry}.write(scene).dump(kJsonIndent);
+}
+
+bool SceneSerializer::fromJson(Scene& scene, std::string_view text) const
+{
+    Json json = Json::parse(text, nullptr, /*allow_exceptions=*/false);
+    if (json.is_discarded()) {
+        log::error("Scene: file is not a valid JSON object");
+
+        return false;
+    }
+
+    return Format{m_registry}.readScene(scene, std::move(json));
+}
+
 bool SceneSerializer::save(const Scene& scene, const std::filesystem::path& file) const
 {
-    std::ofstream out(file);
-    if (!out) {
+    if (!writeJsonFile(file, Format{m_registry}.write(scene))) {
         log::error("Scene: cannot write '{}'", file.string());
 
         return false;
     }
-    out << toJson(scene) << '\n';
 
-    return static_cast<bool>(out);
+    return true;
 }
 
 bool SceneSerializer::load(Scene& scene, const std::filesystem::path& file) const
 {
-    std::ifstream in(file);
-    if (!in) {
+    auto json = std::filesystem::exists(file) ? readJsonFile(file) : std::nullopt;
+    if (!json) {
         log::error("Scene: cannot open '{}'", file.string());
 
         return false;
     }
-    std::stringstream text;
-    text << in.rdbuf();
 
-    return fromJson(scene, text.str());
+    return Format{m_registry}.readScene(scene, std::move(*json));
 }
 
 } // namespace yqlora

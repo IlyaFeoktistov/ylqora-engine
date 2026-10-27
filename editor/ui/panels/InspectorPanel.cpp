@@ -17,6 +17,12 @@ namespace yqlora::editor {
 
 namespace {
 
+// Подпись и значение.
+constexpr int kColumnCount = 2;
+constexpr float kLabelShare = 0.3f;
+constexpr float kMinLabelWidth = 70.0f;
+constexpr float kMaxLabelWidth = 130.0f;
+
 // Возвращает true, если какое-то значение тянут мышью.
 template <typename Object>
 bool drawPropertyTable(EditorContext& context, const TypeInfo& type, Object& object)
@@ -28,11 +34,11 @@ bool drawPropertyTable(EditorContext& context, const TypeInfo& type, Object& obj
         .resources = session.project() ? &session.project()->resources() : nullptr,
     };
     const auto properties = context.registry.properties(type);
-    if (properties.empty() || !ImGui::BeginTable("properties", 2)) {
+    if (properties.empty() || !ImGui::BeginTable("properties", kColumnCount)) {
         return false;
     }
     // Подписи узкой колонкой постоянной ширины, остальное место - значениям.
-    const float labelWidth = std::clamp(ImGui::GetContentRegionAvail().x * 0.3f, 70.0f, 130.0f);
+    const float labelWidth = std::clamp(ImGui::GetContentRegionAvail().x * kLabelShare, kMinLabelWidth, kMaxLabelWidth);
     ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, labelWidth);
     ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
 

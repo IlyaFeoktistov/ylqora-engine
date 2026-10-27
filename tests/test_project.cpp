@@ -174,21 +174,3 @@ TEST_CASE("deleteProjectFolder: removes only real project folders")
     CHECK(deleteProjectFolder(project->directory(), error));
     CHECK_FALSE(std::filesystem::exists(project->directory()));
 }
-
-TEST_CASE("Project: a version 1 file with the main scene as a path is updated")
-{
-    const auto directory = freshDirectory("project_v1");
-    {
-        std::ofstream(directory / "project.yqlora") << R"({"name": "Old", "mainScene": "levels/start.yscene"})";
-        std::filesystem::create_directories(directory / "levels");
-        std::ofstream(directory / "levels" / "start.yscene") << "{}";
-    }
-
-    const auto project = Project::open(directory);
-    REQUIRE(project);
-    REQUIRE(project->mainScene() != 0);
-    CHECK(project->mainScenePath() == std::filesystem::path("levels/start.yscene"));
-
-    // Файл уже в новом виде: при повторном открытии та же сцена.
-    CHECK(Project::open(directory)->mainScene() == project->mainScene());
-}

@@ -1,5 +1,6 @@
 #include "OutlinePass.hpp"
 
+#include "GeneratedShaders.hpp"
 #include "GlMesh.hpp"
 
 #include <glad/gl.h>
@@ -11,83 +12,15 @@ namespace yqlora {
 
 namespace {
 
-constexpr const char* kMaskVertexShader = R"(
-#version 330 core
-
-layout(location = 0) in vec3 aPosition;
-
-uniform mat4 uTransform;
-
-void main()
-{
-    gl_Position = uTransform * vec4(aPosition, 1.0);
-}
-)";
-
-constexpr const char* kMaskFragmentShader = R"(
-#version 330 core
-
-out vec4 fragColor;
-
-void main()
-{
-    fragColor = vec4(1.0);
-}
-)";
-
-// Треугольник на весь экран без вершинного буфера: координаты из gl_VertexID.
-constexpr const char* kFullscreenVertexShader = R"(
-#version 330 core
-
-out vec2 vUv;
-
-void main()
-{
-    vUv = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
-    gl_Position = vec4(vUv * 2.0 - 1.0, 0.0, 1.0);
-}
-)";
-
-constexpr const char* kOutlineFragmentShader = R"(
-#version 330 core
-
-in vec2 vUv;
-
-uniform sampler2D uMask;
-uniform vec4 uColor;
-
-out vec4 fragColor;
-
-void main()
-{
-    // Внутри объекта контур не рисуем.
-    if (texture(uMask, vUv).r > 0.5) {
-        discard;
-    }
-
-    // Пиксель снаружи, но маска рядом, в радиусе двух пикселей: это контур.
-    vec2 texel = 1.0 / vec2(textureSize(uMask, 0));
-    float nearMask = 0.0;
-    for (int x = -2; x <= 2; ++x) {
-        for (int y = -2; y <= 2; ++y) {
-            if (x * x + y * y <= 5) {
-                nearMask = max(nearMask, texture(uMask, vUv + vec2(x, y) * texel).r);
-            }
-        }
-    }
-    if (nearMask < 0.5) {
-        discard;
-    }
-    fragColor = uColor;
-}
-)";
+// Один треугольник на весь экран: вершины строит сам шейдер по gl_VertexID.
+constexpr int kFullscreenTriangleVertices = 3;
 
 } // namespace
 
 OutlinePass::OutlinePass(GlMeshCache& meshes)
     : m_meshes(meshes)
-    , m_maskShader("outline mask", kMaskVertexShader, kMaskFragmentShader)
-    , m_outlineShader("outline", kFullscreenVertexShader, kOutlineFragmentShader)
+    , m_maskShader("outline mask", shaders::kOutlineMaskVert, shaders::kOutlineMaskFrag)
+    , m_outlineShader("outline", shaders::kFullscreenVert, shaders::kOutlineFrag)
 {
     m_maskTransformLocation = m_maskShader.uniformLocation("uTransform");
     m_outlineMaskLocation = m_outlineShader.uniformLocation("uMask");
@@ -148,7 +81,7 @@ void OutlinePass::draw(const FrameData& frame, int width, int height)
     glUniform1i(m_outlineMaskLocation, 0);
     glUniform4fv(m_outlineColorLocation, 1, glm::value_ptr(frame.editor.outlineColor));
     glBindVertexArray(m_emptyVertexArray);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawArrays(GL_TRIANGLES, 0, kFullscreenTriangleVertices);
     glBindVertexArray(0);
 
     glEnable(GL_DEPTH_TEST);

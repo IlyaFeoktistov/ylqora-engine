@@ -9,6 +9,10 @@ namespace yqlora {
 
 namespace {
 
+// При 0 и 180 градусах проекция вырождается.
+constexpr float kMinFovDegrees = 1.0f;
+constexpr float kMaxFovDegrees = 179.0f;
+
 constexpr float kMinNearPlane = 0.001f;
 constexpr float kMinPlaneGap = 0.001f;
 
@@ -21,7 +25,7 @@ Camera3D::Camera3D(std::string name)
 
 void Camera3D::setFovDegrees(float fov)
 {
-    m_fovDegrees = std::clamp(fov, 1.0f, 179.0f);
+    m_fovDegrees = std::clamp(fov, kMinFovDegrees, kMaxFovDegrees);
 }
 
 void Camera3D::setClipPlanes(float nearPlane, float farPlane)

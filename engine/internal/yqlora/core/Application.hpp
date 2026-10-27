@@ -2,6 +2,7 @@
 
 #include "yqlora/core/Export.hpp"
 #include "yqlora/input/Input.hpp"
+#include "yqlora/platform/Window.hpp"
 #include "yqlora/render/FrameData.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 #include "yqlora/scene/Scene.hpp"
@@ -25,8 +26,8 @@ struct ApplicationConfig {
     std::string name = "YqloraApp";
     // Ключ перевода для заголовка окна.
     std::string titleKey = "app.title";
-    int width = 1280;
-    int height = 720;
+    int width = kDefaultWindowWidth;
+    int height = kDefaultWindowHeight;
     GraphicsApi api = GraphicsApi::OpenGL;
     // Интерфейс на Dear ImGui. С ним приложение само решает, куда рисовать
     // сцену (обычно в RenderTarget внутри окна интерфейса) в onGui().
@@ -96,8 +97,17 @@ public:
     // Переключает язык интерфейса и сохраняет выбор в настройках.
     bool setLanguage(std::string_view language);
 
+    // Название разработчика движка: из него строятся папки в профиле пользователя.
+    static constexpr std::string_view organization()
+    {
+        return "Yqlora";
+    }
+
     // Папка для данных приложения в профиле пользователя (настройки, списки).
     std::filesystem::path userDataDirectory() const;
+
+    // Ресурсы движка рядом с программой: переводы, шрифты, темы.
+    std::filesystem::path assetsDirectory() const;
 
     // Уточнение в заголовке окна перед названием программы, например имя проекта.
     // Пустая строка - только название.

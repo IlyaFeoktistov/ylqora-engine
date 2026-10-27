@@ -27,7 +27,7 @@ public:
     bool load(Scene& scene, const std::filesystem::path& file) const;
 
 private:
-    struct Reader;
+    struct Format;
 
     // ID узла из файла: Node::setId закрыт для всех, кроме сериализатора.
     static void assignId(Node& node, NodeId id);

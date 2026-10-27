@@ -8,9 +8,19 @@
 #include "yqlora/scene/Scene.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
 
+#include <cctype>
+
 namespace yqlora::editor {
 
 namespace {
+
+constexpr const char* kMainSceneName = "main";
+// Куб стоит на сетке, камера смотрит на него спереди и сверху.
+const Vec3 kStarterCubePosition(0.0f, 0.5f, 0.0f);
+const Vec3 kStarterCameraPosition(0.0f, 2.0f, 5.0f);
+constexpr std::size_t kMaxFileNameLength = 64;
+// Запрещены в именах файлов на Windows, а "/" - везде.
+constexpr std::string_view kForbiddenFileNameChars = "/\\:*?\"<>|";
 
 std::string toUtf8(const std::filesystem::path& path)
 {
@@ -29,12 +39,12 @@ void buildStarterScene(Scene& scene)
 {
     auto& root = scene.createRoot<Node3D>("Main");
     auto& camera = root.addChild<Camera3D>("Camera");
-    camera.transform().setPosition({0.0f, 2.0f, 5.0f});
-    camera.transform().lookAt({0.0f, 0.5f, 0.0f});
+    camera.transform().setPosition(kStarterCameraPosition);
+    camera.transform().lookAt(kStarterCubePosition);
     scene.setActiveCamera(&camera);
 
     auto& cube = root.addChild<Node3D>("Cube");
-    cube.transform().setPosition({0.0f, 0.5f, 0.0f});
+    cube.transform().setPosition(kStarterCubePosition);
     cube.addComponent<MeshRenderer>().setMesh(ResourceRef{builtin::kCubeMesh});
 }
 
@@ -65,7 +75,7 @@ std::optional<Project> createProject(
         return std::nullopt;
     }
 
-    const std::filesystem::path mainScene = std::string("main") + std::string(ProjectFiles::sceneExtension());
+    const std::filesystem::path mainScene = std::string(kMainSceneName) + std::string(ProjectFiles::sceneExtension());
     Scene scene;
     buildStarterScene(scene);
     auto project = Project::create(directory, name);
@@ -105,7 +115,7 @@ bool deleteProjectFolder(const std::filesystem::path& directory, std::string& er
 
 bool isValidFileName(std::string_view name)
 {
-    if (name.empty() || name.size() > 64 || name == "." || name == "..") {
+    if (name.empty() || name.size() > kMaxFileNameLength || name == "." || name == "..") {
         return false;
     }
     // Пробел или точка в конце: Windows их молча отбрасывает у имён папок.
@@ -113,7 +123,7 @@ bool isValidFileName(std::string_view name)
         return false;
     }
     for (const char c : name) {
-        if (static_cast<unsigned char>(c) < 32 || std::string_view("/\\:*?\"<>|").find(c) != std::string_view::npos) {
+        if (std::iscntrl(static_cast<unsigned char>(c)) || kForbiddenFileNameChars.find(c) != std::string_view::npos) {
             return false;
         }
     }

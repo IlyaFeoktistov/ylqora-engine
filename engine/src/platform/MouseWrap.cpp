@@ -8,6 +8,12 @@ namespace {
 
 // Отступ от края: у самой границы окна события мыши могут уже не приходить.
 constexpr float kMargin = 2.0f;
+// Куда переносить курсор: ещё на пиксель внутрь, чтобы не сработать снова.
+constexpr float kInsideMargin = 1.0f;
+// Курсор в пределах этой доли окна от точки переноса: перенос сработал.
+constexpr float kWarpTolerance = 0.25f;
+// Скачок больше этой доли окна - это перенос, а не движение мыши.
+constexpr float kJumpShare = 0.5f;
 
 } // namespace
 
@@ -23,7 +29,8 @@ Vec2 MouseWrap::delta(const Vec2& position, const Vec2& windowSize)
     // Курсор недалеко от точки переноса: перенос сработал.
     if (m_warpTarget) {
         const Vec2 offset = position - *m_warpTarget;
-        if (std::abs(offset.x) <= windowSize.x * 0.25f && std::abs(offset.y) <= windowSize.y * 0.25f) {
+        if (std::abs(offset.x) <= windowSize.x * kWarpTolerance
+            && std::abs(offset.y) <= windowSize.y * kWarpTolerance) {
             m_warpTarget.reset();
             m_missedWarps = 0;
         } else {
@@ -33,7 +40,7 @@ Vec2 MouseWrap::delta(const Vec2& position, const Vec2& windowSize)
 
     const Vec2 delta = position - m_lastPosition;
     m_lastPosition = position;
-    if (std::abs(delta.x) > windowSize.x * 0.5f || std::abs(delta.y) > windowSize.y * 0.5f) {
+    if (std::abs(delta.x) > windowSize.x * kJumpShare || std::abs(delta.y) > windowSize.y * kJumpShare) {
         return Vec2(0.0f);
     }
 
@@ -44,14 +51,14 @@ std::optional<Vec2> MouseWrap::wrapTarget(const Vec2& position, const Vec2& wind
 {
     Vec2 target = position;
     if (position.x <= kMargin) {
-        target.x = windowSize.x - kMargin - 1.0f;
+        target.x = windowSize.x - kMargin - kInsideMargin;
     } else if (position.x >= windowSize.x - kMargin) {
-        target.x = kMargin + 1.0f;
+        target.x = kMargin + kInsideMargin;
     }
     if (position.y <= kMargin) {
-        target.y = windowSize.y - kMargin - 1.0f;
+        target.y = windowSize.y - kMargin - kInsideMargin;
     } else if (position.y >= windowSize.y - kMargin) {
-        target.y = kMargin + 1.0f;
+        target.y = kMargin + kInsideMargin;
     }
 
     return target != position ? std::optional<Vec2>(target) : std::nullopt;

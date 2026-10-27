@@ -17,6 +17,12 @@ namespace yqlora::editor {
 
 namespace {
 
+constexpr float kFieldWidth = 420.0f;
+// Колонки списка: имя и путь, пути вдвое больше места.
+constexpr int kColumnCount = 2;
+constexpr float kNameColumnWeight = 1.0f;
+constexpr float kPathColumnWeight = 2.0f;
+
 std::string toUtf8(const std::filesystem::path& path)
 {
     const std::u8string text = path.u8string();
@@ -66,7 +72,7 @@ std::optional<Project> ProjectManagerPanel::draw(Application& app)
         if (ImGui::Button((std::string(icons::kAdd) + "  " + tr("projects.new")).c_str())) {
             m_newName.clear();
             if (m_location.empty()) {
-                m_location = toUtf8(platform::documentsPath() / "Yqlora");
+                m_location = toUtf8(platform::documentsPath() / Application::organization());
             }
             m_error.clear();
             m_openCreate = true;
@@ -134,12 +140,12 @@ void ProjectManagerPanel::drawList()
     }
 
     const ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_ScrollY;
-    if (!ImGui::BeginTable("projects", 2, flags)) {
+    if (!ImGui::BeginTable("projects", kColumnCount, flags)) {
         return;
     }
     ImGui::TableSetupScrollFreeze(0, 1);
-    ImGui::TableSetupColumn(tr("projects.column.name").c_str(), ImGuiTableColumnFlags_WidthStretch, 1.0f);
-    ImGui::TableSetupColumn(tr("projects.column.path").c_str(), ImGuiTableColumnFlags_WidthStretch, 2.0f);
+    ImGui::TableSetupColumn(tr("projects.column.name").c_str(), ImGuiTableColumnFlags_WidthStretch, kNameColumnWeight);
+    ImGui::TableSetupColumn(tr("projects.column.path").c_str(), ImGuiTableColumnFlags_WidthStretch, kPathColumnWeight);
     ImGui::TableHeadersRow();
 
     for (std::size_t i = 0; i < m_rows.size(); ++i) {
@@ -184,12 +190,12 @@ void ProjectManagerPanel::drawCreateDialog(Application& app)
         return;
     }
 
-    ImGui::SetNextItemWidth(420.0f);
+    ImGui::SetNextItemWidth(kFieldWidth);
     if (ImGui::IsWindowAppearing()) {
         ImGui::SetKeyboardFocusHere();
     }
     ImGui::InputText(tr("projects.name").c_str(), &m_newName);
-    ImGui::SetNextItemWidth(420.0f);
+    ImGui::SetNextItemWidth(kFieldWidth);
     ImGui::InputText(tr("projects.location").c_str(), &m_location);
     ImGui::SameLine();
     if (ImGui::Button(tr("projects.browse").c_str())) {
@@ -231,7 +237,7 @@ void ProjectManagerPanel::drawImportDialog(Application& app)
         return;
     }
 
-    ImGui::SetNextItemWidth(420.0f);
+    ImGui::SetNextItemWidth(kFieldWidth);
     ImGui::InputText(tr("projects.importPath").c_str(), &m_importPath);
     ImGui::SameLine();
     if (ImGui::Button(tr("projects.browse").c_str())) {

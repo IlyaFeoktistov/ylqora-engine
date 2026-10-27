@@ -1,13 +1,11 @@
 #include "yqlora/resource/ResourceDatabase.hpp"
 
+#include "yqlora/core/JsonFile.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/resource/BuiltinResources.hpp"
 
 #include "core/JsonId.hpp"
 
-#include <nlohmann/json.hpp>
-
-#include <fstream>
 #include <random>
 #include <vector>
 
@@ -17,6 +15,8 @@ namespace {
 
 namespace fs = std::filesystem;
 using Json = nlohmann::json;
+
+constexpr const char* kIdKey = "id";
 
 std::string toUtf8(const fs::path& path)
 {
@@ -40,12 +40,11 @@ bool isMeta(const fs::path& file)
 
 ResourceId readMeta(const fs::path& file)
 {
-    std::ifstream in(metaPath(file));
-    if (!in) {
+    if (!fs::exists(metaPath(file))) {
         return 0;
     }
-    const Json json = Json::parse(in, nullptr, /*allow_exceptions=*/false);
-    const auto id = json.is_object() && json.contains("id") ? idFromJson(json["id"]) : std::nullopt;
+    const auto json = readJsonFile(metaPath(file));
+    const auto id = json && json->is_object() && json->contains(kIdKey) ? idFromJson((*json)[kIdKey]) : std::nullopt;
     if (!id) {
         log::warn("Resource meta of '{}' is broken, the file gets a new id", toUtf8(file));
 
@@ -58,11 +57,9 @@ ResourceId readMeta(const fs::path& file)
 bool writeMeta(const fs::path& file, ResourceId id)
 {
     Json json;
-    json["id"] = idToJson(id);
-    std::ofstream out(metaPath(file));
-    out << json.dump(4) << '\n';
+    json[kIdKey] = idToJson(id);
 
-    return static_cast<bool>(out);
+    return writeJsonFile(metaPath(file), json);
 }
 
 // path лежит внутри folder (или равен ему).

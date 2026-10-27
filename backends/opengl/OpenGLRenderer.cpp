@@ -20,6 +20,14 @@
 
 namespace yqlora {
 
+namespace {
+
+constexpr int kDepthBits = 24;
+// Трафарет нужен контуру выделения.
+constexpr int kStencilBits = 8;
+
+} // namespace
+
 void OpenGLRenderer::prepareWindow()
 {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, kVersionMajor);
@@ -29,8 +37,8 @@ void OpenGLRenderer::prepareWindow()
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 #endif
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, kDepthBits);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, kStencilBits);
 }
 
 OpenGLRenderer::OpenGLRenderer(Window& window)

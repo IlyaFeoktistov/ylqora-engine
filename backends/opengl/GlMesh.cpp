@@ -8,6 +8,14 @@
 
 namespace yqlora {
 
+namespace {
+
+// Так входы вершин ждут все шейдеры мешей.
+constexpr GLuint kPositionLocation = 0;
+constexpr GLuint kNormalLocation = 1;
+
+} // namespace
+
 GlMesh::GlMesh(const MeshData& data)
     : m_indexCount(static_cast<int>(data.indices.size()))
 {
@@ -31,20 +39,19 @@ GlMesh::GlMesh(const MeshData& data)
         GL_STATIC_DRAW
     );
 
-    // location 0 - положение, 1 - нормаль. Так их ждут все шейдеры мешей.
-    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(kPositionLocation);
     glVertexAttribPointer(
-        0,
-        3,
+        kPositionLocation,
+        Vec3::length(),
         GL_FLOAT,
         GL_FALSE,
         sizeof(Vertex),
         reinterpret_cast<const void*>(offsetof(Vertex, position))
     );
-    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(kNormalLocation);
     glVertexAttribPointer(
-        1,
-        3,
+        kNormalLocation,
+        Vec3::length(),
         GL_FLOAT,
         GL_FALSE,
         sizeof(Vertex),

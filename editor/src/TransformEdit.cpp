@@ -10,10 +10,13 @@ namespace yqlora::editor {
 
 namespace {
 
+constexpr float kFullTurn = 360.0f;
+constexpr float kHalfTurn = 180.0f;
+
 // angle + 360 * k, ближайшее к target.
 float unwrapNear(float angle, float target)
 {
-    return angle + 360.0f * std::round((target - angle) / 360.0f);
+    return angle + kFullTurn * std::round((target - angle) / kFullTurn);
 }
 
 Vec3 unwrapNear(const Vec3& angles, const Vec3& target)
@@ -34,7 +37,7 @@ Vec3 closestEulerDegrees(const Quat& rotation, const Vec3& previousDegrees)
 {
     const Vec3 first = glm::degrees(glm::eulerAngles(rotation));
     // Тот же поворот при углах Эйлера XYZ: x + 180, 180 - y, z + 180.
-    const Vec3 second(first.x + 180.0f, 180.0f - first.y, first.z + 180.0f);
+    const Vec3 second(first.x + kHalfTurn, kHalfTurn - first.y, first.z + kHalfTurn);
 
     const Vec3 a = unwrapNear(first, previousDegrees);
     const Vec3 b = unwrapNear(second, previousDegrees);

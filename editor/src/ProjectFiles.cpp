@@ -15,6 +15,11 @@ namespace {
 
 namespace fs = std::filesystem;
 
+constexpr const char* kNewSceneName = "New Scene";
+constexpr const char* kNewFolderName = "New Folder";
+// "New Scene 2", "New Scene 3"...: первая копия имени получает номер 2.
+constexpr int kFirstDuplicateNumber = 2;
+
 std::string toUtf8(const fs::path& path)
 {
     const std::u8string text = path.u8string();
@@ -59,7 +64,7 @@ fs::path freeName(const fs::path& directory, const std::string& base, const std:
 {
     std::error_code ec;
     fs::path candidate = directory / fromUtf8(base + extension);
-    for (int i = 2; fs::exists(candidate, ec); ++i) {
+    for (int i = kFirstDuplicateNumber; fs::exists(candidate, ec); ++i) {
         candidate = directory / fromUtf8(base + " " + std::to_string(i) + extension);
     }
 
@@ -105,7 +110,7 @@ std::optional<fs::path> ProjectFiles::createScene(const fs::path& folder, const 
     if (!folder.empty() && !canModify(folder)) {
         return std::nullopt;
     }
-    const fs::path file = freeName(m_project.directory() / folder, "New Scene", std::string(sceneExtension()));
+    const fs::path file = freeName(m_project.directory() / folder, kNewSceneName, std::string(sceneExtension()));
     if (!serializer.save(Scene{}, file)) {
         return std::nullopt;
     }
@@ -120,7 +125,7 @@ std::optional<fs::path> ProjectFiles::createFolder(const fs::path& folder)
     if (!folder.empty() && !canModify(folder)) {
         return std::nullopt;
     }
-    const fs::path directory = freeName(m_project.directory() / folder, "New Folder", "");
+    const fs::path directory = freeName(m_project.directory() / folder, kNewFolderName, "");
     std::error_code ec;
     if (!fs::create_directory(directory, ec)) {
         return std::nullopt;

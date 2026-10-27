@@ -1,5 +1,7 @@
 #include "EditorApp.hpp"
 
+#include "core/ActionIds.hpp"
+
 #include "panels/FileSystemPanel.hpp"
 #include "panels/InspectorPanel.hpp"
 #include "panels/SceneTreePanel.hpp"
@@ -19,8 +21,31 @@
 
 namespace yqlora::editor {
 
+namespace {
+
+// Из имени строится папка настроек редактора, поэтому латиница без пробелов.
+constexpr const char* kApplicationName = "Editor";
+constexpr const char* kTitleKey = "editor.title";
+constexpr int kWindowWidth = 1600;
+constexpr int kWindowHeight = 900;
+constexpr const char* kThemeFile = "themes/dark.json";
+constexpr const char* kProjectListFile = "projects.json";
+
+// Раскладка по умолчанию: доля окна под дерево слева, инспектор справа и файлы снизу.
+constexpr float kSceneTreeShare = 0.2f;
+constexpr float kInspectorShare = 0.3f;
+constexpr float kFilesShare = 0.25f;
+
+} // namespace
+
 EditorApp::EditorApp()
-    : Application({.name = "Editor", .titleKey = "editor.title", .width = 1600, .height = 900, .ui = true})
+    : Application({
+          .name = kApplicationName,
+          .titleKey = kTitleKey,
+          .width = kWindowWidth,
+          .height = kWindowHeight,
+          .ui = true,
+      })
 {
     registerEngineTypes(m_registry);
 
@@ -48,14 +73,14 @@ EditorContext EditorApp::context()
 
 void EditorApp::onStart()
 {
-    const auto assets = platform::executableDir() / "assets";
-    m_theme.load(assets / "themes" / "dark.json", assets);
+    const auto assets = assetsDirectory();
+    m_theme.load(assets / kThemeFile, assets);
 
     for (const std::string& code : localization().availableLanguages()) {
         m_languages.emplace_back(code, localization().displayName(code));
     }
 
-    m_projects = std::make_unique<ProjectList>(userDataDirectory() / "projects.json");
+    m_projects = std::make_unique<ProjectList>(userDataDirectory() / kProjectListFile);
     m_projects->load();
     m_projectManager = std::make_unique<ProjectManagerPanel>(*m_projects, m_serializer, m_theme);
     m_projectManager->refresh();
@@ -74,7 +99,7 @@ void EditorApp::registerActions()
         return m_session.playing();
     };
 
-    m_actions.add("scene.save", "editor.menu.save")
+    m_actions.add(actions::kSaveScene, "editor.menu.save")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_S)
         // Во время игры в сцене её состояние, а не то, что правили: сохранять нечего.
         .enabledWhen([this] {
@@ -83,18 +108,18 @@ void EditorApp::registerActions()
         .onRun([this] {
             saveScene();
         });
-    m_actions.add("project.close", "editor.menu.closeProject").enabledWhen(hasProject).onRun([this] {
+    m_actions.add(actions::kCloseProject, "editor.menu.closeProject").enabledWhen(hasProject).onRun([this] {
         m_unsaved.request(m_session, [this] {
             closeProject();
         });
     });
-    m_actions.add("app.quit", "editor.menu.quit").onRun([this] {
+    m_actions.add(actions::kQuit, "editor.menu.quit").onRun([this] {
         m_unsaved.request(m_session, [this] {
             quit();
         });
     });
 
-    m_actions.add("edit.undo", "editor.menu.undo")
+    m_actions.add(actions::kUndo, "editor.menu.undo")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_Z)
         .enabledWhen([this] {
             return m_session.canUndo();
@@ -102,7 +127,7 @@ void EditorApp::registerActions()
         .onRun([this] {
             m_session.undo();
         });
-    m_actions.add("edit.redo", "editor.menu.redo")
+    m_actions.add(actions::kRedo, "editor.menu.redo")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_Y)
         .alternativeShortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z)
         .enabledWhen([this] {
@@ -112,7 +137,7 @@ void EditorApp::registerActions()
             m_session.redo();
         });
 
-    m_actions.add("play.toggle", "editor.play.play")
+    m_actions.add(actions::kTogglePlay, "editor.play.play")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_P)
         .enabledWhen(hasProject)
         .onRun([this] {
@@ -122,10 +147,10 @@ void EditorApp::registerActions()
                 m_session.play();
             }
         });
-    m_actions.add("play.pause", "editor.play.pause").enabledWhen(playing).onRun([this] {
+    m_actions.add(actions::kPause, "editor.play.pause").enabledWhen(playing).onRun([this] {
         m_session.setPaused(!m_session.paused());
     });
-    m_actions.add("play.stop", "editor.play.stop").enabledWhen(playing).onRun([this] {
+    m_actions.add(actions::kStop, "editor.play.stop").enabledWhen(playing).onRun([this] {
         m_session.stop();
     });
 }
@@ -181,7 +206,7 @@ void EditorApp::onGui()
 
 void EditorApp::onCloseRequested()
 {
-    m_actions.run("app.quit");
+    m_actions.run(actions::kQuit);
 }
 
 void EditorApp::openProject(Project project)
@@ -251,16 +276,16 @@ void EditorApp::drawMenuBar()
     }
     if (ImGui::BeginMenu(tr("editor.menu.file").c_str())) {
         if (m_session.project()) {
-            m_actions.menuItem("scene.save");
-            m_actions.menuItem("project.close");
+            m_actions.menuItem(actions::kSaveScene);
+            m_actions.menuItem(actions::kCloseProject);
             ImGui::Separator();
         }
-        m_actions.menuItem("app.quit");
+        m_actions.menuItem(actions::kQuit);
         ImGui::EndMenu();
     }
     if (m_session.project() && ImGui::BeginMenu(tr("editor.menu.edit").c_str())) {
-        m_actions.menuItem("edit.undo");
-        m_actions.menuItem("edit.redo");
+        m_actions.menuItem(actions::kUndo);
+        m_actions.menuItem(actions::kRedo);
         ImGui::EndMenu();
     }
     drawViewMenu();
@@ -273,8 +298,10 @@ void EditorApp::drawMenuBar()
 void EditorApp::drawPlayControls()
 {
     const ImGuiStyle& style = ImGui::GetStyle();
+    // Play, Pause и Stop одинаковой ширины.
+    constexpr float kButtonCount = 3.0f;
     const float buttonWidth = ImGui::CalcTextSize(icons::kPlay).x + style.FramePadding.x * 2.0f;
-    const float width = buttonWidth * 3.0f + style.ItemSpacing.x * 2.0f;
+    const float width = buttonWidth * kButtonCount + style.ItemSpacing.x * (kButtonCount - 1.0f);
     ImGui::SetCursorPosX((ImGui::GetWindowWidth() - width) * 0.5f);
 
     const Vec4& accent = m_theme.colors().playMode;
@@ -283,7 +310,7 @@ void EditorApp::drawPlayControls()
         ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(accent));
     }
     if (ImGui::SmallButton(icons::kPlay)) {
-        m_actions.run("play.toggle");
+        m_actions.run(actions::kTogglePlay);
     }
     if (playing) {
         ImGui::PopStyleColor();
@@ -291,7 +318,7 @@ void EditorApp::drawPlayControls()
     ImGui::SetItemTooltip(
         "%s (%s)",
         tr(playing ? "editor.play.stop" : "editor.play.play").c_str(),
-        m_actions.shortcutText("play.toggle").c_str()
+        m_actions.shortcutText(actions::kTogglePlay).c_str()
     );
 
     ImGui::BeginDisabled(!playing);
@@ -300,14 +327,14 @@ void EditorApp::drawPlayControls()
         ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(accent));
     }
     if (ImGui::SmallButton(icons::kPause)) {
-        m_actions.run("play.pause");
+        m_actions.run(actions::kPause);
     }
     if (paused) {
         ImGui::PopStyleColor();
     }
     ImGui::SetItemTooltip("%s", tr("editor.play.pause").c_str());
     if (ImGui::SmallButton(icons::kStop)) {
-        m_actions.run("play.stop");
+        m_actions.run(actions::kStop);
     }
     ImGui::SetItemTooltip("%s", tr("editor.play.stop").c_str());
     ImGui::EndDisabled();
@@ -357,9 +384,9 @@ void EditorApp::buildDefaultLayout(unsigned int dockspace)
     ImGui::DockBuilderSetNodeSize(dockspace, ImGui::GetMainViewport()->WorkSize);
 
     ImGuiID center = dockspace;
-    const ImGuiID left = ImGui::DockBuilderSplitNode(center, ImGuiDir_Left, 0.2f, nullptr, &center);
-    const ImGuiID right = ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.3f, nullptr, &center);
-    const ImGuiID bottom = ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.25f, nullptr, &center);
+    const ImGuiID left = ImGui::DockBuilderSplitNode(center, ImGuiDir_Left, kSceneTreeShare, nullptr, &center);
+    const ImGuiID right = ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, kInspectorShare, nullptr, &center);
+    const ImGuiID bottom = ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, kFilesShare, nullptr, &center);
 
     // Окна привязываются по ID после ###, он не зависит от языка интерфейса.
     const auto dock = [](const char* id, ImGuiID target) {

@@ -18,6 +18,12 @@
 
 namespace yqlora::platform {
 
+namespace {
+
+constexpr double kNanosecondsPerSecond = 1e9;
+
+} // namespace
+
 void openConsole()
 {
 #ifdef _WIN32
@@ -108,7 +114,7 @@ std::vector<std::string> preferredLanguages()
 
 double timeSeconds()
 {
-    return static_cast<double>(SDL_GetTicksNS()) / 1'000'000'000.0;
+    return static_cast<double>(SDL_GetTicksNS()) / kNanosecondsPerSecond;
 }
 
 } // namespace yqlora::platform

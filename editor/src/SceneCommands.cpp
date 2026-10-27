@@ -14,6 +14,9 @@ namespace yqlora::editor {
 
 namespace {
 
+// "Cube2", "Cube3"...: первая копия имени получает номер 2.
+constexpr int kFirstDuplicateNumber = 2;
+
 bool contains(const Node& node, const Node* target)
 {
     if (&node == target) {
@@ -34,7 +37,7 @@ std::string uniqueChildName(const Node& parent, const std::string& base)
     if (!parent.findChild(base)) {
         return base;
     }
-    for (int i = 2;; ++i) {
+    for (int i = kFirstDuplicateNumber;; ++i) {
         std::string candidate = base + std::to_string(i);
         if (!parent.findChild(candidate)) {
             return candidate;

@@ -16,6 +16,8 @@ namespace yqlora::editor {
 
 namespace {
 
+constexpr float kNameFieldWidth = 360.0f;
+
 std::string toUtf8(const std::filesystem::path& path)
 {
     const std::u8string text = path.u8string();
@@ -226,7 +228,7 @@ void FileSystemPanel::drawRenameDialog(EditorSession& session, const EditorColor
     if (ImGui::IsWindowAppearing()) {
         ImGui::SetKeyboardFocusHere();
     }
-    ImGui::SetNextItemWidth(360.0f);
+    ImGui::SetNextItemWidth(kNameFieldWidth);
     const bool entered = ImGui::InputText("##name", &m_newName, ImGuiInputTextFlags_EnterReturnsTrue);
     if (!m_error.empty()) {
         ImGui::TextColored(toImVec4(colors.errorText), "%s", tr(m_error).c_str());

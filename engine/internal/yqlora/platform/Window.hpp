@@ -17,10 +17,13 @@ namespace yqlora {
 
 class InputFeeder;
 
+inline constexpr int kDefaultWindowWidth = 1280;
+inline constexpr int kDefaultWindowHeight = 720;
+
 struct WindowDesc {
-    std::string title = "Yqlora";
-    int width = 1280;
-    int height = 720;
+    std::string title;
+    int width = kDefaultWindowWidth;
+    int height = kDefaultWindowHeight;
     bool resizable = true;
     // От API зависит, с каким флагом SDL создаёт окно (OpenGL/Vulkan/...).
     GraphicsApi api = GraphicsApi::OpenGL;

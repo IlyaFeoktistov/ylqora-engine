@@ -15,6 +15,16 @@
 
 namespace yqlora::editor {
 
+namespace {
+
+// Панель инструментов в углу окна сцены.
+constexpr float kToolbarMargin = 8.0f;
+constexpr float kButtonSpacing = 2.0f;
+// Между инструментами и переключателем осей.
+constexpr float kGroupSpacing = 12.0f;
+
+} // namespace
+
 bool ManipulatorGizmo::draw(GizmoContext& context)
 {
     const bool toolbarHovered = drawToolbar(context);
@@ -40,7 +50,7 @@ bool ManipulatorGizmo::drawToolbar(const GizmoContext& context)
         {Tool::Scale, icons::kScale, "editor.tool.scale", "R"},
     };
 
-    ImGui::SetCursorScreenPos(ImVec2(context.origin.x + 8.0f, context.origin.y + 8.0f));
+    ImGui::SetCursorScreenPos(ImVec2(context.origin.x + kToolbarMargin, context.origin.y + kToolbarMargin));
     bool hovered = false;
     for (const Button& button : kButtons) {
         const bool active = m_tool == button.tool;
@@ -55,10 +65,10 @@ bool ManipulatorGizmo::drawToolbar(const GizmoContext& context)
         }
         hovered = hovered || ImGui::IsItemHovered();
         ImGui::SetItemTooltip("%s (%s)", tr(button.labelKey).c_str(), button.hotkey);
-        ImGui::SameLine(0.0f, 2.0f);
+        ImGui::SameLine(0.0f, kButtonSpacing);
     }
 
-    ImGui::SameLine(0.0f, 12.0f);
+    ImGui::SameLine(0.0f, kGroupSpacing);
     if (ImGui::Button(m_localSpace ? icons::kLocal : icons::kGlobal)) {
         m_localSpace = !m_localSpace;
     }

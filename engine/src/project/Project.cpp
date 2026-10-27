@@ -1,12 +1,9 @@
 #include "yqlora/project/Project.hpp"
 
+#include "yqlora/core/JsonFile.hpp"
 #include "yqlora/core/Log.hpp"
 
 #include "core/JsonId.hpp"
-
-#include <nlohmann/json.hpp>
-
-#include <fstream>
 
 namespace yqlora {
 
@@ -14,8 +11,12 @@ namespace {
 
 using Json = nlohmann::json;
 
-// 1 - главная сцена записана путём, 2 - ID ресурса.
-constexpr int kFormatVersion = 2;
+constexpr int kFormatVersion = 1;
+
+// Ключи файла проекта.
+constexpr const char* kVersionKey = "version";
+constexpr const char* kNameKey = "name";
+constexpr const char* kMainSceneKey = "mainScene";
 
 std::string toUtf8(const std::filesystem::path& path)
 {
@@ -24,19 +25,14 @@ std::string toUtf8(const std::filesystem::path& path)
     return {text.begin(), text.end()};
 }
 
-std::filesystem::path fromUtf8(const std::string& text)
-{
-    return std::filesystem::path(std::u8string(text.begin(), text.end()));
-}
-
 std::optional<Json> readFile(const std::filesystem::path& directory)
 {
-    std::ifstream in(directory / Project::fileName());
-    if (!in) {
+    const std::filesystem::path file = directory / Project::fileName();
+    if (!std::filesystem::exists(file)) {
         return std::nullopt;
     }
-    Json json = Json::parse(in, nullptr, /*allow_exceptions=*/false);
-    if (!json.is_object() || !json.contains("name") || !json["name"].is_string()) {
+    auto json = readJsonFile(file);
+    if (!json || !json->is_object() || !json->contains(kNameKey) || !(*json)[kNameKey].is_string()) {
         log::warn("Project file in '{}' is broken", toUtf8(directory));
 
         return std::nullopt;
@@ -55,20 +51,17 @@ std::optional<Project> Project::open(const std::filesystem::path& directory)
     }
 
     Project project;
-    project.m_name = (*json)["name"].get<std::string>();
+    project.m_name = (*json)[kNameKey].get<std::string>();
     project.m_directory = directory;
     project.m_resources.scan(directory, fileName());
 
-    const int version = json->value("version", 1);
-    const auto mainScene = json->find("mainScene");
-    if (mainScene != json->end() && version >= 2) {
+    if (json->value(kVersionKey, 0) != kFormatVersion) {
+        log::warn("Project file in '{}' has an unsupported version", toUtf8(directory));
+
+        return std::nullopt;
+    }
+    if (const auto mainScene = json->find(kMainSceneKey); mainScene != json->end()) {
         project.m_mainScene = idFromJson(*mainScene).value_or(0);
-    } else if (mainScene != json->end() && mainScene->is_string()) {
-        // Версия 1: путь. Теперь у сцены есть ID, переписываем файл в новом виде.
-        project.m_mainScene = project.m_resources.id(fromUtf8(mainScene->get<std::string>()));
-        if (!project.save()) {
-            log::warn("Cannot update the project file in '{}'", toUtf8(directory));
-        }
     }
 
     return project;
@@ -94,20 +87,17 @@ std::optional<std::string> Project::readName(const std::filesystem::path& direct
         return std::nullopt;
     }
 
-    return (*json)["name"].get<std::string>();
+    return (*json)[kNameKey].get<std::string>();
 }
 
 bool Project::save() const
 {
     Json json;
-    json["version"] = kFormatVersion;
-    json["name"] = m_name;
-    json["mainScene"] = idToJson(m_mainScene);
+    json[kVersionKey] = kFormatVersion;
+    json[kNameKey] = m_name;
+    json[kMainSceneKey] = idToJson(m_mainScene);
 
-    std::ofstream out(projectFile());
-    out << json.dump(4) << '\n';
-
-    return static_cast<bool>(out);
+    return writeJsonFile(projectFile(), json);
 }
 
 std::optional<std::filesystem::path> Project::mainScenePath() const

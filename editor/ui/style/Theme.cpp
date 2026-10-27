@@ -16,6 +16,16 @@ namespace yqlora::editor {
 
 namespace {
 
+// Цвет в теме: "#RRGGBB" или "#RRGGBBAA", по две шестнадцатеричные цифры на канал.
+constexpr std::size_t kRgbDigits = 6;
+constexpr std::size_t kRgbaDigits = 8;
+constexpr std::size_t kDigitsPerChannel = 2;
+constexpr int kHexBase = 16;
+constexpr float kMaxChannel = 255.0f;
+constexpr float kDefaultFontSize = 17.0f;
+// Плоскости манипулятора полупрозрачные, чтобы не закрывать объект.
+const Vec4 kPlaneTint(1.0f, 1.0f, 1.0f, 0.4f);
+
 using Json = nlohmann::json;
 
 // "#RRGGBB" или "#RRGGBBAA".
@@ -25,16 +35,15 @@ std::optional<Vec4> parseColor(const Json& json)
         return std::nullopt;
     }
     const std::string text = json.get<std::string>();
-    if (text.size() != 7 && text.size() != 9) {
+    const std::size_t digits = text.size() - 1;
+    if (text.empty() || text.front() != '#' || (digits != kRgbDigits && digits != kRgbaDigits)) {
         return std::nullopt;
     }
-    if (text.front() != '#') {
-        return std::nullopt;
-    }
-    float channels[4] = {0.0f, 0.0f, 0.0f, 255.0f};
-    for (std::size_t i = 0; i < (text.size() - 1) / 2; ++i) {
+    float channels[] = {0.0f, 0.0f, 0.0f, kMaxChannel};
+    for (std::size_t i = 0; i < digits / kDigitsPerChannel; ++i) {
         try {
-            channels[i] = static_cast<float>(std::stoul(text.substr(1 + i * 2, 2), nullptr, 16));
+            const std::string channel = text.substr(1 + i * kDigitsPerChannel, kDigitsPerChannel);
+            channels[i] = static_cast<float>(std::stoul(channel, nullptr, kHexBase));
         } catch (const std::exception&) {
             return std::nullopt;
         }
@@ -42,7 +51,7 @@ std::optional<Vec4> parseColor(const Json& json)
 
     const Vec4 bytes(channels[0], channels[1], channels[2], channels[3]);
 
-    return bytes / 255.0f;
+    return bytes / kMaxChannel;
 }
 
 void applyColors(const Json& json, ImGuiStyle& style)
@@ -133,7 +142,7 @@ void addFont(const Json& json, const std::filesystem::path& assetsDir, bool merg
         return;
     }
     const std::string file = json["file"].get<std::string>();
-    const float size = json.contains("size") && json["size"].is_number() ? json["size"].get<float>() : 17.0f;
+    const float size = json.contains("size") && json["size"].is_number() ? json["size"].get<float>() : kDefaultFontSize;
     const auto path = assetsDir / std::filesystem::path(std::u8string(file.begin(), file.end()));
 
     ImFontConfig config;
@@ -179,9 +188,9 @@ void applyManipulatorColors(const EditorColors& colors)
     set(ImGuizmo::DIRECTION_X, colors.axisX);
     set(ImGuizmo::DIRECTION_Y, colors.axisY);
     set(ImGuizmo::DIRECTION_Z, colors.axisZ);
-    set(ImGuizmo::PLANE_X, colors.axisX * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
-    set(ImGuizmo::PLANE_Y, colors.axisY * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
-    set(ImGuizmo::PLANE_Z, colors.axisZ * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
+    set(ImGuizmo::PLANE_X, colors.axisX * kPlaneTint);
+    set(ImGuizmo::PLANE_Y, colors.axisY * kPlaneTint);
+    set(ImGuizmo::PLANE_Z, colors.axisZ * kPlaneTint);
     set(ImGuizmo::SELECTION, colors.selectionOutline);
 }
 

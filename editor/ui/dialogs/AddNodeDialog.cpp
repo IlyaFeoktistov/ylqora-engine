@@ -16,6 +16,10 @@ namespace yqlora::editor {
 
 namespace {
 
+constexpr ImVec2 kWindowSize(420.0f, 460.0f);
+// Под списком типов: описание выбранного типа и кнопки.
+constexpr float kFooterRows = 4.0f;
+
 bool isCreatableNode(const TypeInfo& type)
 {
     return type.kind() == TypeKind::Node && type.creatable();
@@ -46,7 +50,7 @@ void AddNodeDialog::draw(EditorSession& session, const TypeRegistry& registry)
         ImGui::OpenPopup(title.c_str());
         m_requested = false;
     }
-    ImGui::SetNextWindowSize(ImVec2(420.0f, 460.0f), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(kWindowSize, ImGuiCond_Appearing);
     if (!ImGui::BeginPopupModal(title.c_str())) {
         return;
     }
@@ -58,7 +62,7 @@ void AddNodeDialog::draw(EditorSession& session, const TypeRegistry& registry)
     ImGui::InputTextWithHint("##search", tr("editor.addNode.search").c_str(), &m_search);
 
     bool create = false;
-    const float footer = ImGui::GetFrameHeightWithSpacing() * 4.0f;
+    const float footer = ImGui::GetFrameHeightWithSpacing() * kFooterRows;
     if (ImGui::BeginChild("types", ImVec2(0.0f, -footer), ImGuiChildFlags_Borders)) {
         for (const auto& type : registry.types()) {
             // При поиске - плоский список совпадений, без поиска - дерево от корневых типов.

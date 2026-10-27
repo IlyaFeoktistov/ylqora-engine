@@ -18,6 +18,15 @@ bool AxisGizmo::draw(GizmoContext& context)
     constexpr float kRadius = 38.0f; // длина оси на экране
     constexpr float kMargin = 14.0f;
     constexpr float kBallRadius = 9.0f;
+    constexpr int kAxisCount = 3;
+    constexpr float kBackgroundPadding = 4.0f;
+    constexpr int kBackgroundAlpha = 30;
+    constexpr int kBackgroundHoveredAlpha = 60;
+    constexpr float kAxisThickness = 2.0f;
+    // Отрицательные концы осей бледнее и меньше, чтобы не путать их с положительными.
+    constexpr float kPositiveAlpha = 0.9f;
+    constexpr float kNegativeAlpha = 0.45f;
+    constexpr float kNegativeBallScale = 0.75f;
 
     const EditorColors& colors = context.theme.colors();
     const Vec4 axisColors[] = {colors.axisX, colors.axisY, colors.axisZ};
@@ -35,8 +44,9 @@ bool AxisGizmo::draw(GizmoContext& context)
         int axis;
         bool positive;
     };
-    std::array<End, 6> ends{};
-    for (int axis = 0; axis < 3; ++axis) {
+    // У каждой оси два конца: положительный и отрицательный.
+    std::array<End, kAxisCount * 2> ends{};
+    for (int axis = 0; axis < kAxisCount; ++axis) {
         Vec3 direction(0.0f);
         direction[axis] = 1.0f;
         // Направление оси в координатах камеры: x вправо, y вверх, z на нас.
@@ -64,14 +74,22 @@ bool AxisGizmo::draw(GizmoContext& context)
     }
 
     ImDrawList& list = *ImGui::GetWindowDrawList();
-    list.AddCircleFilled(center, kRadius + kBallRadius + 4.0f, IM_COL32(0, 0, 0, hovered ? 60 : 30));
+    list.AddCircleFilled(
+        center,
+        kRadius + kBallRadius + kBackgroundPadding,
+        IM_COL32(0, 0, 0, hovered ? kBackgroundHoveredAlpha : kBackgroundAlpha)
+    );
     for (const End& end : ends) {
         const Vec4& color = axisColors[end.axis];
-        const float alpha = &end == hovered ? 1.0f : end.positive ? 0.9f : 0.45f;
+        const float alpha = &end == hovered ? 1.0f : end.positive ? kPositiveAlpha : kNegativeAlpha;
         if (end.positive) {
-            list.AddLine(center, end.position, toImU32(color, alpha), 2.0f);
+            list.AddLine(center, end.position, toImU32(color, alpha), kAxisThickness);
         }
-        list.AddCircleFilled(end.position, end.positive ? kBallRadius : kBallRadius * 0.75f, toImU32(color, alpha));
+        list.AddCircleFilled(
+            end.position,
+            end.positive ? kBallRadius : kBallRadius * kNegativeBallScale,
+            toImU32(color, alpha)
+        );
         if (end.positive) {
             const ImVec2 textSize = ImGui::CalcTextSize(names[end.axis]);
             list.AddText(

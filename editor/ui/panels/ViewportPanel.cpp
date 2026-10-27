@@ -21,6 +21,17 @@
 
 namespace yqlora::editor {
 
+namespace {
+
+// Наискосок сверху, как вид по умолчанию в Blender: видно все три оси сразу.
+const Vec3 kStartCameraPosition(6.0f, 4.5f, 6.0f);
+const Vec3 kStartCameraTarget(0.0f, 0.5f, 0.0f);
+constexpr float kPlayFrameThickness = 2.0f;
+// Подсказка в левом нижнем углу окна сцены.
+constexpr ImVec2 kHintMargin(12.0f, 10.0f);
+
+} // namespace
+
 ViewportPanel::ViewportPanel()
 {
     // Порядок - приоритет мыши: манипулятор и оси раньше выбора кликом.
@@ -33,9 +44,8 @@ ViewportPanel::ViewportPanel()
 
 void ViewportPanel::onProjectOpened(EditorContext& /*context*/)
 {
-    // Наискосок сверху, как вид по умолчанию в Blender: видно все три оси сразу.
-    m_camera.setPosition({6.0f, 4.5f, 6.0f});
-    m_camera.lookAt({0.0f, 0.5f, 0.0f});
+    m_camera.setPosition(kStartCameraPosition);
+    m_camera.lookAt(kStartCameraTarget);
 }
 
 void ViewportPanel::draw(EditorContext& context)
@@ -120,12 +130,19 @@ void ViewportPanel::drawPlayModeFrame(
 )
 {
     ImDrawList& list = *ImGui::GetWindowDrawList();
-    list.AddRect(origin, ImVec2(origin.x + size.x, origin.y + size.y), toImU32(colors.playMode), 0.0f, 0, 2.0f);
+    list.AddRect(
+        origin,
+        ImVec2(origin.x + size.x, origin.y + size.y),
+        toImU32(colors.playMode),
+        0.0f,
+        0,
+        kPlayFrameThickness
+    );
     if (!hasCamera) {
         // Без активной камеры игре не через что показываться: смотрим через камеру редактора.
         const std::string text = tr("editor.play.noCamera");
         list.AddText(
-            ImVec2(origin.x + 12.0f, origin.y + size.y - ImGui::GetTextLineHeight() - 10.0f),
+            ImVec2(origin.x + kHintMargin.x, origin.y + size.y - ImGui::GetTextLineHeight() - kHintMargin.y),
             ImGui::GetColorU32(ImGuiCol_Text),
             text.c_str()
         );

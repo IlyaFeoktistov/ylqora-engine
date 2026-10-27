@@ -31,7 +31,14 @@ namespace yqlora {
 
 namespace {
 
-constexpr std::string_view kOrganization = "Yqlora";
+constexpr const char* kSettingsFile = "settings.json";
+constexpr const char* kUiLayoutFile = "imgui.ini";
+constexpr const char* kAssetsFolder = "assets";
+constexpr const char* kLocalesFolder = "locales";
+// Пока окно ещё не нарисовано интерфейсом.
+constexpr Vec4 kWindowClearColor{0.1f, 0.1f, 0.11f, 1.0f};
+// Самый длинный шаг кадра: после паузы в отладчике не прыгаем на секунды вперёд.
+constexpr double kMaxFrameSeconds = 0.1;
 
 } // namespace
 
@@ -86,12 +93,12 @@ int Application::run()
 
 void Application::initSettingsAndLanguage()
 {
-    const auto settingsFile = userDataDirectory() / "settings.json";
+    const auto settingsFile = userDataDirectory() / kSettingsFile;
     m_settings = std::make_unique<Settings>(settingsFile);
     m_settings->load();
     log::info("Settings: {}", settingsFile.string());
 
-    m_localization = std::make_unique<Localization>(platform::executableDir() / "assets" / "locales");
+    m_localization = std::make_unique<Localization>(assetsDirectory() / kLocalesFolder);
     Localization::setActive(m_localization.get());
 
     const auto available = m_localization->availableLanguages();
@@ -123,7 +130,12 @@ bool Application::setLanguage(std::string_view language)
 
 std::filesystem::path Application::userDataDirectory() const
 {
-    return platform::userDataPath(kOrganization, m_config.name);
+    return platform::userDataPath(organization(), m_config.name);
+}
+
+std::filesystem::path Application::assetsDirectory() const
+{
+    return platform::executableDir() / kAssetsFolder;
 }
 
 void Application::setTitleDetail(std::string detail)
@@ -157,7 +169,7 @@ void Application::initUi()
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
     // Раскладку окон храним рядом с настройками, а не в текущей папке.
-    m_uiIniPath = (userDataDirectory() / "imgui.ini").string();
+    m_uiIniPath = (userDataDirectory() / kUiLayoutFile).string();
     io.IniFilename = m_uiIniPath.c_str();
 
     // Шрифт и цвета задаёт само приложение (у редактора это файл темы),
@@ -215,8 +227,7 @@ void Application::mainLoop()
 
     while (m_running) {
         const double now = platform::timeSeconds();
-        // Ограничиваем шаг: после паузы в отладчике не прыгаем на секунды вперёд.
-        const auto deltaSeconds = static_cast<float>(std::min(now - previousTime, 0.1));
+        const auto deltaSeconds = static_cast<float>(std::min(now - previousTime, kMaxFrameSeconds));
         previousTime = now;
 
         input.beginFrame();
@@ -243,7 +254,7 @@ void Application::mainLoop()
             ImGui::NewFrame();
             onGui();
             ImGui::Render();
-            m_renderer->clearWindow({0.1f, 0.1f, 0.11f, 1.0f});
+            m_renderer->clearWindow(kWindowClearColor);
             m_renderer->renderUi();
         } else {
             FrameData frame = buildFrameData(m_scene, aspectRatio(), depthRange());

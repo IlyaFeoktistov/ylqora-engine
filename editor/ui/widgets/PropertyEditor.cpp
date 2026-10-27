@@ -25,11 +25,15 @@ constexpr float kFastFactor = 10.0f; // с Shift
 constexpr float kSlowFactor = 0.1f;  // с Ctrl
 
 // Сколько меняется значение за точку движения мыши.
+constexpr float kAngleDragSpeed = 0.5f;
+constexpr float kFloatDragSpeed = 0.05f;
+constexpr float kVectorDragSpeed = 0.02f;
+
 float dragSpeed(const Property& property)
 {
     switch (property.hint()) {
-    case PropertyHint::Angle: return 0.5f;
-    default: return property.type() == PropertyType::Float ? 0.05f : 0.02f;
+    case PropertyHint::Angle: return kAngleDragSpeed;
+    default: return property.type() == PropertyType::Float ? kFloatDragSpeed : kVectorDragSpeed;
     }
 }
 
@@ -243,14 +247,18 @@ void valueField(
         ImGui::SetNextItemWidth(-FLT_MIN);
         result.changed = ImGui::InputText("##value", &std::get<std::string>(value)) || result.changed;
         break;
-    case PropertyType::Vector2: vectorFields(&std::get<Vec2>(value).x, 2, speed, context.colors, result); break;
-    case PropertyType::Vector3: vectorFields(&std::get<Vec3>(value).x, 3, speed, context.colors, result); break;
+    case PropertyType::Vector2:
+        vectorFields(&std::get<Vec2>(value).x, Vec2::length(), speed, context.colors, result);
+        break;
+    case PropertyType::Vector3:
+        vectorFields(&std::get<Vec3>(value).x, Vec3::length(), speed, context.colors, result);
+        break;
     case PropertyType::Vector4:
         if (property.hint() == PropertyHint::Color) {
             ImGui::SetNextItemWidth(-FLT_MIN);
             result.changed = ImGui::ColorEdit4("##value", &std::get<Vec4>(value).x) || result.changed;
         } else {
-            vectorFields(&std::get<Vec4>(value).x, 4, speed, context.colors, result);
+            vectorFields(&std::get<Vec4>(value).x, Vec4::length(), speed, context.colors, result);
         }
         break;
     case PropertyType::Enum: result.changed = enumCombo(property, std::get<EnumValue>(value)) || result.changed; break;

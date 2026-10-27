@@ -1,16 +1,20 @@
 #include "yqlora/editor/ProjectList.hpp"
 
+#include "yqlora/core/JsonFile.hpp"
+
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <chrono>
-#include <fstream>
 
 namespace yqlora::editor {
 
 namespace {
 
 using Json = nlohmann::json;
+
+constexpr const char* kPathKey = "path";
+constexpr const char* kLastOpenedKey = "lastOpened";
 
 std::int64_t now()
 {
@@ -40,22 +44,18 @@ ProjectList::ProjectList(std::filesystem::path file)
 void ProjectList::load()
 {
     m_entries.clear();
-    std::ifstream in(m_file);
-    if (!in) {
+    const auto json = readJsonFile(m_file);
+    if (!json || !json->is_array()) {
         return;
     }
-    const Json json = Json::parse(in, nullptr, /*allow_exceptions=*/false);
-    if (!json.is_array()) {
-        return;
-    }
-    for (const Json& item : json) {
-        if (!item.is_object() || !item.contains("path") || !item["path"].is_string()) {
+    for (const Json& item : *json) {
+        if (!item.is_object() || !item.contains(kPathKey) || !item[kPathKey].is_string()) {
             continue;
         }
-        const std::string path = item["path"].get<std::string>();
+        const std::string path = item[kPathKey].get<std::string>();
         Entry entry;
         entry.directory = normalized(std::filesystem::path(std::u8string(path.begin(), path.end())));
-        if (const auto it = item.find("lastOpened"); it != item.end() && it->is_number_integer()) {
+        if (const auto it = item.find(kLastOpenedKey); it != item.end() && it->is_number_integer()) {
             entry.lastOpened = it->get<std::int64_t>();
         }
         m_entries.push_back(std::move(entry));
@@ -68,13 +68,10 @@ bool ProjectList::save() const
     Json json = Json::array();
     for (const Entry& entry : m_entries) {
         const std::u8string path = entry.directory.generic_u8string();
-        json.push_back({{"path", std::string(path.begin(), path.end())}, {"lastOpened", entry.lastOpened}});
+        json.push_back({{kPathKey, std::string(path.begin(), path.end())}, {kLastOpenedKey, entry.lastOpened}});
     }
 
-    std::ofstream out(m_file);
-    out << json.dump(4) << '\n';
-
-    return static_cast<bool>(out);
+    return writeJsonFile(m_file, json);
 }
 
 void ProjectList::add(const std::filesystem::path& directory)
