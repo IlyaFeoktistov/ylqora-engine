@@ -1,12 +1,13 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/input/Input.hpp"
 
 namespace yqlora {
 
 // Единственный, кто пишет в Input: окно передаёт сюда события ОС.
 // Отдельный класс нужен, чтобы запись не попала в публичный API игры.
-class InputFeeder {
+class YQLORA_API InputFeeder {
 public:
     explicit InputFeeder(Input& input)
         : m_input(input)

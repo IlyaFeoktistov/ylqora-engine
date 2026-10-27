@@ -88,7 +88,7 @@ void FileSystemPanel::draw(EditorContext& context)
 
     if (ImGui::BeginChild("files")) {
         for (const auto& entry : m_root.children) {
-            drawEntry(entry, session, serializer);
+            drawEntry(entry, session, serializer, context.theme.colors());
         }
         if (m_root.children.empty()) {
             ImGui::TextDisabled("%s", tr("editor.files.empty").c_str());
@@ -96,7 +96,7 @@ void FileSystemPanel::draw(EditorContext& context)
     }
     ImGui::EndChild();
 
-    drawRenameDialog(session);
+    drawRenameDialog(session, context.theme.colors());
     drawDeleteDialog(session);
     ImGui::End();
 
@@ -108,7 +108,8 @@ void FileSystemPanel::draw(EditorContext& context)
 void FileSystemPanel::drawEntry(
     const projectfiles::Entry& entry,
     EditorSession& session,
-    const SceneSerializer& serializer
+    const SceneSerializer& serializer,
+    const EditorColors& colors
 )
 {
     const bool selected = entry.path == m_selected;
@@ -126,8 +127,7 @@ void FileSystemPanel::drawEntry(
 
     // Открытая сцена выделена цветом, чтобы было видно, что сейчас правится.
     if (openScene) {
-        const Vec4& accent = theme::colors().selectionOutline;
-        ImGui::PushStyleColor(ImGuiCol_Text, theme::toImVec4(accent));
+        ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(colors.selectionOutline));
     }
     const std::string id = toUtf8(entry.path);
     // Иконка папки зависит от того, раскрыта ли она, а это известно до отрисовки узла.
@@ -155,7 +155,7 @@ void FileSystemPanel::drawEntry(
 
     if (entry.directory && open) {
         for (const auto& child : entry.children) {
-            drawEntry(child, session, serializer);
+            drawEntry(child, session, serializer, colors);
         }
         ImGui::TreePop();
     }
@@ -210,7 +210,7 @@ void FileSystemPanel::drawContextMenu(
     ImGui::EndPopup();
 }
 
-void FileSystemPanel::drawRenameDialog(EditorSession& session)
+void FileSystemPanel::drawRenameDialog(EditorSession& session, const EditorColors& colors)
 {
     const std::string title = tr("editor.files.rename") + "###RenameFile";
     if (m_renameRequested) {
@@ -226,8 +226,7 @@ void FileSystemPanel::drawRenameDialog(EditorSession& session)
     ImGui::SetNextItemWidth(360.0f);
     const bool entered = ImGui::InputText("##name", &m_newName, ImGuiInputTextFlags_EnterReturnsTrue);
     if (!m_error.empty()) {
-        const Vec4& color = theme::colors().errorText;
-        ImGui::TextColored(theme::toImVec4(color), "%s", tr(m_error).c_str());
+        ImGui::TextColored(toImVec4(colors.errorText), "%s", tr(m_error).c_str());
     }
 
     if (ImGui::Button(tr("editor.files.rename").c_str()) || entered) {

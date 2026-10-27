@@ -19,7 +19,7 @@ bool AxisGizmo::draw(GizmoContext& context)
     constexpr float kMargin = 14.0f;
     constexpr float kBallRadius = 9.0f;
 
-    const EditorColors& colors = theme::colors();
+    const EditorColors& colors = context.theme.colors();
     const Vec4 axisColors[] = {colors.axisX, colors.axisY, colors.axisZ};
     const char* names[] = {"X", "Y", "Z"};
 
@@ -69,13 +69,9 @@ bool AxisGizmo::draw(GizmoContext& context)
         const Vec4& color = axisColors[end.axis];
         const float alpha = &end == hovered ? 1.0f : end.positive ? 0.9f : 0.45f;
         if (end.positive) {
-            list.AddLine(center, end.position, theme::toImU32(color, alpha), 2.0f);
+            list.AddLine(center, end.position, toImU32(color, alpha), 2.0f);
         }
-        list.AddCircleFilled(
-            end.position,
-            end.positive ? kBallRadius : kBallRadius * 0.75f,
-            theme::toImU32(color, alpha)
-        );
+        list.AddCircleFilled(end.position, end.positive ? kBallRadius : kBallRadius * 0.75f, toImU32(color, alpha));
         if (end.positive) {
             const ImVec2 textSize = ImGui::CalcTextSize(names[end.axis]);
             list.AddText(

@@ -29,19 +29,19 @@ std::filesystem::path fromUtf8(const std::string& text)
 }
 
 // Текст ошибки красным, если она есть.
-void drawError(const std::string& errorKey)
+void drawError(const std::string& errorKey, const EditorColors& colors)
 {
     if (!errorKey.empty()) {
-        const Vec4& color = theme::colors().errorText;
-        ImGui::TextColored(theme::toImVec4(color), "%s", tr(errorKey).c_str());
+        ImGui::TextColored(toImVec4(colors.errorText), "%s", tr(errorKey).c_str());
     }
 }
 
 } // namespace
 
-ProjectManagerPanel::ProjectManagerPanel(ProjectList& projects, const SceneSerializer& serializer)
+ProjectManagerPanel::ProjectManagerPanel(ProjectList& projects, const SceneSerializer& serializer, const Theme& theme)
     : m_projects(projects)
     , m_serializer(serializer)
+    , m_theme(theme)
 {
 }
 
@@ -201,7 +201,7 @@ void ProjectManagerPanel::drawCreateDialog(Application& app)
     if (!m_newName.empty()) {
         ImGui::TextDisabled("%s", toUtf8(fromUtf8(m_location) / fromUtf8(m_newName)).c_str());
     }
-    drawError(m_error);
+    drawError(m_error, m_theme.colors());
 
     ImGui::Separator();
     if (ImGui::Button(tr("projects.create").c_str())) {
@@ -240,7 +240,7 @@ void ProjectManagerPanel::drawImportDialog(Application& app)
             }
         });
     }
-    drawError(m_error);
+    drawError(m_error, m_theme.colors());
 
     ImGui::Separator();
     if (ImGui::Button(tr("projects.add").c_str())) {
@@ -283,10 +283,10 @@ void ProjectManagerPanel::drawRemoveDialog()
     if (!row.missing) {
         ImGui::Checkbox(tr("projects.deleteFolder").c_str(), &m_deleteFolder);
         if (m_deleteFolder) {
-            drawError("projects.deleteWarning");
+            drawError("projects.deleteWarning", m_theme.colors());
         }
     }
-    drawError(m_error);
+    drawError(m_error, m_theme.colors());
 
     ImGui::Separator();
     if (ImGui::Button(tr("projects.remove").c_str())) {

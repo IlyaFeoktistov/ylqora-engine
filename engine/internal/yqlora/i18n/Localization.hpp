@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/i18n/Translate.hpp"
 
 #include <filesystem>
@@ -14,7 +15,7 @@ namespace yqlora {
 // Переводы текстов интерфейса. Файлы: <dir>/<lang>.json, вложенные объекты
 // превращаются в ключи через точку: {"app": {"title": "..."}} -> "app.title".
 // Имена и типы узлов сцены сюда не относятся, они всегда на английском.
-class Localization {
+class YQLORA_API Localization {
 public:
     static constexpr std::string_view kFallbackLanguage = "en";
 

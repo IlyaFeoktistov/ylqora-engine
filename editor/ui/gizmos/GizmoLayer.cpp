@@ -7,13 +7,13 @@ void GizmoLayer::add(std::unique_ptr<Gizmo> gizmo)
     m_gizmos.push_back(std::move(gizmo));
 }
 
-void GizmoLayer::prepareFrame(FrameData& frame, const EditorSession& session) const
+void GizmoLayer::prepareFrame(FrameData& frame, const GizmoContext& context) const
 {
     if (!m_enabled) {
         return;
     }
     for (const auto& gizmo : m_gizmos) {
-        gizmo->prepareFrame(frame, session);
+        gizmo->prepareFrame(frame, context);
     }
 }
 

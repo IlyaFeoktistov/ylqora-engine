@@ -17,6 +17,7 @@ class SceneSerializer;
 namespace yqlora::editor {
 
 class EditorSession;
+struct EditorColors;
 
 // Файлы проекта внизу редактора: сцены и папки. Двойной клик по сцене
 // открывает её, правый клик - меню с остальными действиями.
@@ -40,9 +41,14 @@ public:
     }
 
 private:
-    void drawEntry(const projectfiles::Entry& entry, EditorSession& session, const SceneSerializer& serializer);
+    void drawEntry(
+        const projectfiles::Entry& entry,
+        EditorSession& session,
+        const SceneSerializer& serializer,
+        const EditorColors& colors
+    );
     void drawContextMenu(const projectfiles::Entry& entry, EditorSession& session, const SceneSerializer& serializer);
-    void drawRenameDialog(EditorSession& session);
+    void drawRenameDialog(EditorSession& session, const EditorColors& colors);
     void drawDeleteDialog(EditorSession& session);
     // Папка, куда класть новые файлы: выбранная папка или папка выбранного файла.
     std::filesystem::path targetFolder() const;

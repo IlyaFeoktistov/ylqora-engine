@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/input/Key.hpp"
 #include "yqlora/math/Math.hpp"
 
@@ -10,7 +11,7 @@ namespace yqlora {
 
 // Состояние клавиатуры и мыши на текущий кадр. Только для чтения:
 // заполняет его платформа, пока обрабатывает события окна.
-class Input {
+class YQLORA_API Input {
 public:
     // Клавиша зажата сейчас.
     bool isKeyDown(Key key) const;

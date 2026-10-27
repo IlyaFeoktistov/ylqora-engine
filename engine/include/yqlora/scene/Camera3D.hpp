@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/math/DepthRange.hpp"
 #include "yqlora/math/Math.hpp"
 #include "yqlora/scene/Node3D.hpp"
@@ -9,7 +10,7 @@ namespace yqlora {
 // Перспективная камера. Смотрит вдоль своей оси -Z.
 // Соотношение сторон это свойство области вывода, а не камеры,
 // поэтому передаётся при построении проекции.
-class Camera3D : public Node3D {
+class YQLORA_API Camera3D : public Node3D {
 public:
     explicit Camera3D(std::string name = "Camera3D");
 

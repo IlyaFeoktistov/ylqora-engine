@@ -89,6 +89,7 @@ void ViewportPanel::draw(EditorContext& context)
     GizmoContext gizmoContext{
         .session = session,
         .camera = m_camera,
+        .theme = context.theme,
         .view = m_camera.cameraData(aspect, app.depthRange()),
         .origin = origin,
         .size = size,
@@ -96,7 +97,7 @@ void ViewportPanel::draw(EditorContext& context)
     };
     m_mouseOverGizmo = m_gizmos.draw(gizmoContext);
     if (playing) {
-        drawPlayModeFrame(origin, size, gameCamera != nullptr);
+        drawPlayModeFrame(origin, size, gameCamera != nullptr, context.theme.colors());
     }
 
     // Текстура уже стоит в списке отрисовки интерфейса, а нарисуется он позже,
@@ -105,23 +106,21 @@ void ViewportPanel::draw(EditorContext& context)
     if (!gameCamera) {
         frame.camera = m_camera.cameraData(aspect, app.depthRange());
     }
-    m_gizmos.prepareFrame(frame, session);
+    m_gizmos.prepareFrame(frame, gizmoContext);
     app.renderer().render(frame, *m_target);
 
     ImGui::End();
 }
 
-void ViewportPanel::drawPlayModeFrame(const ImVec2& origin, const ImVec2& size, bool hasCamera)
+void ViewportPanel::drawPlayModeFrame(
+    const ImVec2& origin,
+    const ImVec2& size,
+    bool hasCamera,
+    const EditorColors& colors
+)
 {
     ImDrawList& list = *ImGui::GetWindowDrawList();
-    list.AddRect(
-        origin,
-        ImVec2(origin.x + size.x, origin.y + size.y),
-        theme::toImU32(theme::colors().playMode),
-        0.0f,
-        0,
-        2.0f
-    );
+    list.AddRect(origin, ImVec2(origin.x + size.x, origin.y + size.y), toImU32(colors.playMode), 0.0f, 0, 2.0f);
     if (!hasCamera) {
         // Без активной камеры игре не через что показываться: смотрим через камеру редактора.
         const std::string text = tr("editor.play.noCamera");

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 
 #include <cstdint>
@@ -15,7 +16,7 @@ struct UiTexture {
 };
 
 // Текстура, в которую рисуется кадр вместо окна. Например, окно сцены в редакторе.
-class RenderTarget {
+class YQLORA_API RenderTarget {
 public:
     virtual ~RenderTarget() = default;
 

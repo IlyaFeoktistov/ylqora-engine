@@ -12,6 +12,8 @@
 
 namespace yqlora::editor {
 
+struct EditorColors;
+
 // Окно сцены: кадр рисуется в текстуру и показывается внутри окна интерфейса.
 // Камера - редактора или, во время игры, активная камера сцены. Всё остальное
 // поверх сцены (сетка, выделение, манипуляторы) делают гизмо, и в игре их нет.
@@ -40,7 +42,7 @@ public:
 private:
     void setFlying(bool flying);
     // Рамка вокруг окна, пока идёт игра, и подсказка, если в сцене нет активной камеры.
-    void drawPlayModeFrame(const ImVec2& origin, const ImVec2& size, bool hasCamera);
+    void drawPlayModeFrame(const ImVec2& origin, const ImVec2& size, bool hasCamera, const EditorColors& colors);
 
     EditorCamera m_camera;
     GizmoLayer m_gizmos;

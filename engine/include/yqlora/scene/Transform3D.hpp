@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 #include "yqlora/scene/Component.hpp"
 
@@ -12,7 +13,7 @@ namespace yqlora {
 // Мировую матрицу из него собирает узел, сам Transform про дерево не знает.
 //
 // Система координат правая: +X вправо, +Y вверх, взгляд вдоль -Z.
-class Transform3D final : public Component {
+class YQLORA_API Transform3D final : public Component {
 public:
     std::string_view typeName() const override
     {

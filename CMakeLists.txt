@@ -15,6 +15,15 @@ foreach(config ${CMAKE_CONFIGURATION_TYPES})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${config_upper} ${CMAKE_BINARY_DIR}/bin/${config})
 endforeach()
 
+# Движок - разделяемая библиотека, и всё статическое, что входит в неё
+# (SDL, ImGui, бэкенды), собирается как позиционно-независимый код.
+# Символы по умолчанию скрыты: наружу видно только помеченное YQLORA_API и IMGUI_API.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_C_VISIBILITY_PRESET hidden)
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 option(YQLORA_BACKEND_OPENGL "Build the OpenGL renderer backend" ON)
 option(YQLORA_BUILD_TESTS "Build unit tests" ON)
 
@@ -28,19 +37,11 @@ if(YQLORA_BACKEND_OPENGL)
     add_subdirectory(backends/opengl)
 endif()
 
-# Итоговая библиотека движка: Application + фабрика рендереров + включённые бэкенды.
-# Отдельная цель нужна, чтобы ядро не зависело от бэкендов (иначе зависимость циклическая).
-add_library(yqlora STATIC
-    engine/src/core/Application.cpp
-    engine/src/render/RendererFactory.cpp
-)
-add_library(yqlora::yqlora ALIAS yqlora)
-target_link_libraries(yqlora PUBLIC yqlora::internal PRIVATE imgui)
+# Бэкенды собираются статически внутрь библиотеки движка.
 if(YQLORA_BACKEND_OPENGL)
-    target_link_libraries(yqlora PRIVATE yqlora::opengl)
+    target_link_libraries(yqlora PRIVATE yqlora_opengl)
     target_compile_definitions(yqlora PRIVATE YQLORA_HAS_OPENGL=1)
 endif()
-yqlora_set_warnings(yqlora)
 
 add_subdirectory(editor)
 

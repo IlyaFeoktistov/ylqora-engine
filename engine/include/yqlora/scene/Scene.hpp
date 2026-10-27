@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 #include "yqlora/scene/Node.hpp"
 
@@ -12,7 +13,7 @@ class Camera3D;
 
 // Дерево узлов с одним корнем. Новая сцена пуста:
 // корня нет, пока его не создадут (любого типа: Node, Node3D, ...).
-class Scene {
+class YQLORA_API Scene {
 public:
     bool empty() const
     {

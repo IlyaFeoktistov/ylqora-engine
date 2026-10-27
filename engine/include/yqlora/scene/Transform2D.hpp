@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 #include "yqlora/scene/Component.hpp"
 
@@ -11,7 +12,7 @@ namespace yqlora {
 // Встроенный компонент: создаётся вместе с Node2D и снять его нельзя.
 //
 // +X вправо, +Y вверх; положительный угол поворачивает против часовой стрелки.
-class Transform2D final : public Component {
+class YQLORA_API Transform2D final : public Component {
 public:
     std::string_view typeName() const override
     {

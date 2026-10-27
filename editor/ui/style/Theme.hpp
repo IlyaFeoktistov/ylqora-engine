@@ -25,14 +25,22 @@ struct EditorColors {
 
 // Внешний вид интерфейса задаётся файлом темы (assets/themes/*.json), а не кодом:
 // шрифт, размеры и отступы, цвета ImGui и цвета редактора. Чего нет в файле,
-// остаётся как в стандартной тёмной теме ImGui.
-namespace theme {
+// остаётся как в стандартной тёмной теме ImGui. Принадлежит EditorApp,
+// панелям доступна через EditorContext.
+class Theme {
+public:
+    // Применяет тему к ImGui. Вызывать до первого кадра интерфейса: шрифт
+    // добавляется в атлас ImGui. assetsDir - папка, от которой считается путь к шрифту.
+    bool load(const std::filesystem::path& file, const std::filesystem::path& assetsDir);
 
-// Применяет тему к ImGui. Вызывать до первого кадра интерфейса: шрифт
-// добавляется в атлас ImGui. assetsDir - папка, от которой считается путь к шрифту.
-bool load(const std::filesystem::path& file, const std::filesystem::path& assetsDir);
+    const EditorColors& colors() const
+    {
+        return m_colors;
+    }
 
-const EditorColors& colors();
+private:
+    EditorColors m_colors;
+};
 
 // Цвет темы в виде, который принимает ImGui. alpha умножается на прозрачность цвета.
 inline ImVec4 toImVec4(const Vec4& color, float alpha = 1.0f)
@@ -44,7 +52,5 @@ inline ImU32 toImU32(const Vec4& color, float alpha = 1.0f)
 {
     return ImGui::GetColorU32(toImVec4(color, alpha));
 }
-
-} // namespace theme
 
 } // namespace yqlora::editor

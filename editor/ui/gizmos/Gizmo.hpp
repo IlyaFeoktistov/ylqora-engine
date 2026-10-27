@@ -11,11 +11,13 @@ namespace yqlora::editor {
 
 class EditorCamera;
 class EditorSession;
+class Theme;
 
 // Всё, что нужно гизмо, чтобы нарисоваться поверх окна сцены.
 struct GizmoContext {
     EditorSession& session;
     EditorCamera& camera;
+    const Theme& theme;
     // Камера, через которую сейчас видна сцена.
     CameraData view;
     // Где картинка сцены на экране, в координатах интерфейса.
@@ -32,7 +34,7 @@ public:
     virtual ~Gizmo() = default;
 
     // Что гизмо добавляет в сам кадр сцены (например, сетку или контур).
-    virtual void prepareFrame(FrameData& /*frame*/, const EditorSession& /*session*/)
+    virtual void prepareFrame(FrameData& /*frame*/, const GizmoContext& /*context*/)
     {
     }
 
@@ -61,7 +63,7 @@ public:
         return m_enabled;
     }
 
-    void prepareFrame(FrameData& frame, const EditorSession& session) const;
+    void prepareFrame(FrameData& frame, const GizmoContext& context) const;
 
     // Возвращает true, если курсор занят каким-то гизмо.
     bool draw(GizmoContext& context);

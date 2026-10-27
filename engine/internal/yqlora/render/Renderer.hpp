@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/render/FrameData.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 #include "yqlora/render/RenderTarget.hpp"
@@ -12,7 +13,7 @@ class Window;
 
 // Контракт движка на отрисовку. Реализации живут в backends/<api>/
 // и не светят заголовки своего API наружу.
-class Renderer {
+class YQLORA_API Renderer {
 public:
     virtual ~Renderer() = default;
 
@@ -49,10 +50,10 @@ public:
 
 // Настраивает параметры, которые API требует задать до создания окна
 // (например, версию контекста OpenGL). Вызывается после platform::initialize().
-void prepareWindowForApi(GraphicsApi api);
+YQLORA_API void prepareWindowForApi(GraphicsApi api);
 
 // Создаёт рендерер для окна. Бросает std::runtime_error, если API
 // не собран в этой сборке или не поддерживается системой.
-std::unique_ptr<Renderer> createRenderer(GraphicsApi api, Window& window);
+YQLORA_API std::unique_ptr<Renderer> createRenderer(GraphicsApi api, Window& window);
 
 } // namespace yqlora

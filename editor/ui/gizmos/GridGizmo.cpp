@@ -2,7 +2,7 @@
 
 namespace yqlora::editor {
 
-void GridGizmo::prepareFrame(FrameData& frame, const EditorSession& /*session*/)
+void GridGizmo::prepareFrame(FrameData& frame, const GizmoContext& /*context*/)
 {
     frame.editor.grid = true;
 }

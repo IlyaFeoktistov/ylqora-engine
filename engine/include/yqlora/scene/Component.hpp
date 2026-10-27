@@ -1,5 +1,7 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
+
 #include <string_view>
 
 namespace yqlora {
@@ -8,7 +10,7 @@ class Node;
 
 // Часть поведения или данных, подключаемая к узлу. Узел владеет своими
 // компонентами; компонент хранит невладеющий указатель на узел.
-class Component {
+class YQLORA_API Component {
 public:
     Component() = default;
     virtual ~Component();

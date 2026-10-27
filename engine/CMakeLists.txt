@@ -1,6 +1,22 @@
-# Ядро движка: сцена, окно, локализация, настройки, интерфейс рендерера.
-# Ничего не знает о конкретных графических API.
-add_library(yqlora_core STATIC
+# Библиотека движка yqlora (.so или .dll): ядро, Application, рендереры,
+# ImGui. Её подключают редактор, запуск игры и dll со скриптами, так что
+# состояние движка (лог, локализация, контекст ImGui) у всех одно.
+
+# Заголовки и настройки для кода, который собирается внутрь библиотеки:
+# сам движок и статические бэкенды.
+add_library(yqlora_engine_code INTERFACE)
+target_include_directories(yqlora_engine_code INTERFACE include internal)
+target_link_libraries(yqlora_engine_code INTERFACE glm::glm imgui_headers)
+target_compile_definitions(yqlora_engine_code INTERFACE
+    # Кватернионы и углы в радианах: единые правила для всего движка.
+    GLM_FORCE_RADIANS
+    GLM_ENABLE_EXPERIMENTAL
+    YQLORA_BUILDING_ENGINE
+    "IMGUI_API=${YQLORA_DLL_EXPORT}"
+)
+
+add_library(yqlora SHARED
+    src/core/Application.cpp
     src/core/Log.cpp
     src/core/Settings.cpp
     src/i18n/Localization.cpp
@@ -23,26 +39,32 @@ add_library(yqlora_core STATIC
     src/reflection/TypeRegistry.cpp
     src/render/FrameBuilder.cpp
     src/render/MeshData.cpp
+    src/render/RendererFactory.cpp
 )
-add_library(yqlora::core ALIAS yqlora_core)
+add_library(yqlora::yqlora ALIAS yqlora)
 
 # include/ - публичный API для игр: математика, сцена, ввод, лог, tr().
-# internal/ - окно, платформа, рендер, Application. Игре недоступно.
-target_include_directories(yqlora_core
-    PUBLIC include
-    PRIVATE internal
+# internal/ - окно, платформа, рендер, Application: см. yqlora::internal ниже.
+target_include_directories(yqlora PUBLIC include)
+target_link_libraries(yqlora
+    PUBLIC glm::glm imgui_headers
+    PRIVATE yqlora_engine_code imgui SDL3::SDL3-static nlohmann_json::nlohmann_json
 )
-target_link_libraries(yqlora_core
-    PUBLIC glm::glm
-    PRIVATE SDL3::SDL3-static nlohmann_json::nlohmann_json imgui
+target_compile_definitions(yqlora INTERFACE
+    GLM_FORCE_RADIANS
+    GLM_ENABLE_EXPERIMENTAL
+    "IMGUI_API=${YQLORA_DLL_IMPORT}"
 )
-# Кватернионы и углы в радианах: единые правила для всего движка.
-target_compile_definitions(yqlora_core PUBLIC GLM_FORCE_RADIANS GLM_ENABLE_EXPERIMENTAL)
-yqlora_set_warnings(yqlora_core)
+if(UNIX AND NOT APPLE)
+    # SDL помечает свои функции видимыми даже в статической сборке: прячем
+    # всё, что пришло из статических архивов, наружу им незачем.
+    target_link_options(yqlora PRIVATE "LINKER:--exclude-libs,ALL")
+endif()
+yqlora_set_warnings(yqlora)
 
-# Доступ к внутренним заголовкам: для бэкендов, программы с редактором
-# и тестов движка. Игровой код подключает только yqlora::core.
+# Доступ к внутренним заголовкам: для программы с редактором и тестов движка.
+# Игровой код подключает только yqlora::yqlora.
 add_library(yqlora_internal INTERFACE)
 add_library(yqlora::internal ALIAS yqlora_internal)
 target_include_directories(yqlora_internal INTERFACE internal)
-target_link_libraries(yqlora_internal INTERFACE yqlora::core)
+target_link_libraries(yqlora_internal INTERFACE yqlora::yqlora)

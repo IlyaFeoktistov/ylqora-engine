@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 
 #include <cstdint>
@@ -24,9 +25,9 @@ struct MeshData {
 // Встроенные меши: "cube" (ребро 1), "sphere" (радиус 0.5), "plane" (1 x 1 на XZ).
 // Все с центром в начале координат. nullptr для неизвестного имени.
 // Данные живут до конца программы, указатель можно хранить.
-const MeshData* findBuiltinMesh(std::string_view name);
+YQLORA_API const MeshData* findBuiltinMesh(std::string_view name);
 
 // Имена всех встроенных мешей, для выбора в редакторе.
-std::span<const std::string_view> builtinMeshNames();
+YQLORA_API std::span<const std::string_view> builtinMeshNames();
 
 } // namespace yqlora

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/scene/Component.hpp"
 #include "yqlora/scene/Node.hpp"
@@ -25,7 +26,7 @@ enum class TypeKind {
 
 // Описание типа узла или компонента: по нему редактор строит меню создания
 // и инспектор, а файлы сцен создают объекты по имени типа.
-class TypeInfo {
+class YQLORA_API TypeInfo {
 public:
     const std::string& name() const
     {
@@ -143,7 +144,7 @@ private:
 // Список типов узлов и компонентов, доступных редактору и файлам сцен.
 // Базовый тип регистрируется раньше наследника. Типы движка добавляет
 // registerEngineTypes(), игра регистрирует свои рядом.
-class TypeRegistry {
+class YQLORA_API TypeRegistry {
 public:
     TypeRegistry() = default;
 
@@ -226,6 +227,6 @@ private:
 };
 
 // Типы движка: Node, Node3D, Camera3D, MeshInstance3D, Transform3D.
-void registerEngineTypes(TypeRegistry& registry);
+YQLORA_API void registerEngineTypes(TypeRegistry& registry);
 
 } // namespace yqlora

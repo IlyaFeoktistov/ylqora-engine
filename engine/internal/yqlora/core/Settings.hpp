@@ -1,5 +1,7 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
+
 #include <filesystem>
 #include <string>
 
@@ -7,7 +9,7 @@ namespace yqlora {
 
 // Пользовательские настройки, которые переживают перезапуск программы.
 // Хранятся в JSON в папке пользователя (см. platform::userDataPath()).
-class Settings {
+class YQLORA_API Settings {
 public:
     explicit Settings(std::filesystem::path file);
 

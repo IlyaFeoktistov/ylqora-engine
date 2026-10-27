@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/scene/Component.hpp"
 
 #include <concepts>
@@ -21,7 +22,7 @@ using NodeId = std::uint64_t;
 //
 // Сам Node не имеет положения, это делают Node2D и Node3D, у которых
 // Transform есть всегда. Остальные компоненты подключаются по необходимости.
-class Node {
+class YQLORA_API Node {
 public:
     explicit Node(std::string name = "Node");
     virtual ~Node();

@@ -9,7 +9,7 @@ namespace yqlora::editor {
 // другой гизмо (манипулятор, оси), выбором не считается.
 class SelectionGizmo final : public Gizmo {
 public:
-    void prepareFrame(FrameData& frame, const EditorSession& session) override;
+    void prepareFrame(FrameData& frame, const GizmoContext& context) override;
     bool draw(GizmoContext& context) override;
 };
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 #include "yqlora/scene/Node.hpp"
 #include "yqlora/scene/Transform3D.hpp"
@@ -13,7 +14,7 @@ namespace yqlora {
 //
 // Transform задаётся относительно родителя-Node3D; если родитель не Node3D,
 // узел считается корневым в пространстве мира.
-class Node3D : public Node {
+class YQLORA_API Node3D : public Node {
 public:
     explicit Node3D(std::string name = "Node3D");
 

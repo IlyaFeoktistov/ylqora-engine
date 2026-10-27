@@ -38,6 +38,7 @@ EditorContext EditorApp::context()
         .registry = m_registry,
         .serializer = m_serializer,
         .actions = m_actions,
+        .theme = m_theme,
         .deltaSeconds = m_deltaSeconds,
         .openScene = [this](const std::filesystem::path& path) {
             openScene(path);
@@ -48,7 +49,7 @@ EditorContext EditorApp::context()
 void EditorApp::onStart()
 {
     const auto assets = platform::executableDir() / "assets";
-    theme::load(assets / "themes" / "dark.json", assets);
+    m_theme.load(assets / "themes" / "dark.json", assets);
 
     for (const std::string& code : localization().availableLanguages()) {
         m_languages.emplace_back(code, localization().displayName(code));
@@ -56,7 +57,7 @@ void EditorApp::onStart()
 
     m_projects = std::make_unique<ProjectList>(userDataDirectory() / "projects.json");
     m_projects->load();
-    m_projectManager = std::make_unique<ProjectManagerPanel>(*m_projects, m_serializer);
+    m_projectManager = std::make_unique<ProjectManagerPanel>(*m_projects, m_serializer, m_theme);
     m_projectManager->refresh();
 
     registerActions();
@@ -275,10 +276,10 @@ void EditorApp::drawPlayControls()
     const float width = buttonWidth * 3.0f + style.ItemSpacing.x * 2.0f;
     ImGui::SetCursorPosX((ImGui::GetWindowWidth() - width) * 0.5f);
 
-    const Vec4& accent = theme::colors().playMode;
+    const Vec4& accent = m_theme.colors().playMode;
     const bool playing = m_session.playing();
     if (playing) {
-        ImGui::PushStyleColor(ImGuiCol_Text, theme::toImVec4(accent));
+        ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(accent));
     }
     if (ImGui::SmallButton(icons::kPlay)) {
         m_actions.run("play.toggle");
@@ -295,7 +296,7 @@ void EditorApp::drawPlayControls()
     ImGui::BeginDisabled(!playing);
     const bool paused = m_session.paused();
     if (paused) {
-        ImGui::PushStyleColor(ImGuiCol_Text, theme::toImVec4(accent));
+        ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(accent));
     }
     if (ImGui::SmallButton(icons::kPause)) {
         m_actions.run("play.pause");

@@ -1,5 +1,6 @@
 #include "panels/InspectorPanel.hpp"
 
+#include "style/Theme.hpp"
 #include "widgets/PropertyEditor.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
@@ -18,9 +19,10 @@ namespace {
 
 // Возвращает true, если какое-то значение тянут мышью.
 template <typename Object>
-bool drawPropertyTable(EditorSession& session, const TypeRegistry& registry, const TypeInfo& type, Object& object)
+bool drawPropertyTable(EditorContext& context, const TypeInfo& type, Object& object)
 {
-    const auto properties = registry.properties(type);
+    EditorSession& session = context.session;
+    const auto properties = context.registry.properties(type);
     if (properties.empty() || !ImGui::BeginTable("properties", 2)) {
         return false;
     }
@@ -31,7 +33,7 @@ bool drawPropertyTable(EditorSession& session, const TypeRegistry& registry, con
 
     bool dragging = false;
     for (const Property* property : properties) {
-        const PropertyResult result = drawProperty(*property, object);
+        const PropertyResult result = drawProperty(*property, object, context.theme.colors());
         if (result.changed) {
             session.setProperty(object, *property, result.value);
         }
@@ -96,7 +98,7 @@ void InspectorPanel::draw(EditorContext& context)
 
     ImGui::TextDisabled("%s", type->name().c_str());
     ImGui::SetItemTooltip("%s", tr(type->descriptionKey()).c_str());
-    bool dragging = drawPropertyTable(session, registry, *type, *node);
+    bool dragging = drawPropertyTable(context, *type, *node);
 
     // Удалять компонент можно только после цикла: список меняется.
     Component* toRemove = nullptr;
@@ -113,7 +115,7 @@ void InspectorPanel::draw(EditorContext& context)
         const bool removable = node->canRemoveComponent(*component);
         const std::string header = componentType->name() + "###component";
         if (ImGui::CollapsingHeader(header.c_str(), removable ? &keep : nullptr, ImGuiTreeNodeFlags_DefaultOpen)) {
-            dragging = drawPropertyTable(session, registry, *componentType, *component) || dragging;
+            dragging = drawPropertyTable(context, *componentType, *component) || dragging;
         }
         if (!keep) {
             toRemove = component.get();

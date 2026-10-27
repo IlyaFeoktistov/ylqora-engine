@@ -17,12 +17,13 @@ class SceneSerializer;
 namespace yqlora::editor {
 
 class ProjectList;
+class Theme;
 
 // Экран при запуске: список проектов, создание, добавление существующего,
 // удаление. Занимает всё окно, пока проект не открыт.
 class ProjectManagerPanel {
 public:
-    ProjectManagerPanel(ProjectList& projects, const SceneSerializer& serializer);
+    ProjectManagerPanel(ProjectList& projects, const SceneSerializer& serializer, const Theme& theme);
 
     // Возвращает проект, если в этом кадре его решили открыть.
     std::optional<Project> draw(Application& app);
@@ -47,6 +48,7 @@ private:
 
     ProjectList& m_projects;
     const SceneSerializer& m_serializer;
+    const Theme& m_theme;
     std::vector<Row> m_rows;
     int m_selected = -1;
     std::optional<Project> m_toOpen;

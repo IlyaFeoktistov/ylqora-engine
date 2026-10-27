@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/input/Input.hpp"
 #include "yqlora/render/FrameData.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
@@ -34,7 +35,7 @@ struct ApplicationConfig {
 
 // Владеет окном, рендерером, сценой, настройками и локализацией,
 // крутит игровой цикл. Игра наследуется и переопределяет on*-методы.
-class Application {
+class YQLORA_API Application {
 public:
     explicit Application(ApplicationConfig config);
     virtual ~Application();

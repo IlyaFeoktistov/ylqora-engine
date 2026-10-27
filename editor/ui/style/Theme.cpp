@@ -12,13 +12,11 @@
 #include <string>
 #include <string_view>
 
-namespace yqlora::editor::theme {
+namespace yqlora::editor {
 
 namespace {
 
 using Json = nlohmann::json;
-
-EditorColors g_colors;
 
 // "#RRGGBB" или "#RRGGBBAA".
 std::optional<Vec4> parseColor(const Json& json)
@@ -149,7 +147,7 @@ void addFont(const Json& json, const std::filesystem::path& assetsDir, bool merg
     }
 }
 
-void applyEditorColors(const Json& json)
+void applyEditorColors(const Json& json, EditorColors& colors)
 {
     if (!json.is_object()) {
         return;
@@ -161,35 +159,35 @@ void applyEditorColors(const Json& json)
             }
         }
     };
-    read("errorText", g_colors.errorText);
-    read("selectionOutline", g_colors.selectionOutline);
-    read("cameraGizmo", g_colors.cameraGizmo);
-    read("playMode", g_colors.playMode);
-    read("axisX", g_colors.axisX);
-    read("axisY", g_colors.axisY);
-    read("axisZ", g_colors.axisZ);
-    read("axisW", g_colors.axisW);
+    read("errorText", colors.errorText);
+    read("selectionOutline", colors.selectionOutline);
+    read("cameraGizmo", colors.cameraGizmo);
+    read("playMode", colors.playMode);
+    read("axisX", colors.axisX);
+    read("axisY", colors.axisY);
+    read("axisZ", colors.axisZ);
+    read("axisW", colors.axisW);
 }
 
 // Манипуляторы окрашены в те же цвета осей, что и поля X, Y, Z в инспекторе.
-void applyManipulatorColors()
+void applyManipulatorColors(const EditorColors& colors)
 {
     ImGuizmo::Style& style = ImGuizmo::GetStyle();
     const auto set = [&](ImGuizmo::COLOR slot, const Vec4& color) {
-        style.Colors[slot] = theme::toImVec4(color);
+        style.Colors[slot] = toImVec4(color);
     };
-    set(ImGuizmo::DIRECTION_X, g_colors.axisX);
-    set(ImGuizmo::DIRECTION_Y, g_colors.axisY);
-    set(ImGuizmo::DIRECTION_Z, g_colors.axisZ);
-    set(ImGuizmo::PLANE_X, g_colors.axisX * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
-    set(ImGuizmo::PLANE_Y, g_colors.axisY * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
-    set(ImGuizmo::PLANE_Z, g_colors.axisZ * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
-    set(ImGuizmo::SELECTION, g_colors.selectionOutline);
+    set(ImGuizmo::DIRECTION_X, colors.axisX);
+    set(ImGuizmo::DIRECTION_Y, colors.axisY);
+    set(ImGuizmo::DIRECTION_Z, colors.axisZ);
+    set(ImGuizmo::PLANE_X, colors.axisX * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
+    set(ImGuizmo::PLANE_Y, colors.axisY * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
+    set(ImGuizmo::PLANE_Z, colors.axisZ * Vec4(1.0f, 1.0f, 1.0f, 0.4f));
+    set(ImGuizmo::SELECTION, colors.selectionOutline);
 }
 
 } // namespace
 
-bool load(const std::filesystem::path& file, const std::filesystem::path& assetsDir)
+bool Theme::load(const std::filesystem::path& file, const std::filesystem::path& assetsDir)
 {
     ImGuiStyle& style = ImGui::GetStyle();
     ImGui::StyleColorsDark(&style);
@@ -206,15 +204,10 @@ bool load(const std::filesystem::path& file, const std::filesystem::path& assets
     addFont(json.value("iconFont", Json()), assetsDir, true);
     applyStyle(json.value("style", Json()), style);
     applyColors(json.value("colors", Json()), style);
-    applyEditorColors(json.value("editor", Json()));
-    applyManipulatorColors();
+    applyEditorColors(json.value("editor", Json()), m_colors);
+    applyManipulatorColors(m_colors);
 
     return true;
 }
 
-const EditorColors& colors()
-{
-    return g_colors;
-}
-
-} // namespace yqlora::editor::theme
+} // namespace yqlora::editor

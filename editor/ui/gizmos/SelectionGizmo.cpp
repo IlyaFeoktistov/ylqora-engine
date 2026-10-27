@@ -8,10 +8,10 @@
 
 namespace yqlora::editor {
 
-void SelectionGizmo::prepareFrame(FrameData& frame, const EditorSession& session)
+void SelectionGizmo::prepareFrame(FrameData& frame, const GizmoContext& context)
 {
-    frame.editor.selected = session.selection().selected();
-    frame.editor.outlineColor = theme::colors().selectionOutline;
+    frame.editor.selected = context.session.selection().selected();
+    frame.editor.outlineColor = context.theme.colors().selectionOutline;
 }
 
 bool SelectionGizmo::draw(GizmoContext& context)

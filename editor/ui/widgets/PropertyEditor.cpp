@@ -70,16 +70,11 @@ void floatField(const char* id, float& value, float width, const char* format, P
 }
 
 // Компоненты вектора в одну строку: у каждой своя цветная подпись.
-void vectorFields(float* values, int count, float speed, PropertyResult& result)
+void vectorFields(float* values, int count, float speed, const EditorColors& colors, PropertyResult& result)
 {
     static constexpr const char* kNames[] = {"X", "Y", "Z", "W"};
-    const EditorColors& colors = theme::colors();
-    const ImVec4 axisColors[] = {
-        theme::toImVec4(colors.axisX),
-        theme::toImVec4(colors.axisY),
-        theme::toImVec4(colors.axisZ),
-        theme::toImVec4(colors.axisW)
-    };
+    const ImVec4 axisColors[] =
+        {toImVec4(colors.axisX), toImVec4(colors.axisY), toImVec4(colors.axisZ), toImVec4(colors.axisW)};
 
     const ImGuiStyle& style = ImGui::GetStyle();
     const float labelWidth = ImGui::CalcTextSize("X").x + style.FramePadding.x * 2.0f;
@@ -140,7 +135,7 @@ void rowLabel(const Property& property, PropertyValue& value, PropertyResult& re
     ImGui::TextUnformatted(label.c_str());
 }
 
-void valueField(const Property& property, PropertyValue& value, PropertyResult& result)
+void valueField(const Property& property, PropertyValue& value, const EditorColors& colors, PropertyResult& result)
 {
     const float speed = dragSpeed(property);
     switch (property.type()) {
@@ -160,21 +155,21 @@ void valueField(const Property& property, PropertyValue& value, PropertyResult& 
             result.changed = ImGui::InputText("##value", &std::get<std::string>(value)) || result.changed;
         }
         break;
-    case PropertyType::Vector2: vectorFields(&std::get<Vec2>(value).x, 2, speed, result); break;
-    case PropertyType::Vector3: vectorFields(&std::get<Vec3>(value).x, 3, speed, result); break;
+    case PropertyType::Vector2: vectorFields(&std::get<Vec2>(value).x, 2, speed, colors, result); break;
+    case PropertyType::Vector3: vectorFields(&std::get<Vec3>(value).x, 3, speed, colors, result); break;
     case PropertyType::Vector4:
         if (property.hint() == PropertyHint::Color) {
             ImGui::SetNextItemWidth(-FLT_MIN);
             result.changed = ImGui::ColorEdit4("##value", &std::get<Vec4>(value).x) || result.changed;
         } else {
-            vectorFields(&std::get<Vec4>(value).x, 4, speed, result);
+            vectorFields(&std::get<Vec4>(value).x, 4, speed, colors, result);
         }
         break;
     }
 }
 
 template <typename Object>
-PropertyResult drawPropertyRow(const Property& property, Object& object)
+PropertyResult drawPropertyRow(const Property& property, Object& object, const EditorColors& colors)
 {
     PropertyResult result;
     PropertyValue value = property.get(object);
@@ -184,7 +179,7 @@ PropertyResult drawPropertyRow(const Property& property, Object& object)
     ImGui::TableNextColumn();
     rowLabel(property, value, result);
     ImGui::TableNextColumn();
-    valueField(property, value, result);
+    valueField(property, value, colors, result);
     ImGui::PopID();
 
     result.value = std::move(value);
@@ -194,14 +189,14 @@ PropertyResult drawPropertyRow(const Property& property, Object& object)
 
 } // namespace
 
-PropertyResult drawProperty(const Property& property, Node& node)
+PropertyResult drawProperty(const Property& property, Node& node, const EditorColors& colors)
 {
-    return drawPropertyRow(property, node);
+    return drawPropertyRow(property, node, colors);
 }
 
-PropertyResult drawProperty(const Property& property, Component& component)
+PropertyResult drawProperty(const Property& property, Component& component, const EditorColors& colors)
 {
-    return drawPropertyRow(property, component);
+    return drawPropertyRow(property, component, colors);
 }
 
 std::string propertyLabel(const std::string& name)

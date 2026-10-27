@@ -1,5 +1,7 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
+
 #include <format>
 #include <string_view>
 
@@ -13,9 +15,9 @@ enum class Level {
 };
 
 // Пишется ли сейчас уровень level. Отключённые сообщения не форматируются.
-bool isEnabled(Level level);
+YQLORA_API bool isEnabled(Level level);
 
-void write(Level level, std::string_view message);
+YQLORA_API void write(Level level, std::string_view message);
 
 template <typename... Args>
 void info(std::format_string<Args...> fmt, Args&&... args)

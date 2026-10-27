@@ -45,7 +45,7 @@ add_library(yqlora::editor_ui ALIAS yqlora_editor_ui)
 
 target_include_directories(yqlora_editor_ui PUBLIC ui)
 target_link_libraries(yqlora_editor_ui
-    PUBLIC yqlora::yqlora yqlora::editor imgui
-    PRIVATE imguizmo nlohmann_json::nlohmann_json
+    PUBLIC yqlora::editor
+    PRIVATE nlohmann_json::nlohmann_json
 )
 yqlora_set_warnings(yqlora_editor_ui)

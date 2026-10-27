@@ -4,6 +4,7 @@
 #include "core/EditorPanel.hpp"
 #include "dialogs/UnsavedChangesDialog.hpp"
 #include "panels/ProjectManagerPanel.hpp"
+#include "style/Theme.hpp"
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/editor/EditorSession.hpp"
@@ -51,6 +52,7 @@ private:
     // файлы снизу, сцена в центре. Дальше раскладку помнит imgui.ini.
     void buildDefaultLayout(unsigned int dockspace);
 
+    Theme m_theme;
     TypeRegistry m_registry;
     SceneSerializer m_serializer{m_registry};
     std::unique_ptr<ProjectList> m_projects;

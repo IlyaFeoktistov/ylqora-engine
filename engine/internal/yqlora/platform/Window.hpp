@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 #include "yqlora/platform/MouseWrap.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
@@ -30,7 +31,7 @@ struct WindowEvents {
     std::function<void(int width, int height)> onResized; // размер в пикселях
 };
 
-class Window {
+class YQLORA_API Window {
 public:
     explicit Window(const WindowDesc& desc);
     ~Window();

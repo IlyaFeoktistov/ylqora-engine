@@ -87,18 +87,18 @@ void drawCamerasRecursive(
     ImDrawList& list,
     const Node& node,
     NodeId selected,
+    const EditorColors& colors,
     const Mat4& viewProjection,
     const ImVec2& origin,
     const ImVec2& size
 )
 {
     if (const auto* camera = dynamic_cast<const Camera3D*>(&node)) {
-        const EditorColors& colors = theme::colors();
-        const ImU32 color = theme::toImU32(node.id() == selected ? colors.selectionOutline : colors.cameraGizmo);
+        const ImU32 color = toImU32(node.id() == selected ? colors.selectionOutline : colors.cameraGizmo);
         drawCamera(list, *camera, color, viewProjection, origin, size);
     }
     for (const auto& child : node.children()) {
-        drawCamerasRecursive(list, *child, selected, viewProjection, origin, size);
+        drawCamerasRecursive(list, *child, selected, colors, viewProjection, origin, size);
     }
 }
 
@@ -118,6 +118,7 @@ bool CameraGizmo::draw(GizmoContext& context)
         list,
         *root,
         context.session.selection().selected(),
+        context.theme.colors(),
         context.view.projection * context.view.view,
         origin,
         size

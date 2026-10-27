@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/scene/Node.hpp"
 
 #include <filesystem>
@@ -13,7 +14,7 @@ class TypeRegistry;
 
 // Сохраняет сцену в JSON и загружает обратно. Узлы и компоненты создаются
 // по именам типов из реестра, значения читаются и пишутся через их свойства.
-class SceneSerializer {
+class YQLORA_API SceneSerializer {
 public:
     explicit SceneSerializer(const TypeRegistry& registry);
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 
 #include <functional>
@@ -61,7 +62,7 @@ enum class PropertyHint {
 
 // Свойство узла или компонента: имя, тип и доступ к значению. Создаётся
 // через TypeBuilder при регистрации типа в TypeRegistry.
-class Property {
+class YQLORA_API Property {
 public:
     const std::string& name() const
     {

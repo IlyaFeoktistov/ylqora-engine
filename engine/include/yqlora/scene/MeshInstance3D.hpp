@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 #include "yqlora/scene/Node3D.hpp"
 
@@ -8,7 +9,7 @@
 namespace yqlora {
 
 // Рисует меш в положении узла.
-class MeshInstance3D : public Node3D {
+class YQLORA_API MeshInstance3D : public Node3D {
 public:
     explicit MeshInstance3D(std::string name = "MeshInstance3D");
 

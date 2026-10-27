@@ -8,6 +8,7 @@ namespace yqlora {
 
 class Component;
 class Node;
+struct EditorColors;
 
 } // namespace yqlora
 
@@ -28,8 +29,8 @@ struct PropertyResult {
 // Числа меняются перетаскиванием подписи (у векторов - подписей X, Y, Z),
 // а в само поле можно вписать значение. При перетаскивании Shift ускоряет
 // в 10 раз, Ctrl замедляет в 10 раз.
-PropertyResult drawProperty(const Property& property, Node& node);
-PropertyResult drawProperty(const Property& property, Component& component);
+PropertyResult drawProperty(const Property& property, Node& node, const EditorColors& colors);
+PropertyResult drawProperty(const Property& property, Component& component, const EditorColors& colors);
 
 // Подпись свойства на языке интерфейса: перевод ключа property.<имя>,
 // а без перевода - имя с заглавной буквы.

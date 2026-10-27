@@ -8,6 +8,7 @@ set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
 set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(SDL_STATIC_PIC ON CACHE BOOL "" FORCE)
 
 FetchContent_Declare(SDL3
     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
@@ -51,21 +52,38 @@ FetchContent_Declare(imguizmo
 
 FetchContent_MakeAvailable(SDL3 glm nlohmann_json imgui imguizmo)
 
-add_library(imgui STATIC
+# ImGui и ImGuizmo входят в библиотеку движка, чтобы у всех модулей был один
+# контекст ImGui. Внутри неё функции ImGui экспортируются, снаружи импортируются.
+if(WIN32)
+    set(YQLORA_DLL_EXPORT "__declspec(dllexport)")
+    set(YQLORA_DLL_IMPORT "__declspec(dllimport)")
+else()
+    set(YQLORA_DLL_EXPORT "__attribute__((visibility(\"default\")))")
+    set(YQLORA_DLL_IMPORT "__attribute__((visibility(\"default\")))")
+endif()
+
+# Только заголовки. SYSTEM: наши строгие предупреждения не распространяются на чужой код.
+add_library(imgui_headers INTERFACE)
+target_include_directories(imgui_headers SYSTEM INTERFACE
+    ${imgui_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}/backends
+    ${imgui_SOURCE_DIR}/misc/cpp
+    ${imguizmo_SOURCE_DIR}/src
+)
+
+# OBJECT, а не STATIC: из статического архива в библиотеку попало бы только то,
+# что вызывает сам движок, а редактору нужны и ImGuizmo, и обёртки над std::string.
+add_library(imgui OBJECT
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
     ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
+    ${imguizmo_SOURCE_DIR}/src/ImGuizmo.cpp
 )
-# SYSTEM: наши строгие предупреждения не распространяются на заголовки ImGui.
-target_include_directories(imgui SYSTEM PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${imgui_SOURCE_DIR}/misc/cpp)
-target_link_libraries(imgui PUBLIC SDL3::SDL3-static)
-
-add_library(imguizmo STATIC ${imguizmo_SOURCE_DIR}/src/ImGuizmo.cpp)
-target_include_directories(imguizmo SYSTEM PUBLIC ${imguizmo_SOURCE_DIR}/src)
-target_link_libraries(imguizmo PUBLIC imgui)
+target_link_libraries(imgui PUBLIC imgui_headers PRIVATE SDL3::SDL3-static)
+target_compile_definitions(imgui PRIVATE "IMGUI_API=${YQLORA_DLL_EXPORT}")
 
 if(YQLORA_BUILD_TESTS)
     FetchContent_Declare(doctest

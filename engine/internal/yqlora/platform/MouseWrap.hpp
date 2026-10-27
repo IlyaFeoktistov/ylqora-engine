@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 
 #include <optional>
@@ -9,7 +10,7 @@ namespace yqlora {
 // Перенос курсора к противоположному краю окна при обзоре камерой.
 // Только расчёты, без SDL: окно само переносит курсор, а здесь решается,
 // куда его переносить и какое смещение мыши засчитать.
-class MouseWrap {
+class YQLORA_API MouseWrap {
 public:
     // Начало переноса: положение, от которого считается смещение.
     void reset(const Vec2& position);
