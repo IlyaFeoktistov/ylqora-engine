@@ -1,0 +1,303 @@
+#include <doctest/doctest.h>
+
+#include <yqlora/editor/EditorSession.hpp>
+#include <yqlora/editor/UndoHistory.hpp>
+#include <yqlora/reflection/TypeRegistry.hpp>
+#include <yqlora/scene/Camera3D.hpp>
+#include <yqlora/scene/Scene.hpp>
+#include <yqlora/scene/SceneSerializer.hpp>
+
+#include <string_view>
+
+using namespace yqlora;
+
+namespace {
+
+struct AddCommand final : Command {
+    AddCommand(int& target, int value)
+        : counter(target)
+        , amount(value)
+    {
+    }
+
+    bool apply(EditorSession& /*session*/) override
+    {
+        counter += amount;
+
+        return true;
+    }
+
+    void revert(EditorSession& /*session*/) override
+    {
+        counter -= amount;
+    }
+
+    bool merge(const Command& next) override
+    {
+        const auto* other = dynamic_cast<const AddCommand*>(&next);
+        if (!other) {
+            return false;
+        }
+        amount += other->amount;
+
+        return true;
+    }
+
+    int& counter;
+    int amount;
+};
+
+struct TestComponent final : Component {
+    std::string_view typeName() const override
+    {
+        return "TestComponent";
+    }
+};
+
+struct Fixture {
+    Fixture()
+    {
+        registerEngineTypes(registry);
+        registry.registerComponent<TestComponent>("TestComponent");
+    }
+
+    const TypeInfo& type(std::string_view name) const
+    {
+        return *registry.find(name);
+    }
+
+    const Property& property(std::string_view typeName, std::string_view name) const
+    {
+        for (const Property* property : registry.properties(type(typeName))) {
+            if (property->name() == name) {
+                return *property;
+            }
+        }
+        FAIL("no such property");
+
+        return *registry.properties(type(typeName)).front();
+    }
+
+    TypeRegistry registry;
+    SceneSerializer serializer{registry};
+    Scene scene;
+    EditorSession session{scene, serializer};
+};
+
+} // namespace
+
+TEST_CASE_FIXTURE(Fixture, "UndoHistory: undo, redo and a new command drops the undone ones")
+{
+    UndoHistory history;
+    int counter = 0;
+    history.execute(session, std::make_unique<AddCommand>(counter, 1));
+    history.finishEdit();
+    history.execute(session, std::make_unique<AddCommand>(counter, 10));
+    CHECK(counter == 11);
+
+    REQUIRE(history.undo(session));
+    CHECK(counter == 1);
+    REQUIRE(history.redo(session));
+    CHECK(counter == 11);
+    CHECK_FALSE(history.redo(session));
+
+    history.undo(session);
+    history.execute(session, std::make_unique<AddCommand>(counter, 100));
+    CHECK(counter == 101);
+    CHECK_FALSE(history.canRedo());
+}
+
+TEST_CASE_FIXTURE(Fixture, "UndoHistory: commands of one edit merge until finishEdit")
+{
+    UndoHistory history;
+    int counter = 0;
+    history.execute(session, std::make_unique<AddCommand>(counter, 1));
+    history.execute(session, std::make_unique<AddCommand>(counter, 2));
+    history.finishEdit();
+    history.execute(session, std::make_unique<AddCommand>(counter, 4));
+    CHECK(counter == 7);
+
+    history.undo(session);
+    CHECK(counter == 3);
+    history.undo(session);
+    CHECK(counter == 0);
+    CHECK_FALSE(history.canUndo());
+}
+
+TEST_CASE_FIXTURE(Fixture, "UndoHistory: the saved state is found by its place in history")
+{
+    UndoHistory history;
+    int counter = 0;
+    CHECK(history.atSaved());
+
+    history.execute(session, std::make_unique<AddCommand>(counter, 1));
+    CHECK_FALSE(history.atSaved());
+    history.markSaved();
+    CHECK(history.atSaved());
+
+    history.undo(session);
+    CHECK_FALSE(history.atSaved());
+    history.redo(session);
+    CHECK(history.atSaved());
+}
+
+TEST_CASE_FIXTURE(Fixture, "UndoHistory: the saved state can become unreachable")
+{
+    UndoHistory history;
+    int counter = 0;
+
+    // Сохранили посреди правки, а потом она слилась дальше.
+    history.execute(session, std::make_unique<AddCommand>(counter, 1));
+    history.markSaved();
+    history.execute(session, std::make_unique<AddCommand>(counter, 1));
+    history.undo(session);
+    history.redo(session);
+    CHECK_FALSE(history.atSaved());
+
+    // Отменили сохранённую команду и сделали другую вместо неё.
+    history.finishEdit();
+    history.execute(session, std::make_unique<AddCommand>(counter, 1));
+    history.markSaved();
+    history.undo(session);
+    history.execute(session, std::make_unique<AddCommand>(counter, 5));
+    history.undo(session);
+    history.redo(session);
+    CHECK_FALSE(history.atSaved());
+}
+
+TEST_CASE_FIXTURE(Fixture, "Undo: a created node goes away and comes back with the same id and place")
+{
+    Node* root = session.createNode(type("Node3D"), nullptr);
+    session.createNode(type("Node3D"), root);
+    Node* cube = session.createNode(type("MeshInstance3D"), root);
+    const NodeId cubeId = cube->id();
+    REQUIRE(session.modified());
+
+    REQUIRE(session.undo());
+    CHECK(session.findNode(cubeId) == nullptr);
+    CHECK(root->children().size() == 1);
+
+    REQUIRE(session.redo());
+    Node* again = session.findNode(cubeId);
+    REQUIRE(again);
+    CHECK(root->children()[1].get() == again);
+    CHECK(session.selection().selected() == cubeId);
+
+    // Отменили всё: сцена снова пуста и не изменена.
+    while (session.undo()) {
+    }
+    CHECK(scene.empty());
+    CHECK_FALSE(session.modified());
+}
+
+TEST_CASE_FIXTURE(Fixture, "Undo: a deleted branch returns to its place with the active camera and selection")
+{
+    Node* root = session.createNode(type("Node3D"), nullptr);
+    Node* first = session.createNode(type("Node3D"), root);
+    session.createNode(type("Node3D"), root);
+    auto* camera = static_cast<Camera3D*>(session.createNode(type("Camera3D"), first));
+    scene.setActiveCamera(camera);
+    session.selection().select(camera->id());
+    const NodeId firstId = first->id();
+
+    REQUIRE(session.deleteNode(firstId));
+    CHECK(scene.activeCamera() == nullptr);
+    CHECK(session.selection().selected() == 0);
+
+    REQUIRE(session.undo());
+    REQUIRE(session.findNode(firstId));
+    CHECK(root->children()[0]->id() == firstId);
+    CHECK(scene.activeCamera() == camera);
+    CHECK(session.selection().selected() == camera->id());
+}
+
+TEST_CASE_FIXTURE(Fixture, "Undo: deleting the root and undoing it brings the whole scene back")
+{
+    Node* root = session.createNode(type("Node3D"), nullptr);
+    session.createNode(type("Node3D"), root);
+    const NodeId rootId = root->id();
+
+    REQUIRE(session.deleteNode(rootId));
+    CHECK(scene.empty());
+    REQUIRE(session.undo());
+    REQUIRE(scene.root());
+    CHECK(scene.root()->id() == rootId);
+    CHECK(scene.root()->children().size() == 1);
+}
+
+TEST_CASE_FIXTURE(Fixture, "Undo: components come back to their place in the list")
+{
+    Node* node = session.createNode(type("Node3D"), nullptr);
+    Component* a = session.addComponent(*node, type("TestComponent"));
+    session.addComponent(*node, type("TestComponent"));
+    REQUIRE(node->components().size() == 3);
+
+    REQUIRE(session.removeComponent(*node, *a));
+    CHECK(node->components().size() == 2);
+    REQUIRE(session.undo());
+    REQUIRE(node->components().size() == 3);
+    CHECK(node->components()[1].get() == a);
+
+    session.undo();
+    session.undo();
+    CHECK(node->components().size() == 1);
+    session.redo();
+    CHECK(node->components()[1].get() == a);
+}
+
+TEST_CASE_FIXTURE(Fixture, "Undo: dragging a value is one step, the next drag is another")
+{
+    auto* node = static_cast<Node3D*>(session.createNode(type("Node3D"), nullptr));
+    Component& transform = node->transform();
+    const Property& position = property("Transform3D", "position");
+    session.finishEdit();
+
+    session.setProperty(transform, position, Vec3(1.0f, 0.0f, 0.0f));
+    session.setProperty(transform, position, Vec3(2.0f, 0.0f, 0.0f));
+    session.finishEdit();
+    session.setProperty(transform, position, Vec3(3.0f, 0.0f, 0.0f));
+    CHECK(node->transform().position() == Vec3(3.0f, 0.0f, 0.0f));
+
+    session.undo();
+    CHECK(node->transform().position() == Vec3(2.0f, 0.0f, 0.0f));
+    session.undo();
+    CHECK(node->transform().position() == Vec3(0.0f, 0.0f, 0.0f));
+
+    // Имя - свойство самого узла.
+    session.setProperty(*node, property("Node", "name"), std::string("Player"));
+    CHECK(node->name() == "Player");
+    session.undo();
+    CHECK(node->name() == "Node3D");
+}
+
+TEST_CASE_FIXTURE(Fixture, "Undo: the manipulator moves a node in one step")
+{
+    auto* node = static_cast<Node3D*>(session.createNode(type("Node3D"), nullptr));
+    session.finishEdit();
+
+    session.setTransform(*node, {.position = {1.0f, 0.0f, 0.0f}});
+    session.setTransform(*node, {.position = {2.0f, 0.0f, 0.0f}, .rotationDegrees = {0.0f, 90.0f, 0.0f}});
+    CHECK(node->transform().rotationDegrees() == Vec3(0.0f, 90.0f, 0.0f));
+
+    session.undo();
+    CHECK(node->transform().position() == Vec3(0.0f));
+    CHECK(node->transform().rotationDegrees() == Vec3(0.0f));
+}
+
+TEST_CASE_FIXTURE(Fixture, "Undo: history survives Play and Stop")
+{
+    Node* root = session.createNode(type("Node3D"), nullptr);
+    Node* child = session.createNode(type("Node3D"), root);
+    const NodeId childId = child->id();
+
+    session.play();
+    CHECK_FALSE(session.canUndo());
+    CHECK_FALSE(session.undo());
+    session.stop();
+
+    // Узлы после Stop новые, но ID те же: команды находят их.
+    REQUIRE(session.undo());
+    CHECK(session.findNode(childId) == nullptr);
+    REQUIRE(session.redo());
+    CHECK(session.findNode(childId));
+}

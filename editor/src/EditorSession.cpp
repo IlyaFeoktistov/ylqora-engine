@@ -1,5 +1,7 @@
 #include "yqlora/editor/EditorSession.hpp"
 
+#include "yqlora/editor/SceneCommands.hpp"
+
 #include "yqlora/core/Log.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/Camera3D.hpp"
@@ -28,18 +30,16 @@ Node* find(Node& node, NodeId id)
     return nullptr;
 }
 
-bool contains(const Node& node, const Node* target)
+std::optional<std::size_t> componentIndex(const Node& node, const Component& component)
 {
-    if (&node == target) {
-        return true;
-    }
-    for (const auto& child : node.children()) {
-        if (contains(*child, target)) {
-            return true;
+    const auto components = node.components();
+    for (std::size_t i = 0; i < components.size(); ++i) {
+        if (components[i].get() == &component) {
+            return i;
         }
     }
 
-    return false;
+    return std::nullopt;
 }
 
 // path лежит внутри from (или равен ему): тот же путь, но от to. Иначе nullopt.
@@ -59,20 +59,6 @@ std::optional<std::filesystem::path> replacePrefix(const std::filesystem::path& 
     return result;
 }
 
-// "Cube", "Cube2", "Cube3"... - первое свободное среди детей parent.
-std::string uniqueChildName(const Node& parent, const std::string& base)
-{
-    if (!parent.findChild(base)) {
-        return base;
-    }
-    for (int i = 2;; ++i) {
-        std::string candidate = base + std::to_string(i);
-        if (!parent.findChild(candidate)) {
-            return candidate;
-        }
-    }
-}
-
 } // namespace
 
 EditorSession::EditorSession(Scene& scene, const SceneSerializer& serializer)
@@ -87,7 +73,7 @@ bool EditorSession::open(const Project& project)
     m_project = project;
     m_scenePath = project.mainScene;
     m_selection.clear();
-    m_modified = false;
+    m_history.clear();
 
     // Загрузка при ошибке оставляет сцену как была, поэтому сначала очищаем:
     // от прошлого проекта ничего не должно остаться.
@@ -108,7 +94,7 @@ void EditorSession::close()
     m_project.reset();
     m_scenePath.clear();
     m_selection.clear();
-    m_modified = false;
+    m_history.clear();
 }
 
 bool EditorSession::openScene(const std::filesystem::path& path)
@@ -119,7 +105,7 @@ bool EditorSession::openScene(const std::filesystem::path& path)
     }
     m_scenePath = path;
     m_selection.clear();
-    m_modified = false;
+    m_history.clear();
 
     return true;
 }
@@ -129,8 +115,8 @@ void EditorSession::play()
     if (m_playing) {
         return;
     }
+    m_history.finishEdit();
     m_snapshot = m_serializer.toJson(m_scene);
-    m_modifiedBeforePlay = m_modified;
     m_selectedBeforePlay = m_selection.selected();
     m_playing = true;
     m_paused = false;
@@ -155,7 +141,6 @@ void EditorSession::stop()
         log::error("Cannot restore the scene after Play");
     }
     m_snapshot.clear();
-    m_modified = m_modifiedBeforePlay;
     // ID узлов из файла сцены те же, поэтому выделение остаётся на том же узле,
     // если он был до Play. Узла, созданного в игре, больше нет: возвращаем прежнее выделение.
     m_selection.select(findNode(selected) ? selected : m_selectedBeforePlay);
@@ -201,9 +186,28 @@ bool EditorSession::saveScene()
     if (!m_serializer.save(m_scene, m_project->directory / m_scenePath)) {
         return false;
     }
-    m_modified = false;
+    m_history.markSaved();
 
     return true;
+}
+
+bool EditorSession::execute(std::unique_ptr<Command> command)
+{
+    if (m_playing) {
+        return command && command->apply(*this);
+    }
+
+    return m_history.execute(*this, std::move(command));
+}
+
+bool EditorSession::undo()
+{
+    return !m_playing && m_history.undo(*this);
+}
+
+bool EditorSession::redo()
+{
+    return !m_playing && m_history.redo(*this);
 }
 
 Node* EditorSession::findNode(NodeId id)
@@ -218,66 +222,57 @@ Node* EditorSession::selectedNode()
 
 Node* EditorSession::createNode(const TypeInfo& type, Node* parent)
 {
-    std::unique_ptr<Node> node = type.kind() == TypeKind::Node ? type.createNode() : nullptr;
-    if (!node) {
+    auto command = std::make_unique<CreateNodeCommand>(type, parent ? parent->id() : 0);
+    const NodeId created = command->created();
+    if (created == 0 || !execute(std::move(command))) {
         return nullptr;
     }
-    Node* created = node.get();
-    if (!m_scene.root()) {
-        m_scene.setRoot(std::move(node));
-    } else {
-        Node& target = parent ? *parent : *m_scene.root();
-        node->setName(uniqueChildName(target, type.name()));
-        target.addChild(std::move(node));
-    }
-    m_selection.select(created->id());
-    markModified();
 
-    return created;
+    return findNode(created);
 }
 
 bool EditorSession::deleteNode(NodeId id)
 {
-    Node* node = findNode(id);
-    if (!node) {
-        return false;
-    }
-    if (contains(*node, m_scene.activeCamera())) {
-        m_scene.setActiveCamera(nullptr);
-    }
-    if (contains(*node, selectedNode())) {
-        m_selection.clear();
-    }
-    if (node == m_scene.root()) {
-        m_scene.setRoot(nullptr);
-    } else {
-        // Владение возвращается сюда и узел уничтожается вместе с детьми.
-        node->parent()->removeChild(*node);
-    }
-    markModified();
-
-    return true;
+    return execute(std::make_unique<DeleteNodeCommand>(id));
 }
 
 Component* EditorSession::addComponent(Node& node, const TypeInfo& type)
 {
-    std::unique_ptr<Component> component = type.kind() == TypeKind::Component ? type.createComponent() : nullptr;
-    if (!component) {
+    const std::size_t index = node.components().size();
+    if (!execute(std::make_unique<AddComponentCommand>(node.id(), type))) {
         return nullptr;
     }
-    markModified();
 
-    return &node.addComponent(std::move(component));
+    return node.components()[index].get();
 }
 
 bool EditorSession::removeComponent(Node& node, Component& component)
 {
-    if (!node.removeComponent(component)) {
+    const auto index = componentIndex(node, component);
+
+    return index && execute(std::make_unique<RemoveComponentCommand>(node.id(), *index));
+}
+
+bool EditorSession::setProperty(Node& node, const Property& property, const PropertyValue& value)
+{
+    return execute(std::make_unique<SetPropertyCommand>(PropertyTarget{.node = node.id(), .component = std::nullopt}, property, value));
+}
+
+bool EditorSession::setProperty(Component& component, const Property& property, const PropertyValue& value)
+{
+    Node* node = component.owner();
+    const auto index = node ? componentIndex(*node, component) : std::nullopt;
+    if (!index) {
         return false;
     }
-    markModified();
 
-    return true;
+    return execute(
+        std::make_unique<SetPropertyCommand>(PropertyTarget{.node = node->id(), .component = index}, property, value));
+}
+
+bool EditorSession::setTransform(Node3D& node, const TransformValues& values)
+{
+    return execute(std::make_unique<SetTransformCommand>(node.id(), values));
 }
 
 } // namespace yqlora

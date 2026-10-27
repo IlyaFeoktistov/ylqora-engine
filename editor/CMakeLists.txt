@@ -8,7 +8,9 @@ add_library(yqlora_editor STATIC
     src/Project.cpp
     src/ProjectFiles.cpp
     src/ProjectList.cpp
+    src/SceneCommands.cpp
     src/TransformEdit.cpp
+    src/UndoHistory.cpp
 )
 add_library(yqlora::editor ALIAS yqlora_editor)
 

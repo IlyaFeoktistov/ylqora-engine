@@ -115,8 +115,8 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: Stop returns the scene as it was befo
     // Во время игры сцену меняют, а изменения не помечаются и не сохраняются.
     cube->transform().setPosition({5.0f, 5.0f, 5.0f});
     session.createNode(type("Node3D"), root);
-    session.markModified();
     CHECK(session.modified() == modifiedBefore);
+    CHECK_FALSE(session.canUndo());
     CHECK_FALSE(session.saveScene());
 
     session.setPaused(true);

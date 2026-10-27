@@ -1,16 +1,18 @@
 #pragma once
 
+#include "yqlora/reflection/Property.hpp"
+
 #include <string>
 
 namespace yqlora {
 
 class Component;
 class Node;
-class Property;
 
 struct PropertyResult {
-    // Значение поменяли в этом кадре.
+    // Свойство само не меняется: его записывают командой, чтобы правку можно было отменить.
     bool changed = false;
+    PropertyValue value;
     // Значение тянут мышью: на это время стоит включить перенос курсора
     // у края окна, чтобы тянуть можно было бесконечно.
     bool dragging = false;

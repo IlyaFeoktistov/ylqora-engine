@@ -3,6 +3,7 @@
 #include "yqlora/scene/Component.hpp"
 
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -73,6 +74,10 @@ public:
 
     Node& addChild(std::unique_ptr<Node> child);
 
+    // Вставляет ребёнка на место index среди детей (не больше их числа),
+    // например вернуть удалённый узел туда, где он был.
+    Node& insertChild(std::size_t index, std::unique_ptr<Node> child);
+
     // Отцепляет ребёнка и возвращает владение им; nullptr, если это не наш ребёнок.
     std::unique_ptr<Node> removeChild(Node& child);
 
@@ -96,6 +101,9 @@ public:
     }
 
     Component& addComponent(std::unique_ptr<Component> component);
+
+    // Вставляет компонент на место index в списке (не больше его длины).
+    Component& insertComponent(std::size_t index, std::unique_ptr<Component> component);
 
     // Первый компонент типа T (или его наследника); nullptr, если такого нет.
     template <std::derived_from<Component> T>

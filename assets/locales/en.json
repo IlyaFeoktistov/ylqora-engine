@@ -30,7 +30,10 @@
             "view": "View",
             "language": "Language",
             "save": "Save scene",
-            "closeProject": "Close project"
+            "closeProject": "Close project",
+            "edit": "Edit",
+            "undo": "Undo",
+            "redo": "Redo"
         },
         "window": {
             "scene": "Scene",

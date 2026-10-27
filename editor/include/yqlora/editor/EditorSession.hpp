@@ -1,9 +1,14 @@
 #pragma once
 
+#include "yqlora/editor/Command.hpp"
 #include "yqlora/editor/Project.hpp"
 #include "yqlora/editor/Selection.hpp"
+#include "yqlora/editor/TransformEdit.hpp"
+#include "yqlora/editor/UndoHistory.hpp"
+#include "yqlora/reflection/Property.hpp"
 
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -11,12 +16,14 @@ namespace yqlora {
 
 class Component;
 class Node;
+class Node3D;
 class Scene;
 class SceneSerializer;
 class TypeInfo;
 
-// Открытый в редакторе проект: его сцена и выделение. Без интерфейса,
-// панели только вызывают эти методы.
+// Открытый в редакторе проект: его сцена, выделение и история правок.
+// Без интерфейса, панели только вызывают эти методы. Сцена меняется
+// только командами, поэтому любую правку можно отменить.
 class EditorSession {
 public:
     EditorSession(Scene& scene, const SceneSerializer& serializer);
@@ -68,17 +75,32 @@ public:
     // Сцену меняли после открытия или последнего сохранения.
     bool modified() const
     {
-        return m_modified;
+        return !m_history.atSaved();
     }
 
-    // Для правок, которые делаются в обход методов ниже (например, свойства в инспекторе).
-    // Во время игры ничего не помечает: по Stop сцена всё равно вернётся как была.
-    void markModified()
+    // Во время игры правка в историю не попадает: по Stop сцена всё равно вернётся как была.
+    bool execute(std::unique_ptr<Command> command);
+
+    // Правка закончилась (отпустили мышь, ушли из поля ввода): следующая
+    // будет отдельным шагом истории.
+    void finishEdit()
     {
-        if (!m_playing) {
-            m_modified = true;
-        }
+        m_history.finishEdit();
     }
+
+    // Во время игры истории нет.
+    bool canUndo() const
+    {
+        return !m_playing && m_history.canUndo();
+    }
+
+    bool canRedo() const
+    {
+        return !m_playing && m_history.canRedo();
+    }
+
+    bool undo();
+    bool redo();
 
     bool playing() const
     {
@@ -106,6 +128,8 @@ public:
     Node* findNode(NodeId id);
     Node* selectedNode();
 
+    // Правки ниже - короткие пути к командам из SceneCommands.hpp.
+
     // Создаёт узел типа type ребёнком parent. В пустой сцене узел становится
     // корнем, а без parent - ребёнком корня. Имя уникально среди соседей.
     // Новый узел выбирается. nullptr, если тип не узел или его нельзя создать.
@@ -119,19 +143,23 @@ public:
     Component* addComponent(Node& node, const TypeInfo& type);
     bool removeComponent(Node& node, Component& component);
 
+    bool setProperty(Node& node, const Property& property, const PropertyValue& value);
+    bool setProperty(Component& component, const Property& property, const PropertyValue& value);
+
+    bool setTransform(Node3D& node, const TransformValues& values);
+
 private:
     Scene& m_scene;
     const SceneSerializer& m_serializer;
     std::optional<Project> m_project;
     std::filesystem::path m_scenePath;
     Selection m_selection;
-    bool m_modified = false;
+    UndoHistory m_history;
 
     bool m_playing = false;
     bool m_paused = false;
     // Сцена до Play, в виде файла сцены: так восстанавливаются и ID узлов.
     std::string m_snapshot;
-    bool m_modifiedBeforePlay = false;
     NodeId m_selectedBeforePlay = 0;
 };
 

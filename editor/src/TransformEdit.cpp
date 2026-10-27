@@ -42,7 +42,19 @@ Vec3 closestEulerDegrees(const Quat& rotation, const Vec3& previousDegrees)
     return distanceSquared(a, previousDegrees) <= distanceSquared(b, previousDegrees) ? a : b;
 }
 
-void setWorldMatrix(Node3D& node, const Mat4& world)
+TransformValues transformValues(const Transform3D& transform)
+{
+    return {transform.position(), transform.rotationDegrees(), transform.scale()};
+}
+
+void setTransformValues(Transform3D& transform, const TransformValues& values)
+{
+    transform.setPosition(values.position);
+    transform.setRotationDegrees(values.rotationDegrees);
+    transform.setScale(values.scale);
+}
+
+std::optional<TransformValues> localValuesForWorld(const Node3D& node, const Mat4& world)
 {
     const auto* parent = dynamic_cast<const Node3D*>(node.parent());
     const Mat4 local = parent ? glm::inverse(parent->worldMatrix()) * world : world;
@@ -53,13 +65,21 @@ void setWorldMatrix(Node3D& node, const Mat4& world)
     Vec3 skew;
     Vec4 perspective;
     if (!glm::decompose(local, scale, rotation, translation, skew, perspective)) {
-        return;
+        return std::nullopt;
     }
 
-    Transform3D& transform = node.transform();
-    transform.setPosition(translation);
-    transform.setRotationDegrees(closestEulerDegrees(rotation, transform.rotationDegrees()));
-    transform.setScale(scale);
+    return TransformValues{
+        .position = translation,
+        .rotationDegrees = closestEulerDegrees(rotation, node.transform().rotationDegrees()),
+        .scale = scale,
+    };
+}
+
+void setWorldMatrix(Node3D& node, const Mat4& world)
+{
+    if (const auto values = localValuesForWorld(node, world)) {
+        setTransformValues(node.transform(), *values);
+    }
 }
 
 } // namespace yqlora

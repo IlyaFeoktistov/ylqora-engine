@@ -66,6 +66,13 @@ void EditorApp::onGui()
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_P, ImGuiInputFlags_RouteGlobal)) {
         togglePlay();
     }
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) {
+        m_session.undo();
+    }
+    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, ImGuiInputFlags_RouteGlobal)
+        || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) {
+        m_session.redo();
+    }
 
     const ImGuiID dockspace = ImGui::DockSpaceOverViewport();
     if (!m_layoutChecked) {
@@ -83,6 +90,11 @@ void EditorApp::onGui()
     }
     updateTitle();
     setSceneRunning(m_session.running());
+
+    // Ничего не тянут и не печатают: следующая правка будет отдельным шагом отмены.
+    if (!ImGui::IsAnyItemActive() && !ImGuizmo::IsUsing()) {
+        m_session.finishEdit();
+    }
 
     const bool wrapping = m_viewport.camera().flying() || m_inspector.draggingValue();
     if (wrapping != m_mouseWrapping) {
@@ -224,6 +236,15 @@ void EditorApp::drawMenuBar()
         }
         if (ImGui::MenuItem(tr("editor.menu.quit").c_str())) {
             request(PendingAction::Quit);
+        }
+        ImGui::EndMenu();
+    }
+    if (m_session.project() && ImGui::BeginMenu(tr("editor.menu.edit").c_str())) {
+        if (ImGui::MenuItem(tr("editor.menu.undo").c_str(), "Ctrl+Z", false, m_session.canUndo())) {
+            m_session.undo();
+        }
+        if (ImGui::MenuItem(tr("editor.menu.redo").c_str(), "Ctrl+Y", false, m_session.canRedo())) {
+            m_session.redo();
         }
         ImGui::EndMenu();
     }

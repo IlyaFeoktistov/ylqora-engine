@@ -33,7 +33,7 @@ bool drawPropertyTable(EditorSession& session, const TypeRegistry& registry, con
     for (const Property* property : properties) {
         const PropertyResult result = drawProperty(*property, object);
         if (result.changed) {
-            session.markModified();
+            session.setProperty(object, *property, result.value);
         }
         dragging = dragging || result.dragging;
     }

@@ -118,8 +118,9 @@ bool ManipulatorGizmo::drawManipulator(GizmoContext& context)
     Mat4 world = node->worldMatrix();
     if (ImGuizmo::Manipulate(glm::value_ptr(context.view.view), glm::value_ptr(context.view.projection), operation,
                              mode, glm::value_ptr(world))) {
-        setWorldMatrix(*node, world);
-        context.session.markModified();
+        if (const auto values = localValuesForWorld(*node, world)) {
+            context.session.setTransform(*node, *values);
+        }
     }
 
     return ImGuizmo::IsOver() || ImGuizmo::IsUsing();

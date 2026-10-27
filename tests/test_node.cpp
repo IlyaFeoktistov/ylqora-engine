@@ -62,6 +62,20 @@ TEST_CASE("Node: removeChild returns ownership")
     CHECK(other.removeChild(*owned) == nullptr);
 }
 
+TEST_CASE("Node: a removed child goes back to its place with insertChild")
+{
+    Node root;
+    root.addChild<Node>("A");
+    auto& b = root.addChild<Node>("B");
+    root.addChild<Node>("C");
+
+    auto owned = root.removeChild(b);
+    root.insertChild(1, std::move(owned));
+    REQUIRE(root.children().size() == 3);
+    CHECK(root.children()[1].get() == &b);
+    CHECK(b.parent() == &root);
+}
+
 TEST_CASE("Node3D: world transform follows the parent")
 {
     Node3D parent;

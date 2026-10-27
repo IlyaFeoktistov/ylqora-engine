@@ -38,12 +38,18 @@ void Node::setId(NodeId id)
 
 Node& Node::addChild(std::unique_ptr<Node> child)
 {
-    assert(child && "addChild: child is null");
-    assert(!child->m_parent && "addChild: node already has a parent, call removeChild first");
+    return insertChild(m_children.size(), std::move(child));
+}
+
+Node& Node::insertChild(std::size_t index, std::unique_ptr<Node> child)
+{
+    assert(child && "insertChild: child is null");
+    assert(!child->m_parent && "insertChild: node already has a parent, call removeChild first");
+    assert(index <= m_children.size() && "insertChild: index is out of range");
 
     child->m_parent = this;
     Node& ref = *child;
-    m_children.push_back(std::move(child));
+    m_children.insert(m_children.begin() + static_cast<std::ptrdiff_t>(index), std::move(child));
     ref.onParentChanged();
 
     return ref;
@@ -69,12 +75,18 @@ std::unique_ptr<Node> Node::removeChild(Node& child)
 
 Component& Node::addComponent(std::unique_ptr<Component> component)
 {
-    assert(component && "addComponent: component is null");
-    assert(!component->m_owner && "addComponent: component already has an owner");
+    return insertComponent(m_components.size(), std::move(component));
+}
+
+Component& Node::insertComponent(std::size_t index, std::unique_ptr<Component> component)
+{
+    assert(component && "insertComponent: component is null");
+    assert(!component->m_owner && "insertComponent: component already has an owner");
+    assert(index <= m_components.size() && "insertComponent: index is out of range");
 
     component->m_owner = this;
     Component& ref = *component;
-    m_components.push_back(std::move(component));
+    m_components.insert(m_components.begin() + static_cast<std::ptrdiff_t>(index), std::move(component));
 
     return ref;
 }

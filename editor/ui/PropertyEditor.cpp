@@ -11,6 +11,7 @@
 
 #include <cctype>
 #include <string_view>
+#include <utility>
 
 namespace yqlora {
 
@@ -184,9 +185,7 @@ PropertyResult drawPropertyRow(const Property& property, Object& object)
     valueField(property, value, result);
     ImGui::PopID();
 
-    if (result.changed) {
-        property.set(object, value);
-    }
+    result.value = std::move(value);
 
     return result;
 }
