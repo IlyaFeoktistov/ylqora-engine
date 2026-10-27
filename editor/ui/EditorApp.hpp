@@ -5,6 +5,7 @@
 #include "ProjectManagerPanel.hpp"
 #include "SceneTreePanel.hpp"
 #include "ViewportPanel.hpp"
+#include "core/Actions.hpp"
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/editor/EditorSession.hpp"
@@ -51,10 +52,10 @@ private:
     void drawUnsavedDialog();
     void updateTitle();
 
+    void registerActions();
     void drawMenuBar();
     // Play, Pause и Stop по центру главного меню.
     void drawPlayControls();
-    void togglePlay();
     void drawLanguageMenu();
     // При первом запуске раскладывает окна: дерево слева, инспектор справа,
     // файлы снизу, сцена в центре. Дальше раскладку помнит imgui.ini.
@@ -65,6 +66,7 @@ private:
     std::unique_ptr<ProjectList> m_projects;
     std::unique_ptr<ProjectManagerPanel> m_projectManager;
     EditorSession m_session{scene(), m_serializer};
+    ActionRegistry m_actions;
 
     SceneTreePanel m_sceneTree;
     InspectorPanel m_inspector;

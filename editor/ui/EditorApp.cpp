@@ -35,8 +35,99 @@ void EditorApp::onStart()
     m_projectManager = std::make_unique<ProjectManagerPanel>(*m_projects, m_serializer);
     m_projectManager->refresh();
 
+    registerActions();
     // В редакторе сцена стоит, пока не нажали Play.
     setSceneRunning(false);
+}
+
+void EditorApp::registerActions()
+{
+    const auto hasProject = [this] {
+        return m_session.project().has_value();
+    };
+    const auto playing = [this] {
+        return m_session.playing();
+    };
+
+    m_actions.add({
+        .id = "scene.save",
+        .labelKey = "editor.menu.save",
+        .shortcut = ImGuiMod_Ctrl | ImGuiKey_S,
+        // Во время игры в сцене её состояние, а не то, что правили: сохранять нечего.
+        .enabled = [this] {
+            return m_session.project() && !m_session.playing();
+        },
+        .run = [this] {
+            saveScene();
+        },
+    });
+    m_actions.add({
+        .id = "project.close",
+        .labelKey = "editor.menu.closeProject",
+        .enabled = hasProject,
+        .run = [this] {
+            request(PendingAction::CloseProject);
+        },
+    });
+    m_actions.add({
+        .id = "app.quit",
+        .labelKey = "editor.menu.quit",
+        .run = [this] {
+            request(PendingAction::Quit);
+        },
+    });
+    m_actions.add({
+        .id = "edit.undo",
+        .labelKey = "editor.menu.undo",
+        .shortcut = ImGuiMod_Ctrl | ImGuiKey_Z,
+        .enabled = [this] {
+            return m_session.canUndo();
+        },
+        .run = [this] {
+            m_session.undo();
+        },
+    });
+    m_actions.add({
+        .id = "edit.redo",
+        .labelKey = "editor.menu.redo",
+        .shortcut = ImGuiMod_Ctrl | ImGuiKey_Y,
+        .alternativeShortcut = ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z,
+        .enabled = [this] {
+            return m_session.canRedo();
+        },
+        .run = [this] {
+            m_session.redo();
+        },
+    });
+    m_actions.add({
+        .id = "play.toggle",
+        .labelKey = "editor.play.play",
+        .shortcut = ImGuiMod_Ctrl | ImGuiKey_P,
+        .enabled = hasProject,
+        .run = [this] {
+            if (m_session.playing()) {
+                m_session.stop();
+            } else {
+                m_session.play();
+            }
+        },
+    });
+    m_actions.add({
+        .id = "play.pause",
+        .labelKey = "editor.play.pause",
+        .enabled = playing,
+        .run = [this] {
+            m_session.setPaused(!m_session.paused());
+        },
+    });
+    m_actions.add({
+        .id = "play.stop",
+        .labelKey = "editor.play.stop",
+        .enabled = playing,
+        .run = [this] {
+            m_session.stop();
+        },
+    });
 }
 
 void EditorApp::onUpdate(float deltaSeconds)
@@ -60,19 +151,7 @@ void EditorApp::onGui()
         return;
     }
 
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
-        saveScene();
-    }
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_P, ImGuiInputFlags_RouteGlobal)) {
-        togglePlay();
-    }
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) {
-        m_session.undo();
-    }
-    if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, ImGuiInputFlags_RouteGlobal)
-        || ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) {
-        m_session.redo();
-    }
+    m_actions.handleShortcuts();
 
     const ImGuiID dockspace = ImGui::DockSpaceOverViewport();
     if (!m_layoutChecked) {
@@ -225,27 +304,16 @@ void EditorApp::drawMenuBar()
     }
     if (ImGui::BeginMenu(tr("editor.menu.file").c_str())) {
         if (m_session.project()) {
-            // Во время игры в сцене её состояние, а не то, что правили: сохранять нечего.
-            if (ImGui::MenuItem(tr("editor.menu.save").c_str(), "Ctrl+S", false, !m_session.playing())) {
-                saveScene();
-            }
-            if (ImGui::MenuItem(tr("editor.menu.closeProject").c_str())) {
-                request(PendingAction::CloseProject);
-            }
+            m_actions.menuItem("scene.save");
+            m_actions.menuItem("project.close");
             ImGui::Separator();
         }
-        if (ImGui::MenuItem(tr("editor.menu.quit").c_str())) {
-            request(PendingAction::Quit);
-        }
+        m_actions.menuItem("app.quit");
         ImGui::EndMenu();
     }
     if (m_session.project() && ImGui::BeginMenu(tr("editor.menu.edit").c_str())) {
-        if (ImGui::MenuItem(tr("editor.menu.undo").c_str(), "Ctrl+Z", false, m_session.canUndo())) {
-            m_session.undo();
-        }
-        if (ImGui::MenuItem(tr("editor.menu.redo").c_str(), "Ctrl+Y", false, m_session.canRedo())) {
-            m_session.redo();
-        }
+        m_actions.menuItem("edit.undo");
+        m_actions.menuItem("edit.redo");
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu(tr("editor.menu.view").c_str())) {
@@ -271,12 +339,13 @@ void EditorApp::drawPlayControls()
         ImGui::PushStyleColor(ImGuiCol_Text, theme::toImVec4(accent));
     }
     if (ImGui::SmallButton(icons::kPlay)) {
-        togglePlay();
+        m_actions.run("play.toggle");
     }
     if (playing) {
         ImGui::PopStyleColor();
     }
-    ImGui::SetItemTooltip("%s (Ctrl+P)", tr(playing ? "editor.play.stop" : "editor.play.play").c_str());
+    ImGui::SetItemTooltip("%s (%s)", tr(playing ? "editor.play.stop" : "editor.play.play").c_str(),
+                          m_actions.shortcutText("play.toggle").c_str());
 
     ImGui::BeginDisabled(!playing);
     const bool paused = m_session.paused();
@@ -284,26 +353,17 @@ void EditorApp::drawPlayControls()
         ImGui::PushStyleColor(ImGuiCol_Text, theme::toImVec4(accent));
     }
     if (ImGui::SmallButton(icons::kPause)) {
-        m_session.setPaused(!paused);
+        m_actions.run("play.pause");
     }
     if (paused) {
         ImGui::PopStyleColor();
     }
     ImGui::SetItemTooltip("%s", tr("editor.play.pause").c_str());
     if (ImGui::SmallButton(icons::kStop)) {
-        m_session.stop();
+        m_actions.run("play.stop");
     }
     ImGui::SetItemTooltip("%s", tr("editor.play.stop").c_str());
     ImGui::EndDisabled();
-}
-
-void EditorApp::togglePlay()
-{
-    if (m_session.playing()) {
-        m_session.stop();
-    } else {
-        m_session.play();
-    }
 }
 
 void EditorApp::drawLanguageMenu()

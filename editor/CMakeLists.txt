@@ -34,6 +34,7 @@ add_executable(yqlora_app
     ui/SceneTreePanel.cpp
     ui/Theme.cpp
     ui/ViewportPanel.cpp
+    ui/core/Actions.cpp
     ui/gizmos/AxisGizmo.cpp
     ui/gizmos/CameraGizmo.cpp
     ui/gizmos/GizmoLayer.cpp
