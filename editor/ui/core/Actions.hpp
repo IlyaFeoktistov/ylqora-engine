@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Команда редактора, которую вызывают из меню, кнопкой или горячей клавишей.
 // Подпись, клавиши и доступность заданы в одном месте, поэтому меню
@@ -77,4 +77,4 @@ private:
     std::vector<std::unique_ptr<Action>> m_actions;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

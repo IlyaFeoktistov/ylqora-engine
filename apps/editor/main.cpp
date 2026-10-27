@@ -16,7 +16,7 @@ int main(int argc, char** argv)
         }
     }
 
-    yqlora::EditorApp app;
+    yqlora::editor::EditorApp app;
 
     return app.run();
 }

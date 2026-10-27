@@ -21,6 +21,10 @@ class Scene;
 class SceneSerializer;
 class TypeInfo;
 
+} // namespace yqlora
+
+namespace yqlora::editor {
+
 // Открытый в редакторе проект: его сцена, выделение и история правок.
 // Без интерфейса, панели только вызывают эти методы. Сцена меняется
 // только командами, поэтому любую правку можно отменить.
@@ -163,4 +167,4 @@ private:
     NodeId m_selectedBeforePlay = 0;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

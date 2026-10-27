@@ -1,6 +1,6 @@
-#include "SceneTreePanel.hpp"
+#include "panels/SceneTreePanel.hpp"
 
-#include "Icons.hpp"
+#include "style/Icons.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <string>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -125,4 +125,4 @@ void SceneTreePanel::drawNode(const Node& node, Selection& selection)
     }
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

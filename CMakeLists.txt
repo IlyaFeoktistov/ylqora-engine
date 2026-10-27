@@ -44,6 +44,9 @@ yqlora_set_warnings(yqlora)
 
 add_subdirectory(editor)
 
+# Программы. Сейчас только редактор, позже рядом встанет запуск игры без редактора.
+add_subdirectory(apps/editor)
+
 if(YQLORA_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)

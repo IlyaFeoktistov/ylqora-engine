@@ -10,6 +10,7 @@
 #include <string_view>
 
 using namespace yqlora;
+using namespace yqlora::editor;
 
 namespace {
 

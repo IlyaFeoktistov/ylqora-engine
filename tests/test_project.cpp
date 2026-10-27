@@ -10,6 +10,7 @@
 #include <filesystem>
 
 using namespace yqlora;
+using namespace yqlora::editor;
 
 namespace {
 

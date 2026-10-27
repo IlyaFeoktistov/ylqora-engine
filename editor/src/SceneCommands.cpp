@@ -10,7 +10,7 @@
 #include <string>
 #include <utility>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -356,4 +356,4 @@ bool SetTransformCommand::merge(const Command& next)
     return true;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

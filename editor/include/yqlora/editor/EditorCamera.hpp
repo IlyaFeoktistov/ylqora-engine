@@ -5,7 +5,7 @@
 #include "yqlora/math/Ray.hpp"
 #include "yqlora/render/FrameData.hpp"
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Камера редактора. Живёт вне сцены: сцена не меняется оттого, что на неё смотрят.
 //
@@ -67,4 +67,4 @@ private:
     bool m_flying = false;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

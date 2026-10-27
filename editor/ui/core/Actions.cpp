@@ -7,7 +7,7 @@
 #include <cassert>
 #include <utility>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 Action::Action(std::string id, std::string labelKey)
     : m_id(std::move(id))
@@ -128,4 +128,4 @@ std::string ActionRegistry::shortcutText(std::string_view id) const
     return ImGui::GetKeyChordName(action->shortcutChord());
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

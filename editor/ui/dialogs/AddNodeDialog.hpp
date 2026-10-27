@@ -6,9 +6,14 @@
 
 namespace yqlora {
 
-class EditorSession;
 class TypeInfo;
 class TypeRegistry;
+
+} // namespace yqlora
+
+namespace yqlora::editor {
+
+class EditorSession;
 
 // Выбор типа нового узла: дерево типов по наследованию, поиск по имени
 // и описание выбранного типа.
@@ -29,4 +34,4 @@ private:
     std::string m_selectedType = "Node3D";
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

@@ -10,7 +10,7 @@
 #include <cmath>
 #include <optional>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -118,4 +118,4 @@ NodeId pickNode(const Scene& scene, const Ray& ray)
     return best ? best->node : 0;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

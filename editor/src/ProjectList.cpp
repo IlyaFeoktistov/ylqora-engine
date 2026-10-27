@@ -6,7 +6,7 @@
 #include <chrono>
 #include <fstream>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -128,4 +128,4 @@ void ProjectList::sort()
     });
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

@@ -1,6 +1,6 @@
-#include "AddNodeDialog.hpp"
+#include "dialogs/AddNodeDialog.hpp"
 
-#include "Icons.hpp"
+#include "style/Icons.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <cctype>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -143,4 +143,4 @@ bool AddNodeDialog::matchesSearch(const TypeInfo& type) const
     return lowercase(type.name()).find(lowercase(m_search)) != std::string::npos;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

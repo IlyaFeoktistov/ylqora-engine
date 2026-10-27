@@ -1,4 +1,4 @@
-#include "Theme.hpp"
+#include "style/Theme.hpp"
 
 #include "yqlora/core/Log.hpp"
 
@@ -12,7 +12,7 @@
 #include <string>
 #include <string_view>
 
-namespace yqlora::theme {
+namespace yqlora::editor::theme {
 
 namespace {
 
@@ -111,6 +111,20 @@ void applyStyle(const Json& json, ImGuiStyle& style)
             style.*field = ImVec2((*it)[0].get<float>(), (*it)[1].get<float>());
         }
     }
+
+    // Кнопка со списком вкладок в углу пристыкованного окна: "left", "right" или "none".
+    if (const auto it = json.find("windowMenuButtonPosition"); it != json.end() && it->is_string()) {
+        const std::string position = it->get<std::string>();
+        if (position == "left") {
+            style.WindowMenuButtonPosition = ImGuiDir_Left;
+        } else if (position == "right") {
+            style.WindowMenuButtonPosition = ImGuiDir_Right;
+        } else if (position == "none") {
+            style.WindowMenuButtonPosition = ImGuiDir_None;
+        } else {
+            log::warn("Theme: windowMenuButtonPosition '{}' is not left, right or none", position);
+        }
+    }
 }
 
 // Шрифт из описания {"file": ..., "size": ...}. merge - подмешать к предыдущему
@@ -203,4 +217,4 @@ const EditorColors& colors()
     return g_colors;
 }
 
-} // namespace yqlora::theme
+} // namespace yqlora::editor::theme

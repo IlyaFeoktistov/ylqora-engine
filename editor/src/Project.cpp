@@ -10,7 +10,7 @@
 
 #include <fstream>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -156,4 +156,4 @@ bool Project::isValidName(std::string_view name)
     return true;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

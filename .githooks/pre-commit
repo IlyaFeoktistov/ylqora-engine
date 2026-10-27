@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Перед коммитом форматирует добавленные файлы C++ и прогоняет тесты.
-# Включается один раз: make hooks. Пропустить: git commit --no-verify.
+# Включается один раз: make hooks или git config core.hooksPath .githooks.
+# Работает и на Windows: Git for Windows запускает хуки своим bash.
+# Пропустить: git commit --no-verify.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -9,8 +11,12 @@ CLANG_FORMAT=${CLANG_FORMAT:-clang-format}
 mapfile -t files < <(git diff --cached --name-only --diff-filter=ACMR -- '*.cpp' '*.hpp' | grep -v '^third_party/' || true)
 if ((${#files[@]})); then
     if ! command -v "$CLANG_FORMAT" >/dev/null; then
-        echo "pre-commit: clang-format not found, install it: uv tool install clang-format" >&2
+        echo "pre-commit: clang-format not found, install it: uv tool install clang-format==23.1.3" >&2
         exit 1
+    fi
+    # Другие версии форматируют чуть иначе, и коммиты с разных машин переформатировали бы друг друга.
+    if [[ $("$CLANG_FORMAT" --version) != *"version 23."* ]]; then
+        echo "pre-commit: warning: clang-format 23 is expected, got: $("$CLANG_FORMAT" --version)" >&2
     fi
     # Форматирование захватило бы и строки, которые в коммит не добавляли.
     partial=$(git diff --name-only -- "${files[@]}")
@@ -23,4 +29,21 @@ if ((${#files[@]})); then
     git add -- "${files[@]}"
 fi
 
-make test
+# Пресет из CMakePresets.json: debug (Ninja, на Windows с MinGW), а если
+# сконфигурирован только Visual Studio, то он.
+configure=debug
+preset=debug
+if [[ ! -f build/debug/CMakeCache.txt && -f build/vs2022/CMakeCache.txt ]]; then
+    configure=vs2022
+    preset=vs2022-debug
+fi
+
+if ! command -v cmake >/dev/null; then
+    echo "pre-commit: cmake not found in PATH" >&2
+    exit 1
+fi
+if [[ ! -f build/$configure/CMakeCache.txt ]]; then
+    cmake --preset "$configure"
+fi
+cmake --build --preset "$preset"
+ctest --preset "$preset"

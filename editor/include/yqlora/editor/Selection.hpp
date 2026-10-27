@@ -2,7 +2,7 @@
 
 #include "yqlora/scene/Node.hpp"
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Что выбрано в редакторе. Общее для 3D-окна и дерева узлов: выбор в одном
 // месте сразу виден в другом. Хранит ID, а не указатель, чтобы удалённый
@@ -34,4 +34,4 @@ private:
     NodeId m_selected = 0;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

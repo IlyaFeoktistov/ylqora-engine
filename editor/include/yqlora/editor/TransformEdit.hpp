@@ -9,6 +9,10 @@ namespace yqlora {
 class Node3D;
 class Transform3D;
 
+} // namespace yqlora
+
+namespace yqlora::editor {
+
 // Положение, поворот и масштаб узла относительно родителя, как их видно в инспекторе.
 struct TransformValues {
     Vec3 position{0.0f};
@@ -36,4 +40,4 @@ std::optional<TransformValues> localValuesForWorld(const Node3D& node, const Mat
 // в положение, поворот и масштаб относительно родителя. Наклон (skew) теряется.
 void setWorldMatrix(Node3D& node, const Mat4& world);
 
-} // namespace yqlora
+} // namespace yqlora::editor

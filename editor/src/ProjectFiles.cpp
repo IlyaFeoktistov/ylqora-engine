@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-namespace yqlora::projectfiles {
+namespace yqlora::editor::projectfiles {
 
 namespace {
 
@@ -155,4 +155,4 @@ bool remove(const Project& project, const fs::path& path)
     return true;
 }
 
-} // namespace yqlora::projectfiles
+} // namespace yqlora::editor::projectfiles

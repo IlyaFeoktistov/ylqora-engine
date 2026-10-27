@@ -1,12 +1,12 @@
 #include "SelectionGizmo.hpp"
 
-#include "Theme.hpp"
+#include "style/Theme.hpp"
 
 #include "yqlora/editor/EditorCamera.hpp"
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/editor/Picking.hpp"
 
-namespace yqlora {
+namespace yqlora::editor {
 
 void SelectionGizmo::prepareFrame(FrameData& frame, const EditorSession& session)
 {
@@ -29,4 +29,4 @@ bool SelectionGizmo::draw(GizmoContext& context)
     return false;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

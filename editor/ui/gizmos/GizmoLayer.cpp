@@ -1,6 +1,6 @@
 #include "Gizmo.hpp"
 
-namespace yqlora {
+namespace yqlora::editor {
 
 void GizmoLayer::add(std::unique_ptr<Gizmo> gizmo)
 {
@@ -33,4 +33,4 @@ bool GizmoLayer::draw(GizmoContext& context)
     return mouseTaken;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

@@ -6,7 +6,7 @@
 
 #include <string>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Окно редактора, которое можно пристыковать: дерево, инспектор, файлы, вид.
 class EditorPanel {
@@ -55,4 +55,4 @@ private:
     bool m_visible = true;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

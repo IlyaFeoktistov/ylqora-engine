@@ -1,6 +1,6 @@
 #include "yqlora/editor/EditHistory.hpp"
 
-namespace yqlora {
+namespace yqlora::editor {
 
 bool EditHistory::execute(EditorSession& session, std::unique_ptr<Command> command)
 {
@@ -62,4 +62,4 @@ void EditHistory::clear()
     m_editOpen = false;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

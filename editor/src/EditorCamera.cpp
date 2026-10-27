@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cmath>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -123,4 +123,4 @@ Ray EditorCamera::screenRay(const Vec2& point, const Vec2& viewportSize) const
     return {m_position, glm::normalize(direction)};
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

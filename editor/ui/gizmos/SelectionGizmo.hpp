@@ -2,7 +2,7 @@
 
 #include "Gizmo.hpp"
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Выделение в окне сцены: контур вокруг выбранного узла и выбор узла кликом.
 // Клик в пустоту снимает выделение. Стоит последним: клик, который занял
@@ -13,4 +13,4 @@ public:
     bool draw(GizmoContext& context) override;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

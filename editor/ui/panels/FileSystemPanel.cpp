@@ -1,7 +1,7 @@
-#include "FileSystemPanel.hpp"
+#include "panels/FileSystemPanel.hpp"
 
-#include "Icons.hpp"
-#include "Theme.hpp"
+#include "style/Icons.hpp"
+#include "style/Theme.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
@@ -12,7 +12,7 @@
 
 #include <utility>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -295,4 +295,4 @@ void FileSystemPanel::startRename(const std::filesystem::path& path)
     m_renameRequested = true;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

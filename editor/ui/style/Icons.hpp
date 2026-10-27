@@ -6,7 +6,7 @@
 // Шрифт подмешан к основному, поэтому иконку можно ставить прямо в текст:
 // std::string(icons::kFolder) + " Assets". Коды взяты из font/info.json пакета,
 // в комментарии - имя иконки на lucide.dev.
-namespace yqlora::icons {
+namespace yqlora::editor::icons {
 
 // Инструменты окна сцены.
 inline constexpr const char* kSelect = "\uE1C3"; // mouse-pointer-2
@@ -59,4 +59,4 @@ inline const char* forNodeType(std::string_view type)
     return kNode;
 }
 
-} // namespace yqlora::icons
+} // namespace yqlora::editor::icons

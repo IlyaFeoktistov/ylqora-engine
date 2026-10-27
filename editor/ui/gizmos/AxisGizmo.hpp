@@ -2,7 +2,7 @@
 
 #include "Gizmo.hpp"
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Значок осей X, Y, Z в правом верхнем углу: поворачивается вместе с камерой.
 // Клик по кружку оси поворачивает камеру редактора вдоль этой оси.
@@ -11,4 +11,4 @@ public:
     bool draw(GizmoContext& context) override;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

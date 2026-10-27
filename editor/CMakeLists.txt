@@ -1,6 +1,5 @@
-# Логика редактора без интерфейса: проекты, сессия, выделение, камера, выбор
-# объектов. ImGui сюда не подключается, поэтому интерфейс в логику не попадёт.
-# Интерфейс (панели, тема) лежит в ui/ и собирается вместе с программой ниже.
+# Логика редактора без интерфейса: проекты, сессия, история правок, выделение,
+# камера, выбор объектов. ImGui сюда не подключается, поэтому интерфейс в логику не попадёт.
 add_library(yqlora_editor STATIC
     src/EditorCamera.cpp
     src/Picking.cpp
@@ -21,20 +20,12 @@ target_link_libraries(yqlora_editor
 )
 yqlora_set_warnings(yqlora_editor)
 
-# Программа yqlora: движок с редактором. Имя цели другое, потому что
-# yqlora уже занято библиотекой движка.
-add_executable(yqlora_app
-    main.cpp
-    ui/AddNodeDialog.cpp
+# Интерфейс редактора на ImGui: панели, диалоги, гизмо, тема. Только вызывает
+# логику выше. Программа с main лежит в apps/editor.
+add_library(yqlora_editor_ui STATIC
     ui/EditorApp.cpp
-    ui/FileSystemPanel.cpp
-    ui/InspectorPanel.cpp
-    ui/ProjectManagerPanel.cpp
-    ui/PropertyEditor.cpp
-    ui/SceneTreePanel.cpp
-    ui/Theme.cpp
-    ui/ViewportPanel.cpp
     ui/core/Actions.cpp
+    ui/dialogs/AddNodeDialog.cpp
     ui/dialogs/UnsavedChangesDialog.cpp
     ui/gizmos/AxisGizmo.cpp
     ui/gizmos/CameraGizmo.cpp
@@ -42,19 +33,19 @@ add_executable(yqlora_app
     ui/gizmos/GridGizmo.cpp
     ui/gizmos/ManipulatorGizmo.cpp
     ui/gizmos/SelectionGizmo.cpp
+    ui/panels/FileSystemPanel.cpp
+    ui/panels/InspectorPanel.cpp
+    ui/panels/ProjectManagerPanel.cpp
+    ui/panels/SceneTreePanel.cpp
+    ui/panels/ViewportPanel.cpp
+    ui/style/Theme.cpp
+    ui/widgets/PropertyEditor.cpp
 )
-target_include_directories(yqlora_app PRIVATE ui)
-# WIN32_EXECUTABLE: на Windows без окна консоли, она открывается флагом --debug.
-set_target_properties(yqlora_app PROPERTIES OUTPUT_NAME yqlora WIN32_EXECUTABLE TRUE)
-if(MSVC)
-    # Оконное приложение MSVC по умолчанию начинается с WinMain, у нас обычный main.
-    target_link_options(yqlora_app PRIVATE /ENTRY:mainCRTStartup)
-endif()
-target_link_libraries(yqlora_app PRIVATE yqlora::yqlora yqlora::editor imgui imguizmo nlohmann_json::nlohmann_json)
-yqlora_set_warnings(yqlora_app)
+add_library(yqlora::editor_ui ALIAS yqlora_editor_ui)
 
-# Ресурсы движка кладём рядом с исполняемым файлом.
-add_custom_command(TARGET yqlora_app POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:yqlora_app>/assets
+target_include_directories(yqlora_editor_ui PUBLIC ui)
+target_link_libraries(yqlora_editor_ui
+    PUBLIC yqlora::yqlora yqlora::editor imgui
+    PRIVATE imguizmo nlohmann_json::nlohmann_json
 )
+yqlora_set_warnings(yqlora_editor_ui)

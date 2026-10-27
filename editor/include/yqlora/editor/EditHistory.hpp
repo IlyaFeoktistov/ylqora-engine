@@ -7,7 +7,7 @@
 #include <optional>
 #include <vector>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // История правок сцены для отмены и повтора. Помнит, в каком месте истории
 // сцена сохранена: по нему видно, есть ли несохранённые изменения.
@@ -57,4 +57,4 @@ private:
     bool m_editOpen = false;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

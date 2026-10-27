@@ -1,6 +1,6 @@
-#include "InspectorPanel.hpp"
+#include "panels/InspectorPanel.hpp"
 
-#include "PropertyEditor.hpp"
+#include "widgets/PropertyEditor.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <string>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -129,4 +129,4 @@ void InspectorPanel::draw(EditorContext& context)
     context.mouseWrapping = context.mouseWrapping || dragging;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

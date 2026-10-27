@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ProjectManagerPanel.hpp"
 #include "core/Actions.hpp"
 #include "core/EditorPanel.hpp"
 #include "dialogs/UnsavedChangesDialog.hpp"
+#include "panels/ProjectManagerPanel.hpp"
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/editor/EditorSession.hpp"
@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Движок с редактором. При запуске показывает менеджер проектов,
 // после выбора проекта - редактор его сцены.
@@ -69,4 +69,4 @@ private:
     std::vector<std::pair<std::string, std::string>> m_languages;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

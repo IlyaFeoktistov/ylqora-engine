@@ -8,6 +8,7 @@
 #include <yqlora/scene/SceneSerializer.hpp>
 
 using namespace yqlora;
+using namespace yqlora::editor;
 
 namespace {
 

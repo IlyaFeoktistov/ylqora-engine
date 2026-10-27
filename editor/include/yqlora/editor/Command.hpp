@@ -1,6 +1,6 @@
 #pragma once
 
-namespace yqlora {
+namespace yqlora::editor {
 
 class EditorSession;
 
@@ -24,4 +24,4 @@ public:
     }
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

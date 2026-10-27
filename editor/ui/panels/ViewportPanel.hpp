@@ -10,7 +10,7 @@
 
 #include <memory>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Окно сцены: кадр рисуется в текстуру и показывается внутри окна интерфейса.
 // Камера - редактора или, во время игры, активная камера сцены. Всё остальное
@@ -49,4 +49,4 @@ private:
     std::unique_ptr<RenderTarget> m_target;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

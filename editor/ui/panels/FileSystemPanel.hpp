@@ -10,8 +10,13 @@
 
 namespace yqlora {
 
-class EditorSession;
 class SceneSerializer;
+
+} // namespace yqlora
+
+namespace yqlora::editor {
+
+class EditorSession;
 
 // Файлы проекта внизу редактора: сцены и папки. Двойной клик по сцене
 // открывает её, правый клик - меню с остальными действиями.
@@ -59,4 +64,4 @@ private:
     std::string m_error;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

@@ -1,6 +1,6 @@
-#include "PropertyEditor.hpp"
+#include "widgets/PropertyEditor.hpp"
 
-#include "Theme.hpp"
+#include "style/Theme.hpp"
 
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/reflection/Property.hpp"
@@ -13,7 +13,7 @@
 #include <string_view>
 #include <utility>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -218,4 +218,4 @@ std::string propertyLabel(const std::string& name)
     return label;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

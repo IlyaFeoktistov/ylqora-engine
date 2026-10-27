@@ -5,11 +5,16 @@
 
 namespace yqlora {
 
-class ActionRegistry;
 class Application;
-class EditorSession;
 class SceneSerializer;
 class TypeRegistry;
+
+} // namespace yqlora
+
+namespace yqlora::editor {
+
+class ActionRegistry;
+class EditorSession;
 
 // Всё, с чем работают панели редактора. Собирается заново каждый кадр.
 struct EditorContext {
@@ -28,4 +33,4 @@ struct EditorContext {
     bool mouseWrapping = false;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

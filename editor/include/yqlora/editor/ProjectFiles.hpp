@@ -7,8 +7,13 @@
 
 namespace yqlora {
 
-struct Project;
 class SceneSerializer;
+
+} // namespace yqlora
+
+namespace yqlora::editor {
+
+struct Project;
 
 // Файлы внутри папки проекта: дерево для панели файлов и операции над ним.
 // Все пути - относительно папки проекта. Выйти за её пределы нельзя.
@@ -53,4 +58,4 @@ bool canModify(const Project& project, const std::filesystem::path& path);
 
 } // namespace projectfiles
 
-} // namespace yqlora
+} // namespace yqlora::editor

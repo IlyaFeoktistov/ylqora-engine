@@ -1,11 +1,11 @@
 #include "EditorApp.hpp"
 
-#include "FileSystemPanel.hpp"
-#include "Icons.hpp"
-#include "InspectorPanel.hpp"
-#include "SceneTreePanel.hpp"
-#include "Theme.hpp"
-#include "ViewportPanel.hpp"
+#include "panels/FileSystemPanel.hpp"
+#include "panels/InspectorPanel.hpp"
+#include "panels/SceneTreePanel.hpp"
+#include "panels/ViewportPanel.hpp"
+#include "style/Icons.hpp"
+#include "style/Theme.hpp"
 
 #include "yqlora/core/Log.hpp"
 #include "yqlora/i18n/Localization.hpp"
@@ -17,7 +17,7 @@
 // ImGuizmo.h использует типы ImGui и должен идти после imgui.h.
 #include <ImGuizmo.h>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 EditorApp::EditorApp()
     : Application({.name = "Editor", .titleKey = "editor.title", .width = 1600, .height = 900, .ui = true})
@@ -370,4 +370,4 @@ void EditorApp::buildDefaultLayout(unsigned int dockspace)
     ImGui::DockBuilderFinish(dockspace);
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

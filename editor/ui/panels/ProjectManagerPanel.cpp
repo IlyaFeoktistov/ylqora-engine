@@ -1,7 +1,7 @@
-#include "ProjectManagerPanel.hpp"
+#include "panels/ProjectManagerPanel.hpp"
 
-#include "Icons.hpp"
-#include "Theme.hpp"
+#include "style/Icons.hpp"
+#include "style/Theme.hpp"
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/core/Log.hpp"
@@ -12,7 +12,7 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -324,4 +324,4 @@ void ProjectManagerPanel::commit()
     refresh();
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

@@ -1,11 +1,11 @@
-#include "ViewportPanel.hpp"
+#include "panels/ViewportPanel.hpp"
 
-#include "Theme.hpp"
 #include "gizmos/AxisGizmo.hpp"
 #include "gizmos/CameraGizmo.hpp"
 #include "gizmos/GridGizmo.hpp"
 #include "gizmos/ManipulatorGizmo.hpp"
 #include "gizmos/SelectionGizmo.hpp"
+#include "style/Theme.hpp"
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/editor/EditorSession.hpp"
@@ -19,7 +19,7 @@
 
 #include <string>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 ViewportPanel::ViewportPanel()
 {
@@ -152,4 +152,4 @@ void ViewportPanel::setFlying(bool flying)
     }
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

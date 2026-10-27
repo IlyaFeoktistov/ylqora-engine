@@ -5,7 +5,7 @@
 #include <span>
 #include <vector>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Проекты, которые знает менеджер проектов, недавно открытые первыми.
 // Хранится в файле в папке настроек пользователя. Сами проекты не трогает:
@@ -43,4 +43,4 @@ private:
     std::vector<Entry> m_entries;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

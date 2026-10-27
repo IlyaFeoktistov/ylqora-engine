@@ -1,6 +1,6 @@
 #include "CameraGizmo.hpp"
 
-#include "Theme.hpp"
+#include "style/Theme.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/scene/Camera3D.hpp"
@@ -10,7 +10,7 @@
 #include <cmath>
 #include <optional>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -127,4 +127,4 @@ bool CameraGizmo::draw(GizmoContext& context)
     return false;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

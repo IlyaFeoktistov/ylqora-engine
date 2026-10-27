@@ -10,8 +10,13 @@
 namespace yqlora {
 
 class Application;
-class ProjectList;
 class SceneSerializer;
+
+} // namespace yqlora
+
+namespace yqlora::editor {
+
+class ProjectList;
 
 // Экран при запуске: список проектов, создание, добавление существующего,
 // удаление. Занимает всё окно, пока проект не открыт.
@@ -59,4 +64,4 @@ private:
     std::string m_error;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

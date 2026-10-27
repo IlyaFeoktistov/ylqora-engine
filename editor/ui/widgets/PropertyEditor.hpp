@@ -9,6 +9,10 @@ namespace yqlora {
 class Component;
 class Node;
 
+} // namespace yqlora
+
+namespace yqlora::editor {
+
 struct PropertyResult {
     // Свойство само не меняется: его записывают командой, чтобы правку можно было отменить.
     bool changed = false;
@@ -31,4 +35,4 @@ PropertyResult drawProperty(const Property& property, Component& component);
 // а без перевода - имя с заглавной буквы.
 std::string propertyLabel(const std::string& name);
 
-} // namespace yqlora
+} // namespace yqlora::editor

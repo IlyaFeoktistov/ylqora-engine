@@ -2,7 +2,7 @@
 
 #include "core/EditorPanel.hpp"
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Свойства выбранного узла и его компоненты. Компоненты можно добавлять,
 // менять и удалять, кроме встроенного Transform.
@@ -21,4 +21,4 @@ public:
     void draw(EditorContext& context) override;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

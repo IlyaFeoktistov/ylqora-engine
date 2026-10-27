@@ -6,7 +6,7 @@
 
 #include <cmath>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -82,4 +82,4 @@ void setWorldMatrix(Node3D& node, const Mat4& world)
     }
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

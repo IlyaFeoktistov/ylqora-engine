@@ -1,13 +1,13 @@
 #include "AxisGizmo.hpp"
 
-#include "Theme.hpp"
+#include "style/Theme.hpp"
 
 #include "yqlora/editor/EditorCamera.hpp"
 
 #include <algorithm>
 #include <array>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 bool AxisGizmo::draw(GizmoContext& context)
 {
@@ -100,4 +100,4 @@ bool AxisGizmo::draw(GizmoContext& context)
     return true;
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

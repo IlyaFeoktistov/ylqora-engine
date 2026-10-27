@@ -2,7 +2,7 @@
 
 #include "Gizmo.hpp"
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Камеры сцены контуром: пирамида обзора и треугольник "верх". У самой камеры
 // геометрии нет, без этого её не видно. Выбранная камера - цветом выделения.
@@ -11,4 +11,4 @@ public:
     bool draw(GizmoContext& context) override;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

@@ -12,7 +12,7 @@
 #include <optional>
 #include <string>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 namespace {
 
@@ -284,4 +284,4 @@ bool EditorSession::setTransform(Node3D& node, const TransformValues& values)
     return execute(std::make_unique<SetTransformCommand>(node.id(), values));
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

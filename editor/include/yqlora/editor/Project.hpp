@@ -9,6 +9,10 @@ namespace yqlora {
 
 class SceneSerializer;
 
+} // namespace yqlora
+
+namespace yqlora::editor {
+
 // Проект - папка с файлом project.yqlora, сценами и ресурсами игры.
 struct Project {
     static constexpr std::string_view kFileName = "project.yqlora";
@@ -52,4 +56,4 @@ struct Project {
     static bool isValidName(std::string_view name);
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

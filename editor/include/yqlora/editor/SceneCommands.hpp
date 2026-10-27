@@ -14,6 +14,10 @@ namespace yqlora {
 class Camera3D;
 class TypeInfo;
 
+} // namespace yqlora
+
+namespace yqlora::editor {
+
 // Узел или компонент узла, чьё свойство меняют. Компонент задан местом
 // в списке: после Stop компоненты пересоздаются в том же порядке.
 struct PropertyTarget {
@@ -133,4 +137,4 @@ private:
     std::optional<TransformValues> m_previous;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

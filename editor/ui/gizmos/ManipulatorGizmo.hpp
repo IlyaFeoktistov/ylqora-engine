@@ -2,7 +2,7 @@
 
 #include "Gizmo.hpp"
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Манипуляторы выбранного узла, как в Unity: Q - выбор, W - перемещение,
 // E - поворот, R - масштаб. Своя панель инструментов в левом верхнем углу
@@ -29,4 +29,4 @@ private:
     bool m_localSpace = true;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

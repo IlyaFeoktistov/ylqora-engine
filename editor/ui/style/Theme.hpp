@@ -6,7 +6,7 @@
 
 #include <filesystem>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 // Цвета редактора, которых нет среди цветов ImGui.
 struct EditorColors {
@@ -47,4 +47,4 @@ inline ImU32 toImU32(const Vec4& color, float alpha = 1.0f)
 
 } // namespace theme
 
-} // namespace yqlora
+} // namespace yqlora::editor

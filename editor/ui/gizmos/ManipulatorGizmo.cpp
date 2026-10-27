@@ -1,6 +1,6 @@
 #include "ManipulatorGizmo.hpp"
 
-#include "Icons.hpp"
+#include "style/Icons.hpp"
 
 #include "yqlora/editor/EditorCamera.hpp"
 #include "yqlora/editor/EditorSession.hpp"
@@ -13,7 +13,7 @@
 // ImGuizmo.h использует типы ImGui и должен идти после imgui.h.
 #include <ImGuizmo.h>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 bool ManipulatorGizmo::draw(GizmoContext& context)
 {
@@ -130,4 +130,4 @@ bool ManipulatorGizmo::drawManipulator(GizmoContext& context)
     return ImGuizmo::IsOver() || ImGuizmo::IsUsing();
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

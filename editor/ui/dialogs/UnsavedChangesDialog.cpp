@@ -8,7 +8,7 @@
 #include <string>
 #include <utility>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 void UnsavedChangesDialog::request(const EditorSession& session, std::function<void()> then)
 {
@@ -54,4 +54,4 @@ void UnsavedChangesDialog::draw(EditorSession& session)
     ImGui::EndPopup();
 }
 
-} // namespace yqlora
+} // namespace yqlora::editor

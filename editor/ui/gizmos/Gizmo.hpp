@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 class EditorCamera;
 class EditorSession;
@@ -71,4 +71,4 @@ private:
     bool m_enabled = true;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

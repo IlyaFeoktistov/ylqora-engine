@@ -1,11 +1,11 @@
 #pragma once
 
-#include "AddNodeDialog.hpp"
 #include "core/EditorPanel.hpp"
+#include "dialogs/AddNodeDialog.hpp"
 
 #include "yqlora/scene/Node.hpp"
 
-namespace yqlora {
+namespace yqlora::editor {
 
 class Selection;
 
@@ -38,4 +38,4 @@ private:
     NodeId m_deleteRequest = 0;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

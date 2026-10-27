@@ -2,7 +2,7 @@
 
 #include <functional>
 
-namespace yqlora {
+namespace yqlora::editor {
 
 class EditorSession;
 
@@ -19,4 +19,4 @@ private:
     bool m_openRequested = false;
 };
 
-} // namespace yqlora
+} // namespace yqlora::editor

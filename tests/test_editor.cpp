@@ -11,6 +11,7 @@
 #include <glm/gtc/epsilon.hpp>
 
 using namespace yqlora;
+using namespace yqlora::editor;
 
 namespace {
 
