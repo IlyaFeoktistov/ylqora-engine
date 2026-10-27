@@ -54,8 +54,11 @@ DetachedBranch detach(EditorSession& session, Node& node)
         branch.activeCamera = scene.activeCamera();
         scene.setActiveCamera(nullptr);
     }
-    if (contains(node, session.selectedNode())) {
-        session.selection().clear();
+    const Selection selected = session.selection();
+    for (const NodeId id : selected.nodes()) {
+        if (contains(node, session.findNode(id))) {
+            session.selection().deselect(id);
+        }
     }
 
     Node* parent = node.parent();
@@ -177,7 +180,7 @@ bool CreateNodeCommand::apply(EditorSession& session)
     // Повтор после отмены вернёт узел на то же место.
     m_placed = true;
 
-    const NodeId selected = session.selection().selected();
+    const Selection selected = session.selection();
     if (!attach(session, m_branch)) {
         return false;
     }
@@ -192,7 +195,7 @@ void CreateNodeCommand::revert(EditorSession& session)
     if (Node* node = session.findNode(m_created)) {
         m_branch = detach(session, *node);
     }
-    session.selection().select(m_previousSelection);
+    session.selection() = m_previousSelection;
 }
 
 DeleteNodeCommand::DeleteNodeCommand(NodeId node)
@@ -206,7 +209,7 @@ bool DeleteNodeCommand::apply(EditorSession& session)
     if (!node) {
         return false;
     }
-    m_previousSelection = session.selection().selected();
+    m_previousSelection = session.selection();
     m_branch = detach(session, *node);
 
     return true;
@@ -215,7 +218,34 @@ bool DeleteNodeCommand::apply(EditorSession& session)
 void DeleteNodeCommand::revert(EditorSession& session)
 {
     if (attach(session, m_branch)) {
-        session.selection().select(m_previousSelection);
+        session.selection() = m_previousSelection;
+    }
+}
+
+CompositeCommand::CompositeCommand(std::vector<std::unique_ptr<Command>> commands)
+    : m_commands(std::move(commands))
+{
+}
+
+bool CompositeCommand::apply(EditorSession& session)
+{
+    for (std::size_t i = 0; i < m_commands.size(); ++i) {
+        if (!m_commands[i]->apply(session)) {
+            for (std::size_t j = i; j > 0; --j) {
+                m_commands[j - 1]->revert(session);
+            }
+
+            return false;
+        }
+    }
+
+    return !m_commands.empty();
+}
+
+void CompositeCommand::revert(EditorSession& session)
+{
+    for (auto it = m_commands.rbegin(); it != m_commands.rend(); ++it) {
+        (*it)->revert(session);
     }
 }
 
@@ -333,9 +363,9 @@ bool SetTransformCommand::apply(EditorSession& session)
         return false;
     }
     if (!m_previous) {
-        m_previous = transformValues(node->transform());
+        m_previous = node->transform().values();
     }
-    setTransformValues(node->transform(), m_values);
+    node->transform().setValues(m_values);
 
     return true;
 }
@@ -344,7 +374,7 @@ void SetTransformCommand::revert(EditorSession& session)
 {
     auto* node = dynamic_cast<Node3D*>(session.findNode(m_node));
     if (node && m_previous) {
-        setTransformValues(node->transform(), *m_previous);
+        node->transform().setValues(*m_previous);
     }
 }
 

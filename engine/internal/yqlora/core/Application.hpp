@@ -18,6 +18,7 @@ namespace yqlora {
 
 class Window;
 class Renderer;
+class UiRenderer;
 class Settings;
 class Localization;
 
@@ -164,6 +165,8 @@ private:
     std::unique_ptr<Localization> m_localization;
     std::unique_ptr<Window> m_window;
     std::unique_ptr<Renderer> m_renderer;
+    // Только при ApplicationConfig::ui.
+    std::unique_ptr<UiRenderer> m_uiRenderer;
     bool m_running = false;
     bool m_sceneRunning = true;
     // ImGui хранит только указатель на строку с путём, поэтому она живёт здесь.

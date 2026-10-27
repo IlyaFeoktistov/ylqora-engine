@@ -1,29 +1,17 @@
 #pragma once
 
 #include "yqlora/math/Math.hpp"
+#include "yqlora/scene/Transform3D.hpp"
 
 #include <optional>
 
 namespace yqlora {
 
 class Node3D;
-class Transform3D;
 
 } // namespace yqlora
 
 namespace yqlora::editor {
-
-// Положение, поворот и масштаб узла относительно родителя, как их видно в инспекторе.
-struct TransformValues {
-    Vec3 position{0.0f};
-    Vec3 rotationDegrees{0.0f};
-    Vec3 scale{1.0f};
-
-    bool operator==(const TransformValues&) const = default;
-};
-
-TransformValues transformValues(const Transform3D& transform);
-void setTransformValues(Transform3D& transform, const TransformValues& values);
 
 // Углы Эйлера в градусах для поворота rotation, ближайшие к previousDegrees.
 // Один поворот можно записать разными углами: (0, 100, 0) и (180, 80, 180),

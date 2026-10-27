@@ -3,18 +3,7 @@
 #include <yqlora/scene/Camera3D.hpp>
 #include <yqlora/scene/Node3D.hpp>
 
-#include <glm/gtc/epsilon.hpp>
-
 using namespace yqlora;
-
-namespace {
-
-bool near(const Vec3& a, const Vec3& b)
-{
-    return glm::all(glm::epsilonEqual(a, b, 1e-4f));
-}
-
-} // namespace
 
 TEST_CASE("Node: addChild sets parent and keeps order")
 {
@@ -83,11 +72,11 @@ TEST_CASE("Node3D: world transform follows the parent")
     child.transform().setPosition({1.0f, 0.0f, 0.0f});
 
     parent.transform().setPosition({0.0f, 5.0f, 0.0f});
-    CHECK(near(child.worldPosition(), {1.0f, 5.0f, 0.0f}));
+    CHECK(math::nearlyEqual(child.worldPosition(), {1.0f, 5.0f, 0.0f}));
 
     // Поворот родителя на 90 градусов вокруг Y переносит +X ребёнка в -Z.
     parent.transform().setRotationDegrees({0.0f, 90.0f, 0.0f});
-    CHECK(near(child.worldPosition(), {0.0f, 5.0f, -1.0f}));
+    CHECK(math::nearlyEqual(child.worldPosition(), {0.0f, 5.0f, -1.0f}));
 }
 
 TEST_CASE("Node3D: reparenting invalidates cached world matrix")
@@ -97,21 +86,21 @@ TEST_CASE("Node3D: reparenting invalidates cached world matrix")
     Node3D b;
 
     auto& child = a.addChild<Node3D>();
-    CHECK(near(child.worldPosition(), {10.0f, 0.0f, 0.0f}));
+    CHECK(math::nearlyEqual(child.worldPosition(), {10.0f, 0.0f, 0.0f}));
 
     auto owned = a.removeChild(child);
     b.addChild(std::move(owned));
-    CHECK(near(child.worldPosition(), {0.0f, 0.0f, 0.0f}));
+    CHECK(math::nearlyEqual(child.worldPosition(), {0.0f, 0.0f, 0.0f}));
 }
 
 TEST_CASE("Node3D: default forward is -Z, lookAt turns towards target")
 {
     Node3D node;
-    CHECK(near(node.worldForward(), {0.0f, 0.0f, -1.0f}));
+    CHECK(math::nearlyEqual(node.worldForward(), {0.0f, 0.0f, -1.0f}));
 
     node.transform().setPosition({0.0f, 0.0f, 0.0f});
     node.transform().lookAt({5.0f, 0.0f, 0.0f});
-    CHECK(near(node.worldForward(), {1.0f, 0.0f, 0.0f}));
+    CHECK(math::nearlyEqual(node.worldForward(), {1.0f, 0.0f, 0.0f}));
 }
 
 TEST_CASE("Node3D: setWorldPosition places a child in world space")
@@ -122,9 +111,9 @@ TEST_CASE("Node3D: setWorldPosition places a child in world space")
     auto& child = parent.addChild<Node3D>();
 
     child.setWorldPosition({10.0f, 0.0f, -1.0f});
-    CHECK(near(child.worldPosition(), {10.0f, 0.0f, -1.0f}));
+    CHECK(math::nearlyEqual(child.worldPosition(), {10.0f, 0.0f, -1.0f}));
     // В координатах повёрнутого родителя это точка на его оси +X.
-    CHECK(near(child.transform().position(), {1.0f, 0.0f, 0.0f}));
+    CHECK(math::nearlyEqual(child.transform().position(), {1.0f, 0.0f, 0.0f}));
 }
 
 TEST_CASE("Node3D: toWorld and toLocal are inverse to each other")
@@ -133,6 +122,6 @@ TEST_CASE("Node3D: toWorld and toLocal are inverse to each other")
     node.transform().setPosition({0.0f, 5.0f, 0.0f});
     node.transform().setScale({2.0f, 2.0f, 2.0f});
 
-    CHECK(near(node.toWorld({1.0f, 0.0f, 0.0f}), {2.0f, 5.0f, 0.0f}));
-    CHECK(near(node.toLocal({2.0f, 5.0f, 0.0f}), {1.0f, 0.0f, 0.0f}));
+    CHECK(math::nearlyEqual(node.toWorld({1.0f, 0.0f, 0.0f}), {2.0f, 5.0f, 0.0f}));
+    CHECK(math::nearlyEqual(node.toLocal({2.0f, 5.0f, 0.0f}), {1.0f, 0.0f, 0.0f}));
 }

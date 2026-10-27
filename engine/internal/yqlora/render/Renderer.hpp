@@ -4,6 +4,7 @@
 #include "yqlora/render/FrameData.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 #include "yqlora/render/RenderTarget.hpp"
+#include "yqlora/render/UiRenderer.hpp"
 
 #include <memory>
 
@@ -33,13 +34,8 @@ public:
     // целиком занято интерфейсом.
     virtual void clearWindow(const Vec4& color) = 0;
 
-    // Dear ImGui. Контекст ImGui создаёт и удаляет Application, рендерер
-    // подключает к нему окно и свой графический API.
-    virtual void initUi() = 0;
-    virtual void shutdownUi() = 0;
-    virtual void beginUiFrame() = 0;
-    // Рисует интерфейс, собранный после ImGui::Render(), поверх окна.
-    virtual void renderUi() = 0;
+    // Отрисовка Dear ImGui под этот графический API, см. UiRenderer.
+    virtual std::unique_ptr<UiRenderer> createUiRenderer() = 0;
 
     // Показывает нарисованный кадр на экране.
     virtual void present() = 0;

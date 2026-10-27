@@ -34,6 +34,7 @@ add_library(yqlora_opengl STATIC
     OpenGLRenderer.cpp
     GlShader.cpp
     GlRenderTarget.cpp
+    GlUiRenderer.cpp
     GridPass.cpp
     GlMesh.cpp
     MeshPass.cpp

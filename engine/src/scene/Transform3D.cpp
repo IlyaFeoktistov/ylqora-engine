@@ -31,6 +31,13 @@ void Transform3D::setRotationDegrees(const Vec3& eulerDegrees)
     touch();
 }
 
+void Transform3D::setValues(const TransformValues& values)
+{
+    setPosition(values.position);
+    setRotationDegrees(values.rotationDegrees);
+    setScale(values.scale);
+}
+
 void Transform3D::lookAt(const Vec3& target, const Vec3& up)
 {
     const Vec3 direction = target - m_position;

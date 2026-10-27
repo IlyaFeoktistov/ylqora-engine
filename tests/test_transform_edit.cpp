@@ -3,7 +3,6 @@
 #include <yqlora/editor/TransformEdit.hpp>
 #include <yqlora/scene/Node3D.hpp>
 
-#include <glm/gtc/epsilon.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 using namespace yqlora;
@@ -11,9 +10,12 @@ using namespace yqlora::editor;
 
 namespace {
 
-bool near(const Vec3& a, const Vec3& b, float epsilon = 1e-3f)
+// Углы после разложения матрицы теряют точность сильнее обычного.
+constexpr float kAngleEpsilon = 1e-3f;
+
+bool near(const Vec3& a, const Vec3& b)
 {
-    return glm::all(glm::epsilonEqual(a, b, epsilon));
+    return math::nearlyEqual(a, b, kAngleEpsilon);
 }
 
 Quat fromDegrees(const Vec3& degrees)

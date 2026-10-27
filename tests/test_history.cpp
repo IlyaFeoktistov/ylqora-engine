@@ -8,6 +8,7 @@
 #include <yqlora/scene/SceneSerializer.hpp>
 
 #include <string_view>
+#include <vector>
 
 using namespace yqlora;
 using namespace yqlora::editor;
@@ -298,4 +299,47 @@ TEST_CASE_FIXTURE(Fixture, "Undo: history survives Play and Stop")
     CHECK(session.findNode(childId) == nullptr);
     REQUIRE(session.redo());
     CHECK(session.findNode(childId));
+}
+
+TEST_CASE("Selection: several nodes, the last selected is the main one")
+{
+    Selection selection;
+    selection.select(1);
+    selection.toggle(2);
+    selection.toggle(3);
+    CHECK(selection.selected() == 3);
+    CHECK(selection.isSelected(1));
+    selection.toggle(3);
+    CHECK(selection.selected() == 2);
+    selection.select(5);
+    CHECK(selection.nodes().size() == 1);
+    selection.select(0);
+    CHECK(selection.empty());
+}
+
+TEST_CASE_FIXTURE(Fixture, "Undo: deleting several nodes is one step and brings the selection back")
+{
+    Node* root = session.createNode(type("Node3D"), nullptr);
+    Node* a = session.createNode(type("Node3D"), root);
+    Node* inner = session.createNode(type("Node3D"), a);
+    Node* b = session.createNode(type("Node3D"), root);
+    const NodeId aId = a->id();
+    const NodeId innerId = inner->id();
+    const NodeId bId = b->id();
+
+    session.selection().select(aId);
+    session.selection().toggle(innerId);
+    session.selection().toggle(bId);
+    const Selection before = session.selection();
+    const std::vector<NodeId> nodes(before.nodes().begin(), before.nodes().end());
+
+    // inner лежит в удаляемой ветке a и уходит вместе с ней.
+    REQUIRE(session.deleteNodes(nodes));
+    CHECK(root->children().empty());
+    CHECK(session.selection().empty());
+
+    REQUIRE(session.undo());
+    CHECK(root->children().size() == 2);
+    CHECK(session.findNode(innerId));
+    CHECK(session.selection() == before);
 }

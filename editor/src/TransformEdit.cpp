@@ -45,18 +45,6 @@ Vec3 closestEulerDegrees(const Quat& rotation, const Vec3& previousDegrees)
     return distanceSquared(a, previousDegrees) <= distanceSquared(b, previousDegrees) ? a : b;
 }
 
-TransformValues transformValues(const Transform3D& transform)
-{
-    return {transform.position(), transform.rotationDegrees(), transform.scale()};
-}
-
-void setTransformValues(Transform3D& transform, const TransformValues& values)
-{
-    transform.setPosition(values.position);
-    transform.setRotationDegrees(values.rotationDegrees);
-    transform.setScale(values.scale);
-}
-
 std::optional<TransformValues> localValuesForWorld(const Node3D& node, const Mat4& world)
 {
     const auto* parent = dynamic_cast<const Node3D*>(node.parent());
@@ -81,7 +69,7 @@ std::optional<TransformValues> localValuesForWorld(const Node3D& node, const Mat
 void setWorldMatrix(Node3D& node, const Mat4& world)
 {
     if (const auto values = localValuesForWorld(node, world)) {
-        setTransformValues(node.transform(), *values);
+        node.transform().setValues(*values);
     }
 }
 

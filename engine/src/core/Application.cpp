@@ -174,7 +174,7 @@ void Application::initUi()
 
     // Шрифт и цвета задаёт само приложение (у редактора это файл темы),
     // движок свой внешний вид не навязывает.
-    m_renderer->initUi();
+    m_uiRenderer = m_renderer->createUiRenderer();
 }
 
 void Application::shutdownUi()
@@ -182,9 +182,7 @@ void Application::shutdownUi()
     if (!ImGui::GetCurrentContext()) {
         return;
     }
-    if (m_renderer) {
-        m_renderer->shutdownUi();
-    }
+    m_uiRenderer.reset();
     ImGui::DestroyContext();
 }
 
@@ -250,12 +248,12 @@ void Application::mainLoop()
         onUpdate(deltaSeconds);
 
         if (m_config.ui) {
-            m_renderer->beginUiFrame();
+            m_uiRenderer->beginFrame();
             ImGui::NewFrame();
             onGui();
             ImGui::Render();
             m_renderer->clearWindow(kWindowClearColor);
-            m_renderer->renderUi();
+            m_uiRenderer->render();
         } else {
             FrameData frame = buildFrameData(m_scene, aspectRatio(), depthRange());
             onPrepareFrame(frame);

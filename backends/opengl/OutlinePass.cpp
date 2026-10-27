@@ -41,11 +41,10 @@ OutlinePass::~OutlinePass()
 
 void OutlinePass::draw(const FrameData& frame, int width, int height)
 {
-    const NodeId selected = frame.editor.selected;
     const auto isSelected = [&](const DrawItem& item) {
-        return item.node == selected;
+        return std::ranges::find(frame.editor.selected, item.node) != frame.editor.selected.end();
     };
-    const bool hasSelectedMesh = selected != 0 && std::ranges::any_of(frame.drawItems, isSelected);
+    const bool hasSelectedMesh = std::ranges::any_of(frame.drawItems, isSelected);
     if (!hasSelectedMesh || width <= 0 || height <= 0) {
         return;
     }
@@ -54,7 +53,7 @@ void OutlinePass::draw(const FrameData& frame, int width, int height)
     GLint previousFramebuffer = 0;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &previousFramebuffer);
 
-    // 1. Маска выбранного узла, без теста глубины: контур виден сквозь другие объекты.
+    // 1. Маска выбранных узлов, без теста глубины: контур виден сквозь другие объекты.
     glBindFramebuffer(GL_FRAMEBUFFER, m_maskFramebuffer);
     glViewport(0, 0, width, height);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -64,7 +63,7 @@ void OutlinePass::draw(const FrameData& frame, int width, int height)
     const Mat4 viewProjection = frame.camera.projection * frame.camera.view;
     m_maskShader.use();
     for (const DrawItem& item : frame.drawItems) {
-        if (item.node != selected) {
+        if (!isSelected(item)) {
             continue;
         }
         const Mat4 transform = viewProjection * item.world;

@@ -27,8 +27,8 @@ struct DrawItem {
 // Вспомогательная графика редактора, которой нет в игре.
 struct EditorOverlay {
     bool grid = false;
-    // Выбранный узел обводится контуром. 0, если ничего не выбрано.
-    NodeId selected = 0;
+    // Выбранные узлы обводятся контуром.
+    std::vector<NodeId> selected;
     Vec4 outlineColor{1.0f, 0.6f, 0.1f, 1.0f};
 };
 

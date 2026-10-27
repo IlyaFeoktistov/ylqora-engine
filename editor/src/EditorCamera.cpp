@@ -99,12 +99,9 @@ Vec3 EditorCamera::up() const
 
 CameraData EditorCamera::cameraData(float aspect, DepthRange depthRange) const
 {
-    const float fovY = glm::radians(m_fovDegrees);
-
     CameraData camera;
     camera.view = glm::lookAt(m_position, m_position + forward(), kWorldUp);
-    camera.projection = depthRange == DepthRange::ZeroToOne ? glm::perspectiveRH_ZO(fovY, aspect, m_near, m_far)
-                                                            : glm::perspectiveRH_NO(fovY, aspect, m_near, m_far);
+    camera.projection = math::perspective(glm::radians(m_fovDegrees), aspect, m_near, m_far, depthRange);
     camera.position = m_position;
 
     return camera;

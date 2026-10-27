@@ -1,6 +1,7 @@
 #pragma once
 
 #include "yqlora/editor/Command.hpp"
+#include "yqlora/editor/Selection.hpp"
 #include "yqlora/editor/TransformEdit.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/scene/Node.hpp"
@@ -8,6 +9,7 @@
 #include <cstddef>
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace yqlora {
 
@@ -59,7 +61,7 @@ private:
     NodeId m_parent;
     NodeId m_created = 0;
     bool m_placed = false;
-    NodeId m_previousSelection = 0;
+    Selection m_previousSelection;
     DetachedBranch m_branch;
 };
 
@@ -74,7 +76,7 @@ public:
 
 private:
     NodeId m_node;
-    NodeId m_previousSelection = 0;
+    Selection m_previousSelection;
     DetachedBranch m_branch;
 };
 
@@ -90,6 +92,20 @@ private:
     const TypeInfo& m_type;
     std::optional<std::size_t> m_index;
     std::unique_ptr<Component> m_detached;
+};
+
+// Несколько команд одним шагом истории, например удаление нескольких узлов.
+// Делаются по порядку, отменяются в обратном. Если одна не удалась,
+// сделанные до неё отменяются и вся команда не удаётся.
+class CompositeCommand final : public Command {
+public:
+    explicit CompositeCommand(std::vector<std::unique_ptr<Command>> commands);
+
+    bool apply(EditorSession& session) override;
+    void revert(EditorSession& session) override;
+
+private:
+    std::vector<std::unique_ptr<Command>> m_commands;
 };
 
 // Встроенный компонент (Transform) снять нельзя.

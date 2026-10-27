@@ -114,7 +114,7 @@ void EditorSession::play()
 
         return;
     }
-    m_selectedBeforePlay = m_selection.selected();
+    m_selectionBeforePlay = m_selection;
     m_playScene = std::move(copy);
     m_paused = false;
 }
@@ -129,12 +129,21 @@ void EditorSession::stop()
     if (!playing()) {
         return;
     }
-    const NodeId selected = m_selection.selected();
+    const Selection selected = m_selection;
     m_playScene->stop();
     m_playScene.reset();
     m_paused = false;
-    // Узла, созданного в игре, в редактируемой сцене нет: возвращаем прежнее выделение.
-    m_selection.select(findNode(selected) ? selected : m_selectedBeforePlay);
+    // Узлов, созданных в игре, в редактируемой сцене нет. Если не осталось
+    // ни одного выбранного, возвращаем выделение, каким оно было до Play.
+    m_selection.clear();
+    for (const NodeId id : selected.nodes()) {
+        if (findNode(id)) {
+            m_selection.toggle(id);
+        }
+    }
+    if (m_selection.empty()) {
+        m_selection = m_selectionBeforePlay;
+    }
 }
 
 void EditorSession::update(float deltaSeconds)
@@ -222,6 +231,29 @@ Node* EditorSession::createNode(const TypeInfo& type, Node* parent)
 bool EditorSession::deleteNode(NodeId id)
 {
     return execute(std::make_unique<DeleteNodeCommand>(id));
+}
+
+bool EditorSession::deleteNodes(std::span<const NodeId> ids)
+{
+    const auto insideAnother = [&](NodeId id) {
+        const Node* node = findNode(id);
+        for (const Node* parent = node ? node->parent() : nullptr; parent; parent = parent->parent()) {
+            if (std::ranges::find(ids, parent->id()) != ids.end()) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
+    std::vector<std::unique_ptr<Command>> commands;
+    for (const NodeId id : ids) {
+        if (!insideAnother(id)) {
+            commands.push_back(std::make_unique<DeleteNodeCommand>(id));
+        }
+    }
+
+    return execute(std::make_unique<CompositeCommand>(std::move(commands)));
 }
 
 Component* EditorSession::addComponent(Node& node, const TypeInfo& type)

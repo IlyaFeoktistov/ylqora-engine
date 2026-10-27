@@ -8,6 +8,16 @@
 
 namespace yqlora {
 
+// Положение, поворот и масштаб относительно родителя разом, как их видно в
+// инспекторе: поворот углами Эйлера в градусах.
+struct TransformValues {
+    Vec3 position{0.0f};
+    Vec3 rotationDegrees{0.0f};
+    Vec3 scale{1.0f};
+
+    bool operator==(const TransformValues&) const = default;
+};
+
 // Положение, поворот и масштаб узла Node3D относительно родителя.
 // Встроенный компонент: создаётся вместе с Node3D и снять его нельзя.
 // Мировую матрицу из него собирает узел, сам Transform про дерево не знает.
@@ -47,6 +57,13 @@ public:
     }
 
     // Поворачивает так, чтобы -Z смотрел на target (в координатах родителя).
+    TransformValues values() const
+    {
+        return {m_position, m_rotationDegrees, m_scale};
+    }
+
+    void setValues(const TransformValues& values);
+
     void lookAt(const Vec3& target, const Vec3& up = {0.0f, 1.0f, 0.0f});
 
     // Матрица T * R * S в пространстве родителя.

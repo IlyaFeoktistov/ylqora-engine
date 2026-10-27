@@ -10,7 +10,8 @@ namespace yqlora::editor {
 
 void SelectionGizmo::prepareFrame(FrameData& frame, const GizmoContext& context)
 {
-    frame.editor.selected = context.session.selection().selected();
+    const auto selected = context.session.selection().nodes();
+    frame.editor.selected.assign(selected.begin(), selected.end());
     frame.editor.outlineColor = context.theme.colors().selectionOutline;
 }
 
@@ -24,7 +25,13 @@ bool SelectionGizmo::draw(GizmoContext& context)
         {mouse.x - context.origin.x, mouse.y - context.origin.y},
         {context.size.x, context.size.y}
     );
-    context.session.selection().select(pickNode(context.session.scene(), ray));
+    const NodeId picked = pickNode(context.session.scene(), ray);
+    Selection& selection = context.session.selection();
+    if (ImGui::GetIO().KeyCtrl) {
+        selection.toggle(picked);
+    } else {
+        selection.select(picked);
+    }
 
     return false;
 }

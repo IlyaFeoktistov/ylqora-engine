@@ -2,6 +2,7 @@
 
 #include "GlMesh.hpp"
 #include "GlRenderTarget.hpp"
+#include "GlUiRenderer.hpp"
 #include "GridPass.hpp"
 #include "MeshPass.hpp"
 #include "OutlinePass.hpp"
@@ -11,9 +12,6 @@
 
 #include <SDL3/SDL.h>
 #include <glad/gl.h>
-#include <imgui.h>
-#include <imgui_impl_opengl3.h>
-#include <imgui_impl_sdl3.h>
 
 #include <stdexcept>
 #include <string>
@@ -114,29 +112,9 @@ void OpenGLRenderer::clearWindow(const Vec4& color)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void OpenGLRenderer::initUi()
+std::unique_ptr<UiRenderer> OpenGLRenderer::createUiRenderer()
 {
-    ImGui_ImplSDL3_InitForOpenGL(m_window.sdlWindow(), m_context);
-    ImGui_ImplOpenGL3_Init("#version 330 core");
-}
-
-void OpenGLRenderer::shutdownUi()
-{
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplSDL3_Shutdown();
-}
-
-void OpenGLRenderer::beginUiFrame()
-{
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL3_NewFrame();
-}
-
-void OpenGLRenderer::renderUi()
-{
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, m_width, m_height);
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    return std::make_unique<GlUiRenderer>(m_window.sdlWindow(), m_context);
 }
 
 void OpenGLRenderer::drawScene(const FrameData& frame, int width, int height)

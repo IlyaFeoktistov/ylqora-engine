@@ -43,10 +43,7 @@ public:
     std::unique_ptr<RenderTarget> createRenderTarget(int width, int height) override;
     void clearWindow(const Vec4& color) override;
 
-    void initUi() override;
-    void shutdownUi() override;
-    void beginUiFrame() override;
-    void renderUi() override;
+    std::unique_ptr<UiRenderer> createUiRenderer() override;
 
     void present() override;
     void resize(int width, int height) override;

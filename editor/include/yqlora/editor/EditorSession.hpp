@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 
 namespace yqlora {
@@ -160,6 +161,10 @@ public:
     // ветки сбрасываются, чтобы на них не осталось висячих указателей.
     bool deleteNode(NodeId id);
 
+    // Удаляет несколько узлов одним шагом истории. Узлы внутри других
+    // удаляемых веток пропускаются: они уходят вместе с веткой.
+    bool deleteNodes(std::span<const NodeId> ids);
+
     // nullptr, если тип не компонент или его нельзя создать.
     Component* addComponent(Node& node, const TypeInfo& type);
     bool removeComponent(Node& node, Component& component);
@@ -179,7 +184,7 @@ private:
     EditHistory m_history;
 
     bool m_paused = false;
-    NodeId m_selectedBeforePlay = 0;
+    Selection m_selectionBeforePlay;
 };
 
 } // namespace yqlora::editor

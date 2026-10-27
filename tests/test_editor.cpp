@@ -8,19 +8,8 @@
 #include <yqlora/scene/MeshRenderer.hpp>
 #include <yqlora/scene/Scene.hpp>
 
-#include <glm/gtc/epsilon.hpp>
-
 using namespace yqlora;
 using namespace yqlora::editor;
-
-namespace {
-
-bool near(const Vec3& a, const Vec3& b)
-{
-    return glm::all(glm::epsilonEqual(a, b, 1e-4f));
-}
-
-} // namespace
 
 TEST_CASE("EditorCamera: moves only while the right mouse button is held")
 {
@@ -36,13 +25,13 @@ TEST_CASE("EditorCamera: moves only while the right mouse button is held")
 
     camera.update(input, 1.0f, true);
     CHECK_FALSE(camera.flying());
-    CHECK(near(camera.position(), {0.0f, 0.0f, 0.0f}));
+    CHECK(math::nearlyEqual(camera.position(), {0.0f, 0.0f, 0.0f}));
 
     feeder.mouseButtonDown(MouseButton::Right);
     camera.update(input, 1.0f, true);
     CHECK(camera.flying());
     // Вперёд вдоль -Z со скоростью 2 метра в секунду.
-    CHECK(near(camera.position(), {0.0f, 0.0f, -2.0f}));
+    CHECK(math::nearlyEqual(camera.position(), {0.0f, 0.0f, -2.0f}));
 
     // Курсор ушёл с окна сцены, а кнопка всё ещё зажата: полёт продолжается.
     feeder.beginFrame();
@@ -99,8 +88,8 @@ TEST_CASE("EditorCamera: ray through the screen center goes forward")
     camera.lookAt({0.0f, 2.0f, 0.0f});
 
     const Ray ray = camera.screenRay({640.0f, 360.0f}, {1280.0f, 720.0f});
-    CHECK(near(ray.origin, {0.0f, 2.0f, 5.0f}));
-    CHECK(near(ray.direction, {0.0f, 0.0f, -1.0f}));
+    CHECK(math::nearlyEqual(ray.origin, {0.0f, 2.0f, 5.0f}));
+    CHECK(math::nearlyEqual(ray.direction, {0.0f, 0.0f, -1.0f}));
 
     // Правый край экрана - луч уходит вправо.
     CHECK(camera.screenRay({1280.0f, 360.0f}, {1280.0f, 720.0f}).direction.x > 0.0f);
@@ -187,8 +176,8 @@ TEST_CASE("EditorCamera: lookAlong turns the view without moving")
     camera.setPosition({1.0f, 2.0f, 3.0f});
 
     camera.lookAlong({-1.0f, 0.0f, 0.0f});
-    CHECK(near(camera.forward(), {-1.0f, 0.0f, 0.0f}));
-    CHECK(near(camera.position(), {1.0f, 2.0f, 3.0f}));
+    CHECK(math::nearlyEqual(camera.forward(), {-1.0f, 0.0f, 0.0f}));
+    CHECK(math::nearlyEqual(camera.position(), {1.0f, 2.0f, 3.0f}));
 
     // Ровно вниз нельзя: наклон ограничен, но камера смотрит почти вниз.
     camera.lookAlong({0.0f, -1.0f, 0.0f});

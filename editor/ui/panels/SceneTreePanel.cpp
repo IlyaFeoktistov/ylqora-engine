@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace yqlora::editor {
 
@@ -64,17 +65,19 @@ void SceneTreePanel::draw(EditorContext& context)
             }
             ImGui::EndPopup();
         }
-        if (ImGui::IsWindowFocused() && selection.selected() != 0 && ImGui::IsKeyPressed(ImGuiKey_Delete)) {
-            m_deleteRequest = selection.selected();
+        if (ImGui::IsWindowFocused() && !selection.empty() && ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+            m_deleteRequested = true;
         }
 
         m_addNode.draw(session, context.registry);
     }
     ImGui::End();
 
-    if (m_deleteRequest != 0) {
-        session.deleteNode(m_deleteRequest);
-        m_deleteRequest = 0;
+    if (m_deleteRequested) {
+        // Копия: удаление меняет сам выбор.
+        const std::vector<NodeId> nodes(selection.nodes().begin(), selection.nodes().end());
+        session.deleteNodes(nodes);
+        m_deleteRequested = false;
     }
     m_lastSelected = selection.selected();
 }
@@ -100,16 +103,23 @@ void SceneTreePanel::drawNode(const Node& node, Selection& selection)
     const bool open = ImGui::TreeNodeEx(id, flags, "%s  %s", icons::forNodeType(node.typeName()), node.name().c_str());
     ImGui::SetItemTooltip("%s", std::string(node.typeName()).c_str());
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen()) {
-        selection.select(node.id());
+        if (ImGui::GetIO().KeyCtrl) {
+            selection.toggle(node.id());
+        } else {
+            selection.select(node.id());
+        }
         m_reveal = false;
     }
     if (ImGui::BeginPopupContextItem()) {
-        selection.select(node.id());
+        // Меню на одном из выбранных относится ко всему выбору.
+        if (!selection.isSelected(node.id())) {
+            selection.select(node.id());
+        }
         if (ImGui::MenuItem(tr("editor.tree.addChild").c_str())) {
             m_addNode.open(node.id());
         }
         if (ImGui::MenuItem(tr("editor.tree.delete").c_str(), "Delete")) {
-            m_deleteRequest = node.id();
+            m_deleteRequested = true;
         }
         ImGui::EndPopup();
     }

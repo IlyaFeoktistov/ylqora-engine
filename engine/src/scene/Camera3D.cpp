@@ -54,12 +54,7 @@ Mat4 Camera3D::viewMatrix() const
 
 Mat4 Camera3D::projectionMatrix(float aspect, DepthRange depthRange) const
 {
-    const float fovY = glm::radians(m_fovDegrees);
-    if (depthRange == DepthRange::ZeroToOne) {
-        return glm::perspectiveRH_ZO(fovY, aspect, m_near, m_far);
-    }
-
-    return glm::perspectiveRH_NO(fovY, aspect, m_near, m_far);
+    return math::perspective(glm::radians(m_fovDegrees), aspect, m_near, m_far, depthRange);
 }
 
 } // namespace yqlora

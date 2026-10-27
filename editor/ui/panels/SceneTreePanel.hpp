@@ -34,8 +34,8 @@ private:
     // дерево раскрывается и прокручивается к выбранному узлу.
     NodeId m_lastSelected = 0;
     bool m_reveal = false;
-    // Удалять узел можно только после обхода дерева.
-    NodeId m_deleteRequest = 0;
+    // Удалять узлы можно только после обхода дерева.
+    bool m_deleteRequested = false;
 };
 
 } // namespace yqlora::editor
