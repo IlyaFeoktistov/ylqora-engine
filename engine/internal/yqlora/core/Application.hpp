@@ -103,8 +103,10 @@ public:
     void setTitleDetail(std::string detail);
 
     // См. Window::showFolderDialog.
-    void showFolderDialog(const std::filesystem::path& start,
-                          std::function<void(std::optional<std::filesystem::path>)> callback);
+    void showFolderDialog(
+        const std::filesystem::path& start,
+        std::function<void(std::optional<std::filesystem::path>)> callback
+    );
 
 protected:
     virtual void onStart()

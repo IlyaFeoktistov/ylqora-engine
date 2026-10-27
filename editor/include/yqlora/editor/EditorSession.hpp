@@ -1,10 +1,10 @@
 #pragma once
 
 #include "yqlora/editor/Command.hpp"
+#include "yqlora/editor/EditHistory.hpp"
 #include "yqlora/editor/Project.hpp"
 #include "yqlora/editor/Selection.hpp"
 #include "yqlora/editor/TransformEdit.hpp"
-#include "yqlora/editor/UndoHistory.hpp"
 #include "yqlora/reflection/Property.hpp"
 
 #include <filesystem>
@@ -154,7 +154,7 @@ private:
     std::optional<Project> m_project;
     std::filesystem::path m_scenePath;
     Selection m_selection;
-    UndoHistory m_history;
+    EditHistory m_history;
 
     bool m_playing = false;
     bool m_paused = false;

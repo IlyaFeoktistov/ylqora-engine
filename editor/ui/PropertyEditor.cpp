@@ -24,10 +24,8 @@ constexpr float kSlowFactor = 0.1f;  // с Ctrl
 float dragSpeed(const Property& property)
 {
     switch (property.hint()) {
-    case PropertyHint::Angle:
-        return 0.5f;
-    default:
-        return property.type() == PropertyType::Float ? 0.05f : 0.02f;
+    case PropertyHint::Angle: return 0.5f;
+    default: return property.type() == PropertyType::Float ? 0.05f : 0.02f;
     }
 }
 
@@ -45,8 +43,8 @@ void dragLabel(const char* id, const char* text, const ImVec4& color, float& val
     if (active || ImGui::IsItemHovered()) {
         ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
     }
-    ImGui::GetWindowDrawList()->AddText(ImVec2(position.x + padding.x, position.y + padding.y),
-                                        ImGui::GetColorU32(color), text);
+    const ImVec2 textPosition(position.x + padding.x, position.y + padding.y);
+    ImGui::GetWindowDrawList()->AddText(textPosition, ImGui::GetColorU32(color), text);
 
     if (!active) {
         return;
@@ -76,8 +74,12 @@ void vectorFields(float* values, int count, float speed, PropertyResult& result)
 {
     static constexpr const char* kNames[] = {"X", "Y", "Z", "W"};
     const EditorColors& colors = theme::colors();
-    const ImVec4 axisColors[] = {theme::toImVec4(colors.axisX), theme::toImVec4(colors.axisY), theme::toImVec4(colors.axisZ),
-                                 theme::toImVec4(colors.axisW)};
+    const ImVec4 axisColors[] = {
+        theme::toImVec4(colors.axisX),
+        theme::toImVec4(colors.axisY),
+        theme::toImVec4(colors.axisZ),
+        theme::toImVec4(colors.axisW)
+    };
 
     const ImGuiStyle& style = ImGui::GetStyle();
     const float labelWidth = ImGui::CalcTextSize("X").x + style.FramePadding.x * 2.0f;
@@ -121,8 +123,14 @@ void rowLabel(const Property& property, PropertyValue& value, PropertyResult& re
 {
     const std::string label = propertyLabel(property.name());
     if (property.type() == PropertyType::Float) {
-        dragLabel("##label", label.c_str(), ImGui::GetStyleColorVec4(ImGuiCol_Text), std::get<float>(value),
-                  dragSpeed(property), result);
+        dragLabel(
+            "##label",
+            label.c_str(),
+            ImGui::GetStyleColorVec4(ImGuiCol_Text),
+            std::get<float>(value),
+            dragSpeed(property),
+            result
+        );
 
         return;
     }
@@ -143,9 +151,7 @@ void valueField(const Property& property, PropertyValue& value, PropertyResult& 
         ImGui::SetNextItemWidth(-FLT_MIN);
         result.changed = ImGui::DragInt("##value", &std::get<int>(value)) || result.changed;
         break;
-    case PropertyType::Float:
-        floatField("##value", std::get<float>(value), -FLT_MIN, "%.3f", result);
-        break;
+    case PropertyType::Float: floatField("##value", std::get<float>(value), -FLT_MIN, "%.3f", result); break;
     case PropertyType::String:
         if (property.hint() == PropertyHint::Mesh) {
             result.changed = meshCombo(std::get<std::string>(value)) || result.changed;
@@ -154,12 +160,8 @@ void valueField(const Property& property, PropertyValue& value, PropertyResult& 
             result.changed = ImGui::InputText("##value", &std::get<std::string>(value)) || result.changed;
         }
         break;
-    case PropertyType::Vector2:
-        vectorFields(&std::get<Vec2>(value).x, 2, speed, result);
-        break;
-    case PropertyType::Vector3:
-        vectorFields(&std::get<Vec3>(value).x, 3, speed, result);
-        break;
+    case PropertyType::Vector2: vectorFields(&std::get<Vec2>(value).x, 2, speed, result); break;
+    case PropertyType::Vector3: vectorFields(&std::get<Vec3>(value).x, 3, speed, result); break;
     case PropertyType::Vector4:
         if (property.hint() == PropertyHint::Color) {
             ImGui::SetNextItemWidth(-FLT_MIN);

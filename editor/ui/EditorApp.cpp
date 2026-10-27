@@ -1,7 +1,11 @@
 #include "EditorApp.hpp"
 
+#include "FileSystemPanel.hpp"
 #include "Icons.hpp"
+#include "InspectorPanel.hpp"
+#include "SceneTreePanel.hpp"
 #include "Theme.hpp"
+#include "ViewportPanel.hpp"
 
 #include "yqlora/core/Log.hpp"
 #include "yqlora/i18n/Localization.hpp"
@@ -19,6 +23,26 @@ EditorApp::EditorApp()
     : Application({.name = "Editor", .titleKey = "editor.title", .width = 1600, .height = 900, .ui = true})
 {
     registerEngineTypes(m_registry);
+
+    m_panels.push_back(std::make_unique<SceneTreePanel>());
+    m_panels.push_back(std::make_unique<InspectorPanel>());
+    m_panels.push_back(std::make_unique<FileSystemPanel>());
+    m_panels.push_back(std::make_unique<ViewportPanel>());
+}
+
+EditorContext EditorApp::context()
+{
+    return {
+        .app = *this,
+        .session = m_session,
+        .registry = m_registry,
+        .serializer = m_serializer,
+        .actions = m_actions,
+        .deltaSeconds = m_deltaSeconds,
+        .openScene = [this](const std::filesystem::path& path) {
+            openScene(path);
+        },
+    };
 }
 
 void EditorApp::onStart()
@@ -49,84 +73,59 @@ void EditorApp::registerActions()
         return m_session.playing();
     };
 
-    m_actions.add({
-        .id = "scene.save",
-        .labelKey = "editor.menu.save",
-        .shortcut = ImGuiMod_Ctrl | ImGuiKey_S,
+    m_actions.add("scene.save", "editor.menu.save")
+        .shortcut(ImGuiMod_Ctrl | ImGuiKey_S)
         // Во время игры в сцене её состояние, а не то, что правили: сохранять нечего.
-        .enabled = [this] {
+        .enabledWhen([this] {
             return m_session.project() && !m_session.playing();
-        },
-        .run = [this] {
+        })
+        .onRun([this] {
             saveScene();
-        },
+        });
+    m_actions.add("project.close", "editor.menu.closeProject").enabledWhen(hasProject).onRun([this] {
+        m_unsaved.request(m_session, [this] {
+            closeProject();
+        });
     });
-    m_actions.add({
-        .id = "project.close",
-        .labelKey = "editor.menu.closeProject",
-        .enabled = hasProject,
-        .run = [this] {
-            request(PendingAction::CloseProject);
-        },
+    m_actions.add("app.quit", "editor.menu.quit").onRun([this] {
+        m_unsaved.request(m_session, [this] {
+            quit();
+        });
     });
-    m_actions.add({
-        .id = "app.quit",
-        .labelKey = "editor.menu.quit",
-        .run = [this] {
-            request(PendingAction::Quit);
-        },
-    });
-    m_actions.add({
-        .id = "edit.undo",
-        .labelKey = "editor.menu.undo",
-        .shortcut = ImGuiMod_Ctrl | ImGuiKey_Z,
-        .enabled = [this] {
+
+    m_actions.add("edit.undo", "editor.menu.undo")
+        .shortcut(ImGuiMod_Ctrl | ImGuiKey_Z)
+        .enabledWhen([this] {
             return m_session.canUndo();
-        },
-        .run = [this] {
+        })
+        .onRun([this] {
             m_session.undo();
-        },
-    });
-    m_actions.add({
-        .id = "edit.redo",
-        .labelKey = "editor.menu.redo",
-        .shortcut = ImGuiMod_Ctrl | ImGuiKey_Y,
-        .alternativeShortcut = ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z,
-        .enabled = [this] {
+        });
+    m_actions.add("edit.redo", "editor.menu.redo")
+        .shortcut(ImGuiMod_Ctrl | ImGuiKey_Y)
+        .alternativeShortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z)
+        .enabledWhen([this] {
             return m_session.canRedo();
-        },
-        .run = [this] {
+        })
+        .onRun([this] {
             m_session.redo();
-        },
-    });
-    m_actions.add({
-        .id = "play.toggle",
-        .labelKey = "editor.play.play",
-        .shortcut = ImGuiMod_Ctrl | ImGuiKey_P,
-        .enabled = hasProject,
-        .run = [this] {
+        });
+
+    m_actions.add("play.toggle", "editor.play.play")
+        .shortcut(ImGuiMod_Ctrl | ImGuiKey_P)
+        .enabledWhen(hasProject)
+        .onRun([this] {
             if (m_session.playing()) {
                 m_session.stop();
             } else {
                 m_session.play();
             }
-        },
+        });
+    m_actions.add("play.pause", "editor.play.pause").enabledWhen(playing).onRun([this] {
+        m_session.setPaused(!m_session.paused());
     });
-    m_actions.add({
-        .id = "play.pause",
-        .labelKey = "editor.play.pause",
-        .enabled = playing,
-        .run = [this] {
-            m_session.setPaused(!m_session.paused());
-        },
-    });
-    m_actions.add({
-        .id = "play.stop",
-        .labelKey = "editor.play.stop",
-        .enabled = playing,
-        .run = [this] {
-            m_session.stop();
-        },
+    m_actions.add("play.stop", "editor.play.stop").enabledWhen(playing).onRun([this] {
+        m_session.stop();
     });
 }
 
@@ -141,7 +140,7 @@ void EditorApp::onGui()
     ImGuizmo::BeginFrame();
     drawMenuBar();
 
-    drawUnsavedDialog();
+    m_unsaved.draw(m_session);
 
     if (!m_session.project()) {
         if (const auto project = m_projectManager->draw(*this)) {
@@ -159,13 +158,11 @@ void EditorApp::onGui()
         buildDefaultLayout(dockspace);
     }
 
-    m_sceneTree.draw(m_session, m_registry);
-    m_inspector.draw(m_session, m_registry);
-    m_files.draw(m_session, m_serializer);
-    m_viewport.draw(*this, m_session, m_deltaSeconds);
-    if (const auto scene = m_files.takeOpenRequest(); scene && *scene != m_session.scenePath()) {
-        m_pendingScene = *scene;
-        request(PendingAction::OpenScene);
+    EditorContext frame = context();
+    for (const auto& panel : m_panels) {
+        if (panel->visible()) {
+            panel->draw(frame);
+        }
     }
     updateTitle();
     setSceneRunning(m_session.running());
@@ -175,25 +172,24 @@ void EditorApp::onGui()
         m_session.finishEdit();
     }
 
-    const bool wrapping = m_viewport.camera().flying() || m_inspector.draggingValue();
-    if (wrapping != m_mouseWrapping) {
-        m_mouseWrapping = wrapping;
-        setMouseWrapping(wrapping);
+    if (frame.mouseWrapping != m_mouseWrapping) {
+        m_mouseWrapping = frame.mouseWrapping;
+        setMouseWrapping(frame.mouseWrapping);
     }
 }
 
 void EditorApp::onCloseRequested()
 {
-    request(PendingAction::Quit);
+    m_actions.run("app.quit");
 }
 
 void EditorApp::openProject(const Project& project)
 {
     m_session.open(project);
-    // Наискосок сверху, как вид по умолчанию в Blender: видно все три оси сразу.
-    m_viewport.camera().setPosition({6.0f, 4.5f, 6.0f});
-    m_viewport.camera().lookAt({0.0f, 0.5f, 0.0f});
-    m_files.refresh();
+    EditorContext frame = context();
+    for (const auto& panel : m_panels) {
+        panel->onProjectOpened(frame);
+    }
     updateTitle();
 
     m_projects->markOpened(project.directory);
@@ -218,67 +214,16 @@ void EditorApp::saveScene()
     }
 }
 
-void EditorApp::request(PendingAction action)
+void EditorApp::openScene(const std::filesystem::path& path)
 {
-    if (m_session.modified()) {
-        m_pending = action;
-        m_unsavedRequested = true;
-
+    if (path == m_session.scenePath()) {
         return;
     }
-    perform(action);
-}
-
-void EditorApp::perform(PendingAction action)
-{
-    switch (action) {
-    case PendingAction::OpenScene:
-        if (!m_session.openScene(m_pendingScene)) {
-            log::error("Cannot open scene '{}'", m_pendingScene.generic_string());
+    m_unsaved.request(m_session, [this, path] {
+        if (!m_session.openScene(path)) {
+            log::error("Cannot open scene '{}'", path.generic_string());
         }
-        break;
-    case PendingAction::CloseProject:
-        closeProject();
-        break;
-    case PendingAction::Quit:
-        quit();
-        break;
-    case PendingAction::None:
-        break;
-    }
-}
-
-void EditorApp::drawUnsavedDialog()
-{
-    const std::string title = tr("editor.unsaved.title") + "###Unsaved";
-    if (m_unsavedRequested) {
-        ImGui::OpenPopup(title.c_str());
-        m_unsavedRequested = false;
-    }
-    if (!ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        return;
-    }
-    ImGui::TextUnformatted(tr("editor.unsaved.question").c_str());
-    ImGui::Separator();
-
-    if (ImGui::Button(tr("editor.unsaved.save").c_str())) {
-        // Не сохранилось - остаёмся, чтобы изменения не пропали.
-        if (m_session.saveScene()) {
-            perform(std::exchange(m_pending, PendingAction::None));
-        }
-        ImGui::CloseCurrentPopup();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button(tr("editor.unsaved.discard").c_str())) {
-        perform(std::exchange(m_pending, PendingAction::None));
-        ImGui::CloseCurrentPopup();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button(tr("editor.common.cancel").c_str()) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-        m_pending = PendingAction::None;
-        ImGui::CloseCurrentPopup();
-    }
-    ImGui::EndPopup();
+    });
 }
 
 void EditorApp::updateTitle()
@@ -316,10 +261,7 @@ void EditorApp::drawMenuBar()
         m_actions.menuItem("edit.redo");
         ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu(tr("editor.menu.view").c_str())) {
-        drawLanguageMenu();
-        ImGui::EndMenu();
-    }
+    drawViewMenu();
     if (m_session.project()) {
         drawPlayControls();
     }
@@ -344,8 +286,11 @@ void EditorApp::drawPlayControls()
     if (playing) {
         ImGui::PopStyleColor();
     }
-    ImGui::SetItemTooltip("%s (%s)", tr(playing ? "editor.play.stop" : "editor.play.play").c_str(),
-                          m_actions.shortcutText("play.toggle").c_str());
+    ImGui::SetItemTooltip(
+        "%s (%s)",
+        tr(playing ? "editor.play.stop" : "editor.play.play").c_str(),
+        m_actions.shortcutText("play.toggle").c_str()
+    );
 
     ImGui::BeginDisabled(!playing);
     const bool paused = m_session.paused();
@@ -364,6 +309,23 @@ void EditorApp::drawPlayControls()
     }
     ImGui::SetItemTooltip("%s", tr("editor.play.stop").c_str());
     ImGui::EndDisabled();
+}
+
+void EditorApp::drawViewMenu()
+{
+    if (!ImGui::BeginMenu(tr("editor.menu.view").c_str())) {
+        return;
+    }
+    if (m_session.project()) {
+        for (const auto& panel : m_panels) {
+            if (panel->closable() && ImGui::MenuItem(tr(panel->titleKey()).c_str(), nullptr, panel->visible())) {
+                panel->setVisible(!panel->visible());
+            }
+        }
+        ImGui::Separator();
+    }
+    drawLanguageMenu();
+    ImGui::EndMenu();
 }
 
 void EditorApp::drawLanguageMenu()
@@ -398,10 +360,13 @@ void EditorApp::buildDefaultLayout(unsigned int dockspace)
     const ImGuiID bottom = ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.25f, nullptr, &center);
 
     // Окна привязываются по ID после ###, он не зависит от языка интерфейса.
-    ImGui::DockBuilderDockWindow("###Scene", left);
-    ImGui::DockBuilderDockWindow("###Inspector", right);
-    ImGui::DockBuilderDockWindow("###FileSystem", bottom);
-    ImGui::DockBuilderDockWindow("###Viewport", center);
+    const auto dock = [](const char* id, ImGuiID target) {
+        ImGui::DockBuilderDockWindow((std::string("###") + id).c_str(), target);
+    };
+    dock("Scene", left);
+    dock("Inspector", right);
+    dock("FileSystem", bottom);
+    dock("Viewport", center);
     ImGui::DockBuilderFinish(dockspace);
 }
 

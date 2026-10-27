@@ -3,8 +3,8 @@
 #include <yqlora/editor/EditorCamera.hpp>
 #include <yqlora/editor/Picking.hpp>
 #include <yqlora/editor/Selection.hpp>
-#include <yqlora/scene/Camera3D.hpp>
 #include <yqlora/platform/InputFeeder.hpp>
+#include <yqlora/scene/Camera3D.hpp>
 #include <yqlora/scene/MeshInstance3D.hpp>
 #include <yqlora/scene/Scene.hpp>
 

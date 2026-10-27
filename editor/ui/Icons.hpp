@@ -28,20 +28,20 @@ inline constexpr const char* kCamera3D = "\uE1A5";       // video
 inline constexpr const char* kMeshInstance3D = "\uE524"; // cuboid
 
 // Файлы и действия.
-inline constexpr const char* kFolder = "\uE0D7";      // folder
-inline constexpr const char* kFolderOpen = "\uE247";  // folder-open
-inline constexpr const char* kImport = "\uE334";      // folder-input
-inline constexpr const char* kFile = "\uE0C0";        // file
-inline constexpr const char* kScene = "\uE29B";       // clapperboard
-inline constexpr const char* kMainScene = "\uE176";   // star
-inline constexpr const char* kAdd = "\uE13D";         // plus
-inline constexpr const char* kAddFolder = "\uE0D9";   // folder-plus
-inline constexpr const char* kAddFile = "\uE0C9";     // file-plus
-inline constexpr const char* kRefresh = "\uE145";     // refresh-cw
-inline constexpr const char* kDelete = "\uE18E";      // trash-2
-inline constexpr const char* kRename = "\uE1F9";      // pencil
-inline constexpr const char* kSave = "\uE14D";        // save
-inline constexpr const char* kSearch = "\uE151";      // search
+inline constexpr const char* kFolder = "\uE0D7";     // folder
+inline constexpr const char* kFolderOpen = "\uE247"; // folder-open
+inline constexpr const char* kImport = "\uE334";     // folder-input
+inline constexpr const char* kFile = "\uE0C0";       // file
+inline constexpr const char* kScene = "\uE29B";      // clapperboard
+inline constexpr const char* kMainScene = "\uE176";  // star
+inline constexpr const char* kAdd = "\uE13D";        // plus
+inline constexpr const char* kAddFolder = "\uE0D9";  // folder-plus
+inline constexpr const char* kAddFile = "\uE0C9";    // file-plus
+inline constexpr const char* kRefresh = "\uE145";    // refresh-cw
+inline constexpr const char* kDelete = "\uE18E";     // trash-2
+inline constexpr const char* kRename = "\uE1F9";     // pencil
+inline constexpr const char* kSave = "\uE14D";       // save
+inline constexpr const char* kSearch = "\uE151";     // search
 
 // Иконка для типа узла; для неизвестного типа - иконка простого Node.
 inline const char* forNodeType(std::string_view type)

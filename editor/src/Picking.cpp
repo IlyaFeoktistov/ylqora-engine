@@ -82,12 +82,18 @@ void pick(const Node& node, const Ray& worldRay, std::optional<Hit>& best)
             // не нормализуем: тогда t в локальных координатах тот же, что в мире,
             // и попадания в разные объекты можно сравнивать.
             const Mat4 toLocal = glm::inverse(instance->worldMatrix());
-            const Ray localRay{Vec3(toLocal * Vec4(worldRay.origin, 1.0f)), Vec3(toLocal * Vec4(worldRay.direction, 0.0f))};
+            const Ray localRay{
+                Vec3(toLocal * Vec4(worldRay.origin, 1.0f)),
+                Vec3(toLocal * Vec4(worldRay.direction, 0.0f))
+            };
 
             for (std::size_t i = 0; i + 2 < mesh->indices.size(); i += 3) {
-                const auto t = intersect(localRay, mesh->vertices[mesh->indices[i]].position,
-                                         mesh->vertices[mesh->indices[i + 1]].position,
-                                         mesh->vertices[mesh->indices[i + 2]].position);
+                const auto t = intersect(
+                    localRay,
+                    mesh->vertices[mesh->indices[i]].position,
+                    mesh->vertices[mesh->indices[i + 1]].position,
+                    mesh->vertices[mesh->indices[i + 2]].position
+                );
                 if (t && (!best || *t < best->t)) {
                     best = Hit{instance->id(), *t};
                 }

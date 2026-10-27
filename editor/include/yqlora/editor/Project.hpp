@@ -36,8 +36,12 @@ struct Project {
     // Создаёт папку location/name с файлом проекта и стартовой сценой
     // (камера и куб). При ошибке возвращает nullopt и пишет причину в error:
     // это ключ перевода, его можно сразу показать через tr().
-    static std::optional<Project> create(const std::filesystem::path& location, const std::string& name,
-                                         const SceneSerializer& serializer, std::string& error);
+    static std::optional<Project> create(
+        const std::filesystem::path& location,
+        const std::string& name,
+        const SceneSerializer& serializer,
+        std::string& error
+    );
 
     // Удаляет папку проекта с диска со всем содержимым. Только если в ней
     // действительно лежит project.yqlora: так случайно не стереть чужую папку.

@@ -63,8 +63,11 @@ bool ManipulatorGizmo::drawToolbar(const GizmoContext& context)
         m_localSpace = !m_localSpace;
     }
     hovered = hovered || ImGui::IsItemHovered();
-    ImGui::SetItemTooltip("%s: %s", tr(m_localSpace ? "editor.tool.local" : "editor.tool.global").c_str(),
-                          tr("editor.tool.spaceHint").c_str());
+    ImGui::SetItemTooltip(
+        "%s: %s",
+        tr(m_localSpace ? "editor.tool.local" : "editor.tool.global").c_str(),
+        tr("editor.tool.spaceHint").c_str()
+    );
 
     return hovered;
 }
@@ -95,15 +98,10 @@ bool ManipulatorGizmo::drawManipulator(GizmoContext& context)
 
     ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
     switch (m_tool) {
-    case Tool::Rotate:
-        operation = ImGuizmo::ROTATE;
-        break;
-    case Tool::Scale:
-        operation = ImGuizmo::SCALE;
-        break;
+    case Tool::Rotate: operation = ImGuizmo::ROTATE; break;
+    case Tool::Scale: operation = ImGuizmo::SCALE; break;
     case Tool::Select:
-    case Tool::Move:
-        break;
+    case Tool::Move: break;
     }
     // Масштаб в ImGuizmo бывает только по своим осям объекта.
     const ImGuizmo::MODE mode = m_localSpace || m_tool == Tool::Scale ? ImGuizmo::LOCAL : ImGuizmo::WORLD;
@@ -116,8 +114,14 @@ bool ManipulatorGizmo::drawManipulator(GizmoContext& context)
     ImGuizmo::SetOrthographic(false);
 
     Mat4 world = node->worldMatrix();
-    if (ImGuizmo::Manipulate(glm::value_ptr(context.view.view), glm::value_ptr(context.view.projection), operation,
-                             mode, glm::value_ptr(world))) {
+    const bool moved = ImGuizmo::Manipulate(
+        glm::value_ptr(context.view.view),
+        glm::value_ptr(context.view.projection),
+        operation,
+        mode,
+        glm::value_ptr(world)
+    );
+    if (moved) {
         if (const auto values = localValuesForWorld(*node, world)) {
             context.session.setTransform(*node, *values);
         }

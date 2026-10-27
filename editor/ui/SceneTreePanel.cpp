@@ -31,14 +31,14 @@ bool contains(const Node& node, NodeId id)
 
 } // namespace
 
-void SceneTreePanel::draw(EditorSession& session, const TypeRegistry& registry)
+void SceneTreePanel::draw(EditorContext& context)
 {
+    EditorSession& session = context.session;
     const Scene& scene = session.scene();
     Selection& selection = session.selection();
     m_reveal = selection.selected() != m_lastSelected;
 
-    const std::string title = tr("editor.window.scene") + "###Scene";
-    if (ImGui::Begin(title.c_str())) {
+    if (ImGui::Begin(title().c_str(), visibleFlag())) {
         if (ImGui::Button(icons::kAdd)) {
             m_addNode.open(selection.selected());
         }
@@ -55,7 +55,10 @@ void SceneTreePanel::draw(EditorSession& session, const TypeRegistry& registry)
         if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered()) {
             selection.clear();
         }
-        if (ImGui::BeginPopupContextWindow("TreeMenu", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+        if (ImGui::BeginPopupContextWindow(
+                "TreeMenu",
+                ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems
+            )) {
             if (ImGui::MenuItem(tr("editor.tree.addNode").c_str())) {
                 m_addNode.open(0);
             }
@@ -65,7 +68,7 @@ void SceneTreePanel::draw(EditorSession& session, const TypeRegistry& registry)
             m_deleteRequest = selection.selected();
         }
 
-        m_addNode.draw(session, registry);
+        m_addNode.draw(session, context.registry);
     }
     ImGui::End();
 

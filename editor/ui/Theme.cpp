@@ -33,18 +33,18 @@ std::optional<Vec4> parseColor(const Json& json)
     if (text.front() != '#') {
         return std::nullopt;
     }
-    unsigned int channels[4] = {0, 0, 0, 255};
+    float channels[4] = {0.0f, 0.0f, 0.0f, 255.0f};
     for (std::size_t i = 0; i < (text.size() - 1) / 2; ++i) {
         try {
-            channels[i] = static_cast<unsigned int>(std::stoul(text.substr(1 + i * 2, 2), nullptr, 16));
+            channels[i] = static_cast<float>(std::stoul(text.substr(1 + i * 2, 2), nullptr, 16));
         } catch (const std::exception&) {
             return std::nullopt;
         }
     }
 
-    return Vec4(static_cast<float>(channels[0]), static_cast<float>(channels[1]), static_cast<float>(channels[2]),
-                static_cast<float>(channels[3]))
-           / 255.0f;
+    const Vec4 bytes(channels[0], channels[1], channels[2], channels[3]);
+
+    return bytes / 255.0f;
 }
 
 void applyColors(const Json& json, ImGuiStyle& style)
@@ -73,11 +73,11 @@ void applyStyle(const Json& json, ImGuiStyle& style)
 
     struct FloatField {
         std::string_view name;
-        float ImGuiStyle::*field;
+        float ImGuiStyle::* field;
     };
     struct VectorField {
         std::string_view name;
-        ImVec2 ImGuiStyle::*field;
+        ImVec2 ImGuiStyle::* field;
     };
     static constexpr FloatField kFloats[] = {
         {"indentSpacing", &ImGuiStyle::IndentSpacing},

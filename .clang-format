@@ -1,0 +1,50 @@
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++20
+ColumnLimit: 120
+IndentWidth: 4
+AccessModifierOffset: -4
+NamespaceIndentation: None
+FixNamespaceComments: true
+PointerAlignment: Left
+
+# Функции с новой строки, остальное на той же.
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterFunction: true
+  SplitEmptyFunction: true
+  SplitEmptyRecord: false
+
+# Тела функций и лямбд никогда не в одну строку.
+AllowShortFunctionsOnASingleLine: None
+AllowShortLambdasOnASingleLine: None
+AllowShortBlocksOnASingleLine: Never
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortEnumsOnASingleLine: false
+
+# Длинные списки: каждый параметр и аргумент на своей строке, скобка закрывается отдельно.
+AlignAfterOpenBracket: BlockIndent
+BinPackParameters: OnePerLine
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+
+BreakConstructorInitializers: BeforeComma
+PackConstructorInitializers: Never
+BreakBeforeBinaryOperators: NonAssignment
+AlwaysBreakTemplateDeclarations: Yes
+LambdaBodyIndentation: Signature
+Cpp11BracedListStyle: true
+InsertTrailingCommas: Wrapped
+# Длинные таблицы чисел (вершины, цвета) не разбивать по одному числу на строку.
+BinPackLongBracedList: true
+PenaltyReturnTypeOnItsOwnLine: 1000
+PenaltyBreakAssignment: 1000
+
+IncludeBlocks: Preserve
+SortIncludes: CaseSensitive
+ReflowComments: false
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false

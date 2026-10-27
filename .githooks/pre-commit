@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Перед коммитом форматирует добавленные файлы C++ и прогоняет тесты.
+# Включается один раз: make hooks. Пропустить: git commit --no-verify.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+
+CLANG_FORMAT=${CLANG_FORMAT:-clang-format}
+
+mapfile -t files < <(git diff --cached --name-only --diff-filter=ACMR -- '*.cpp' '*.hpp' | grep -v '^third_party/' || true)
+if ((${#files[@]})); then
+    if ! command -v "$CLANG_FORMAT" >/dev/null; then
+        echo "pre-commit: clang-format not found, install it: uv tool install clang-format" >&2
+        exit 1
+    fi
+    # Форматирование захватило бы и строки, которые в коммит не добавляли.
+    partial=$(git diff --name-only -- "${files[@]}")
+    if [[ -n $partial ]]; then
+        echo "pre-commit: these files have unstaged changes, add or stash them first:" >&2
+        echo "$partial" >&2
+        exit 1
+    fi
+    "$CLANG_FORMAT" -i "${files[@]}"
+    git add -- "${files[@]}"
+fi
+
+make test

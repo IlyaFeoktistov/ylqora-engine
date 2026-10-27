@@ -1,24 +1,24 @@
 #pragma once
 
-namespace yqlora {
+#include "core/EditorPanel.hpp"
 
-class EditorSession;
-class TypeRegistry;
+namespace yqlora {
 
 // Свойства выбранного узла и его компоненты. Компоненты можно добавлять,
 // менять и удалять, кроме встроенного Transform.
-class InspectorPanel {
+class InspectorPanel final : public EditorPanel {
 public:
-    void draw(EditorSession& session, const TypeRegistry& registry);
-
-    // В этом кадре тянут значение мышью: нужен перенос курсора у края окна.
-    bool draggingValue() const
+    const char* id() const override
     {
-        return m_dragging;
+        return "Inspector";
     }
 
-private:
-    bool m_dragging = false;
+    const char* titleKey() const override
+    {
+        return "editor.window.inspector";
+    }
+
+    void draw(EditorContext& context) override;
 };
 
 } // namespace yqlora

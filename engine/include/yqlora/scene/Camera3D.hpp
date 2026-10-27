@@ -1,7 +1,7 @@
 #pragma once
 
-#include "yqlora/math/Math.hpp"
 #include "yqlora/math/DepthRange.hpp"
+#include "yqlora/math/Math.hpp"
 #include "yqlora/scene/Node3D.hpp"
 
 namespace yqlora {

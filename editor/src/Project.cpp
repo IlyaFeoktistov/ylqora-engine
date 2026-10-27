@@ -79,8 +79,12 @@ bool Project::save() const
     return static_cast<bool>(out);
 }
 
-std::optional<Project> Project::create(const std::filesystem::path& location, const std::string& name,
-                                       const SceneSerializer& serializer, std::string& error)
+std::optional<Project> Project::create(
+    const std::filesystem::path& location,
+    const std::string& name,
+    const SceneSerializer& serializer,
+    std::string& error
+)
 {
     if (!isValidName(name)) {
         error = "projects.error.invalidName";

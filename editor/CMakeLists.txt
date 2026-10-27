@@ -10,7 +10,7 @@ add_library(yqlora_editor STATIC
     src/ProjectList.cpp
     src/SceneCommands.cpp
     src/TransformEdit.cpp
-    src/UndoHistory.cpp
+    src/EditHistory.cpp
 )
 add_library(yqlora::editor ALIAS yqlora_editor)
 
@@ -35,6 +35,7 @@ add_executable(yqlora_app
     ui/Theme.cpp
     ui/ViewportPanel.cpp
     ui/core/Actions.cpp
+    ui/dialogs/UnsavedChangesDialog.cpp
     ui/gizmos/AxisGizmo.cpp
     ui/gizmos/CameraGizmo.cpp
     ui/gizmos/GizmoLayer.cpp

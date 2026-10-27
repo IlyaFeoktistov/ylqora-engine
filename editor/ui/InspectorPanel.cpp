@@ -75,11 +75,11 @@ void drawAddComponent(EditorSession& session, const TypeRegistry& registry, Node
 
 } // namespace
 
-void InspectorPanel::draw(EditorSession& session, const TypeRegistry& registry)
+void InspectorPanel::draw(EditorContext& context)
 {
-    m_dragging = false;
-    const std::string title = tr("editor.window.inspector") + "###Inspector";
-    if (!ImGui::Begin(title.c_str())) {
+    EditorSession& session = context.session;
+    const TypeRegistry& registry = context.registry;
+    if (!ImGui::Begin(title().c_str(), visibleFlag())) {
         ImGui::End();
 
         return;
@@ -96,7 +96,7 @@ void InspectorPanel::draw(EditorSession& session, const TypeRegistry& registry)
 
     ImGui::TextDisabled("%s", type->name().c_str());
     ImGui::SetItemTooltip("%s", tr(type->descriptionKey()).c_str());
-    m_dragging = drawPropertyTable(session, registry, *type, *node);
+    bool dragging = drawPropertyTable(session, registry, *type, *node);
 
     // Удалять компонент можно только после цикла: список меняется.
     Component* toRemove = nullptr;
@@ -113,7 +113,7 @@ void InspectorPanel::draw(EditorSession& session, const TypeRegistry& registry)
         const bool removable = node->canRemoveComponent(*component);
         const std::string header = componentType->name() + "###component";
         if (ImGui::CollapsingHeader(header.c_str(), removable ? &keep : nullptr, ImGuiTreeNodeFlags_DefaultOpen)) {
-            m_dragging = drawPropertyTable(session, registry, *componentType, *component) || m_dragging;
+            dragging = drawPropertyTable(session, registry, *componentType, *component) || dragging;
         }
         if (!keep) {
             toRemove = component.get();
@@ -126,6 +126,7 @@ void InspectorPanel::draw(EditorSession& session, const TypeRegistry& registry)
 
     drawAddComponent(session, registry, *node);
     ImGui::End();
+    context.mouseWrapping = context.mouseWrapping || dragging;
 }
 
 } // namespace yqlora

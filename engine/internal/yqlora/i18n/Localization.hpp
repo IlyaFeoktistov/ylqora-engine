@@ -41,8 +41,7 @@ public:
 
     // Первый язык из preferred (в порядке предпочтения пользователя), который
     // есть в available. "ru_RU" и "ru-RU" сводятся к "ru".
-    static std::string pickLanguage(std::span<const std::string> preferred,
-                                    std::span<const std::string> available);
+    static std::string pickLanguage(std::span<const std::string> preferred, std::span<const std::string> available);
 
     // Экземпляр, через который работает tr(). Назначает Application.
     static void setActive(const Localization* localization);

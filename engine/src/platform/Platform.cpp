@@ -39,8 +39,13 @@ bool initialize()
 
         return false;
     }
-    log::info("Platform: SDL {}.{}.{}, video driver '{}'", SDL_MAJOR_VERSION, SDL_MINOR_VERSION,
-              SDL_MICRO_VERSION, SDL_GetCurrentVideoDriver());
+    log::info(
+        "Platform: SDL {}.{}.{}, video driver '{}'",
+        SDL_MAJOR_VERSION,
+        SDL_MINOR_VERSION,
+        SDL_MICRO_VERSION,
+        SDL_GetCurrentVideoDriver()
+    );
 
     return true;
 }

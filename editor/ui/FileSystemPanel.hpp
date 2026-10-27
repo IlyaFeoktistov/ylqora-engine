@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/EditorPanel.hpp"
+
 #include "yqlora/editor/ProjectFiles.hpp"
 
 #include <filesystem>
@@ -13,16 +15,21 @@ class SceneSerializer;
 
 // Файлы проекта внизу редактора: сцены и папки. Двойной клик по сцене
 // открывает её, правый клик - меню с остальными действиями.
-class FileSystemPanel {
+class FileSystemPanel final : public EditorPanel {
 public:
-    void draw(EditorSession& session, const SceneSerializer& serializer);
+    const char* id() const override
+    {
+        return "FileSystem";
+    }
 
-    // Сцена, которую попросили открыть. Открывает её приложение: сначала
-    // оно спросит про несохранённые изменения в текущей.
-    std::optional<std::filesystem::path> takeOpenRequest();
+    const char* titleKey() const override
+    {
+        return "editor.window.files";
+    }
 
-    // Файлы поменялись не через панель: перечитать при следующей отрисовке.
-    void refresh()
+    void draw(EditorContext& context) override;
+
+    void onProjectOpened(EditorContext& /*context*/) override
     {
         m_dirty = true;
     }

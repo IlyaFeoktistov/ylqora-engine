@@ -31,13 +31,21 @@ ViewportPanel::ViewportPanel()
     m_gizmos.add(std::make_unique<GridGizmo>());
 }
 
-void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSeconds)
+void ViewportPanel::onProjectOpened(EditorContext& /*context*/)
 {
+    // Наискосок сверху, как вид по умолчанию в Blender: видно все три оси сразу.
+    m_camera.setPosition({6.0f, 4.5f, 6.0f});
+    m_camera.lookAt({0.0f, 0.5f, 0.0f});
+}
+
+void ViewportPanel::draw(EditorContext& context)
+{
+    Application& app = context.app;
+    EditorSession& session = context.session;
     Scene& scene = session.scene();
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    const std::string title = tr("editor.window.viewport") + "###Viewport";
-    const bool visible = ImGui::Begin(title.c_str());
+    const bool visible = ImGui::Begin(title().c_str());
     ImGui::PopStyleVar();
 
     const ImVec2 size = ImGui::GetContentRegionAvail();
@@ -59,8 +67,12 @@ void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSe
 
     const ImVec2 origin = ImGui::GetCursorScreenPos();
     const UiTexture texture = m_target->uiTexture();
-    ImGui::Image(ImTextureRef(texture.id), size, ImVec2(texture.uv0.x, texture.uv0.y),
-                 ImVec2(texture.uv1.x, texture.uv1.y));
+    ImGui::Image(
+        ImTextureRef(texture.id),
+        size,
+        ImVec2(texture.uv0.x, texture.uv0.y),
+        ImVec2(texture.uv1.x, texture.uv1.y)
+    );
     const bool hovered = ImGui::IsWindowHovered()
                          && ImGui::IsMouseHoveringRect(origin, ImVec2(origin.x + size.x, origin.y + size.y));
 
@@ -69,11 +81,12 @@ void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSe
     const Camera3D* gameCamera = playing ? scene.activeCamera() : nullptr;
     m_gizmos.setEnabled(!playing);
 
-    m_camera.update(app.input(), deltaSeconds, hovered && !gameCamera && !m_mouseOverGizmo);
+    m_camera.update(app.input(), context.deltaSeconds, hovered && !gameCamera && !m_mouseOverGizmo);
     setFlying(m_camera.flying());
+    context.mouseWrapping = context.mouseWrapping || m_camera.flying();
 
     const float aspect = size.x / size.y;
-    GizmoContext context{
+    GizmoContext gizmoContext{
         .session = session,
         .camera = m_camera,
         .view = m_camera.cameraData(aspect, app.depthRange()),
@@ -81,7 +94,7 @@ void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSe
         .size = size,
         .mouseFree = hovered && !m_camera.flying(),
     };
-    m_mouseOverGizmo = m_gizmos.draw(context);
+    m_mouseOverGizmo = m_gizmos.draw(gizmoContext);
     if (playing) {
         drawPlayModeFrame(origin, size, gameCamera != nullptr);
     }
@@ -101,13 +114,22 @@ void ViewportPanel::draw(Application& app, EditorSession& session, float deltaSe
 void ViewportPanel::drawPlayModeFrame(const ImVec2& origin, const ImVec2& size, bool hasCamera)
 {
     ImDrawList& list = *ImGui::GetWindowDrawList();
-    list.AddRect(origin, ImVec2(origin.x + size.x, origin.y + size.y), theme::toImU32(theme::colors().playMode), 0.0f,
-                 0, 2.0f);
+    list.AddRect(
+        origin,
+        ImVec2(origin.x + size.x, origin.y + size.y),
+        theme::toImU32(theme::colors().playMode),
+        0.0f,
+        0,
+        2.0f
+    );
     if (!hasCamera) {
         // Без активной камеры игре не через что показываться: смотрим через камеру редактора.
         const std::string text = tr("editor.play.noCamera");
-        list.AddText(ImVec2(origin.x + 12.0f, origin.y + size.y - ImGui::GetTextLineHeight() - 10.0f),
-                     ImGui::GetColorU32(ImGuiCol_Text), text.c_str());
+        list.AddText(
+            ImVec2(origin.x + 12.0f, origin.y + size.y - ImGui::GetTextLineHeight() - 10.0f),
+            ImGui::GetColorU32(ImGuiCol_Text),
+            text.c_str()
+        );
     }
 }
 

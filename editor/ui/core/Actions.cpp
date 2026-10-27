@@ -4,69 +4,116 @@
 
 #include <imgui_internal.h>
 
-#include <algorithm>
 #include <cassert>
+#include <utility>
 
 namespace yqlora {
 
-namespace {
-
-bool isEnabled(const Action& action)
+Action::Action(std::string id, std::string labelKey)
+    : m_id(std::move(id))
+    , m_labelKey(std::move(labelKey))
 {
-    return !action.enabled || action.enabled();
 }
 
-} // namespace
-
-void ActionRegistry::add(Action action)
+Action& Action::shortcut(ImGuiKeyChord chord)
 {
-    assert(!find(action.id) && "ActionRegistry::add: id is already taken");
-    m_actions.push_back(std::move(action));
+    m_shortcut = chord;
+
+    return *this;
+}
+
+Action& Action::alternativeShortcut(ImGuiKeyChord chord)
+{
+    m_alternativeShortcut = chord;
+
+    return *this;
+}
+
+Action& Action::enabledWhen(std::function<bool()> condition)
+{
+    m_enabled = std::move(condition);
+
+    return *this;
+}
+
+Action& Action::onRun(std::function<void()> run)
+{
+    m_run = std::move(run);
+
+    return *this;
+}
+
+bool Action::enabled() const
+{
+    return !m_enabled || m_enabled();
+}
+
+void Action::run() const
+{
+    if (m_run && enabled()) {
+        m_run();
+    }
+}
+
+bool Action::shortcutPressed() const
+{
+    const auto pressed = [](ImGuiKeyChord chord) {
+        return chord != 0 && ImGui::Shortcut(chord, ImGuiInputFlags_RouteGlobal);
+    };
+
+    return pressed(m_shortcut) || pressed(m_alternativeShortcut);
+}
+
+Action& ActionRegistry::add(std::string id, std::string labelKey)
+{
+    assert(!find(id) && "ActionRegistry::add: id is already taken");
+
+    return *m_actions.emplace_back(std::make_unique<Action>(std::move(id), std::move(labelKey)));
 }
 
 const Action* ActionRegistry::find(std::string_view id) const
 {
-    const auto it = std::ranges::find(m_actions, id, &Action::id);
+    for (const auto& action : m_actions) {
+        if (action->id() == id) {
+            return action.get();
+        }
+    }
 
-    return it != m_actions.end() ? &*it : nullptr;
+    return nullptr;
 }
 
 bool ActionRegistry::enabled(std::string_view id) const
 {
     const Action* action = find(id);
 
-    return action && isEnabled(*action);
+    return action && action->enabled();
 }
 
-void ActionRegistry::run(std::string_view id)
+void ActionRegistry::run(std::string_view id) const
 {
-    const Action* action = find(id);
-    if (action && isEnabled(*action)) {
+    if (const Action* action = find(id)) {
         action->run();
     }
 }
 
-void ActionRegistry::handleShortcuts()
+void ActionRegistry::handleShortcuts() const
 {
-    for (const Action& action : m_actions) {
-        const bool pressed = (action.shortcut != 0 && ImGui::Shortcut(action.shortcut, ImGuiInputFlags_RouteGlobal))
-                             || (action.alternativeShortcut != 0
-                                 && ImGui::Shortcut(action.alternativeShortcut, ImGuiInputFlags_RouteGlobal));
-        if (pressed && isEnabled(action)) {
-            action.run();
+    for (const auto& action : m_actions) {
+        if (action->shortcutPressed()) {
+            action->run();
         }
     }
 }
 
-void ActionRegistry::menuItem(std::string_view id)
+void ActionRegistry::menuItem(std::string_view id) const
 {
     const Action* action = find(id);
     if (!action) {
         return;
     }
     const std::string shortcut = shortcutText(id);
-    if (ImGui::MenuItem(tr(action->labelKey).c_str(), shortcut.empty() ? nullptr : shortcut.c_str(), false,
-                        isEnabled(*action))) {
+    const char* shortcutLabel = shortcut.empty() ? nullptr : shortcut.c_str();
+    if (ImGui::MenuItem(tr(action->labelKey()).c_str(), shortcutLabel, false, action->enabled())) {
         action->run();
     }
 }
@@ -74,11 +121,11 @@ void ActionRegistry::menuItem(std::string_view id)
 std::string ActionRegistry::shortcutText(std::string_view id) const
 {
     const Action* action = find(id);
-    if (!action || action->shortcut == 0) {
+    if (!action || action->shortcutChord() == 0) {
         return {};
     }
 
-    return ImGui::GetKeyChordName(action->shortcut);
+    return ImGui::GetKeyChordName(action->shortcutChord());
 }
 
 } // namespace yqlora

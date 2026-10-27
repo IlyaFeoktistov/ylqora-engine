@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/EditorPanel.hpp"
 #include "gizmos/Gizmo.hpp"
 
 #include "yqlora/editor/EditorCamera.hpp"
@@ -11,22 +12,30 @@
 
 namespace yqlora {
 
-class Application;
-class EditorSession;
-
 // Окно сцены: кадр рисуется в текстуру и показывается внутри окна интерфейса.
 // Камера - редактора или, во время игры, активная камера сцены. Всё остальное
 // поверх сцены (сетка, выделение, манипуляторы) делают гизмо, и в игре их нет.
-class ViewportPanel {
+class ViewportPanel final : public EditorPanel {
 public:
     ViewportPanel();
 
-    void draw(Application& app, EditorSession& session, float deltaSeconds);
-
-    EditorCamera& camera()
+    const char* id() const override
     {
-        return m_camera;
+        return "Viewport";
     }
+
+    const char* titleKey() const override
+    {
+        return "editor.window.viewport";
+    }
+
+    bool closable() const override
+    {
+        return false;
+    }
+
+    void draw(EditorContext& context) override;
+    void onProjectOpened(EditorContext& context) override;
 
 private:
     void setFlying(bool flying);

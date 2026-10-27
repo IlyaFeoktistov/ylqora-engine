@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/editor/EditHistory.hpp>
 #include <yqlora/editor/EditorSession.hpp>
-#include <yqlora/editor/UndoHistory.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Camera3D.hpp>
 #include <yqlora/scene/Scene.hpp>
@@ -86,9 +86,9 @@ struct Fixture {
 
 } // namespace
 
-TEST_CASE_FIXTURE(Fixture, "UndoHistory: undo, redo and a new command drops the undone ones")
+TEST_CASE_FIXTURE(Fixture, "EditHistory: undo, redo and a new command drops the undone ones")
 {
-    UndoHistory history;
+    EditHistory history;
     int counter = 0;
     history.execute(session, std::make_unique<AddCommand>(counter, 1));
     history.finishEdit();
@@ -107,9 +107,9 @@ TEST_CASE_FIXTURE(Fixture, "UndoHistory: undo, redo and a new command drops the 
     CHECK_FALSE(history.canRedo());
 }
 
-TEST_CASE_FIXTURE(Fixture, "UndoHistory: commands of one edit merge until finishEdit")
+TEST_CASE_FIXTURE(Fixture, "EditHistory: commands of one edit merge until finishEdit")
 {
-    UndoHistory history;
+    EditHistory history;
     int counter = 0;
     history.execute(session, std::make_unique<AddCommand>(counter, 1));
     history.execute(session, std::make_unique<AddCommand>(counter, 2));
@@ -124,9 +124,9 @@ TEST_CASE_FIXTURE(Fixture, "UndoHistory: commands of one edit merge until finish
     CHECK_FALSE(history.canUndo());
 }
 
-TEST_CASE_FIXTURE(Fixture, "UndoHistory: the saved state is found by its place in history")
+TEST_CASE_FIXTURE(Fixture, "EditHistory: the saved state is found by its place in history")
 {
-    UndoHistory history;
+    EditHistory history;
     int counter = 0;
     CHECK(history.atSaved());
 
@@ -141,9 +141,9 @@ TEST_CASE_FIXTURE(Fixture, "UndoHistory: the saved state is found by its place i
     CHECK(history.atSaved());
 }
 
-TEST_CASE_FIXTURE(Fixture, "UndoHistory: the saved state can become unreachable")
+TEST_CASE_FIXTURE(Fixture, "EditHistory: the saved state can become unreachable")
 {
-    UndoHistory history;
+    EditHistory history;
     int counter = 0;
 
     // Сохранили посреди правки, а потом она слилась дальше.

@@ -1,11 +1,9 @@
 #pragma once
 
-#include "FileSystemPanel.hpp"
-#include "InspectorPanel.hpp"
 #include "ProjectManagerPanel.hpp"
-#include "SceneTreePanel.hpp"
-#include "ViewportPanel.hpp"
 #include "core/Actions.hpp"
+#include "core/EditorPanel.hpp"
+#include "dialogs/UnsavedChangesDialog.hpp"
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/editor/EditorSession.hpp"
@@ -35,27 +33,19 @@ protected:
     void onCloseRequested() override;
 
 private:
-    // Что сделать после ответа на вопрос о несохранённых изменениях.
-    enum class PendingAction {
-        None,
-        OpenScene,
-        CloseProject,
-        Quit,
-    };
-
+    EditorContext context();
     void openProject(const Project& project);
     void closeProject();
+    // Сначала спросит про несохранённые изменения в текущей сцене.
+    void openScene(const std::filesystem::path& path);
     void saveScene();
-    // Если есть несохранённые изменения, сначала спрашивает, сохранить ли их.
-    void request(PendingAction action);
-    void perform(PendingAction action);
-    void drawUnsavedDialog();
     void updateTitle();
 
     void registerActions();
     void drawMenuBar();
     // Play, Pause и Stop по центру главного меню.
     void drawPlayControls();
+    void drawViewMenu();
     void drawLanguageMenu();
     // При первом запуске раскладывает окна: дерево слева, инспектор справа,
     // файлы снизу, сцена в центре. Дальше раскладку помнит imgui.ini.
@@ -67,14 +57,8 @@ private:
     std::unique_ptr<ProjectManagerPanel> m_projectManager;
     EditorSession m_session{scene(), m_serializer};
     ActionRegistry m_actions;
-
-    SceneTreePanel m_sceneTree;
-    InspectorPanel m_inspector;
-    FileSystemPanel m_files;
-    ViewportPanel m_viewport;
-    PendingAction m_pending = PendingAction::None;
-    std::filesystem::path m_pendingScene;
-    bool m_unsavedRequested = false;
+    std::vector<std::unique_ptr<EditorPanel>> m_panels;
+    UnsavedChangesDialog m_unsaved;
     // Курсор переносится у края окна: летит камера или тянут значение в инспекторе.
     bool m_mouseWrapping = false;
     // Что сейчас в заголовке окна, чтобы не менять его каждый кадр.

@@ -141,8 +141,10 @@ void Application::updateTitle()
     m_window->setTitle(m_titleDetail.empty() ? title : m_titleDetail + " - " + title);
 }
 
-void Application::showFolderDialog(const std::filesystem::path& start,
-                                   std::function<void(std::optional<std::filesystem::path>)> callback)
+void Application::showFolderDialog(
+    const std::filesystem::path& start,
+    std::function<void(std::optional<std::filesystem::path>)> callback
+)
 {
     m_window->showFolderDialog(start, std::move(callback));
 }
@@ -199,13 +201,12 @@ DepthRange Application::depthRange() const
 
 void Application::mainLoop()
 {
-    const WindowEvents events{
-        .onCloseRequested = [this] {
-            onCloseRequested();
-        },
-        .onResized = [this](int width, int height) {
-            m_renderer->resize(width, height);
-        },
+    WindowEvents events;
+    events.onCloseRequested = [this] {
+        onCloseRequested();
+    };
+    events.onResized = [this](int width, int height) {
+        m_renderer->resize(width, height);
     };
 
     InputFeeder input(m_input);

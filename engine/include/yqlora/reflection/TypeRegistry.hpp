@@ -114,7 +114,7 @@ public:
 
     // Свойство-поле, когда getter и setter не нужны: .property("radius", &SphereShape::radius);
     template <typename Value>
-    TypeBuilder& property(std::string name, Value Class::*field, PropertyHint hint = PropertyHint::None)
+    TypeBuilder& property(std::string name, Value Class::* field, PropertyHint hint = PropertyHint::None)
     {
         const auto getter = [field](const Class& object) -> const Value& {
             return object.*field;

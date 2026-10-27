@@ -52,9 +52,13 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
         log::warn("VSync is not available: {}", SDL_GetError());
     }
 
-    log::info("OpenGL {}.{}: {} ({})", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version),
-              reinterpret_cast<const char*>(glGetString(GL_RENDERER)),
-              reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+    log::info(
+        "OpenGL {}.{}: {} ({})",
+        GLAD_VERSION_MAJOR(version),
+        GLAD_VERSION_MINOR(version),
+        reinterpret_cast<const char*>(glGetString(GL_RENDERER)),
+        reinterpret_cast<const char*>(glGetString(GL_VERSION))
+    );
 
     glEnable(GL_DEPTH_TEST);
     m_meshes = std::make_unique<GlMeshCache>();

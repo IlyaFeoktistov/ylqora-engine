@@ -76,8 +76,9 @@ void AddNodeDialog::draw(EditorSession& session, const TypeRegistry& registry)
         ImGui::TextWrapped("%s", tr(selected->descriptionKey()).c_str());
     }
 
-    ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing()
-                         - ImGui::GetStyle().WindowPadding.y);
+    ImGui::SetCursorPosY(
+        ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing() - ImGui::GetStyle().WindowPadding.y
+    );
     ImGui::BeginDisabled(!selected || !isCreatableNode(*selected));
     create = ImGui::Button(tr("editor.addNode.create").c_str()) || create;
     ImGui::EndDisabled();
@@ -111,8 +112,13 @@ bool AddNodeDialog::drawType(const TypeRegistry& registry, const TypeInfo& type)
         flags |= ImGuiTreeNodeFlags_Selected;
     }
 
-    const bool open = ImGui::TreeNodeEx(type.name().c_str(), flags, "%s  %s", icons::forNodeType(type.name()),
-                                        type.name().c_str());
+    const bool open = ImGui::TreeNodeEx(
+        type.name().c_str(),
+        flags,
+        "%s  %s",
+        icons::forNodeType(type.name()),
+        type.name().c_str()
+    );
     bool chosen = false;
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
         m_selectedType = type.name();

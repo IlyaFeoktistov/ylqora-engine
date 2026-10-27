@@ -136,18 +136,14 @@ void Window::pollEvents(const WindowEvents& events, InputFeeder& input)
                 events.onResized(event.window.data1, event.window.data2);
             }
             break;
-        case SDL_EVENT_WINDOW_FOCUS_LOST:
-            input.releaseAll();
-            break;
+        case SDL_EVENT_WINDOW_FOCUS_LOST: input.releaseAll(); break;
         case SDL_EVENT_KEY_DOWN:
             // Автоповтор при удержании не считаем новым нажатием.
             if (!event.key.repeat) {
                 input.keyDown(toKey(event.key.scancode));
             }
             break;
-        case SDL_EVENT_KEY_UP:
-            input.keyUp(toKey(event.key.scancode));
-            break;
+        case SDL_EVENT_KEY_UP: input.keyUp(toKey(event.key.scancode)); break;
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
             if (const auto button = toMouseButton(event.button.button)) {
                 input.mouseButtonDown(*button);
@@ -174,8 +170,7 @@ void Window::pollEvents(const WindowEvents& events, InputFeeder& input)
             input.wheelScrolled(delta);
             break;
         }
-        default:
-            break;
+        default: break;
         }
     }
 }

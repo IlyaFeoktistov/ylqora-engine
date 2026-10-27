@@ -43,9 +43,11 @@ std::optional<std::size_t> componentIndex(const Node& node, const Component& com
 }
 
 // path лежит внутри from (или равен ему): тот же путь, но от to. Иначе nullopt.
-std::optional<std::filesystem::path> replacePrefix(const std::filesystem::path& path,
-                                                   const std::filesystem::path& from,
-                                                   const std::filesystem::path& to)
+std::optional<std::filesystem::path> replacePrefix(
+    const std::filesystem::path& path,
+    const std::filesystem::path& from,
+    const std::filesystem::path& to
+)
 {
     const auto [fromEnd, pathIt] = std::ranges::mismatch(from, path);
     if (path.empty() || fromEnd != from.end()) {
@@ -255,7 +257,13 @@ bool EditorSession::removeComponent(Node& node, Component& component)
 
 bool EditorSession::setProperty(Node& node, const Property& property, const PropertyValue& value)
 {
-    return execute(std::make_unique<SetPropertyCommand>(PropertyTarget{.node = node.id(), .component = std::nullopt}, property, value));
+    return execute(
+        std::make_unique<SetPropertyCommand>(
+            PropertyTarget{.node = node.id(), .component = std::nullopt},
+            property,
+            value
+        )
+    );
 }
 
 bool EditorSession::setProperty(Component& component, const Property& property, const PropertyValue& value)
@@ -267,7 +275,8 @@ bool EditorSession::setProperty(Component& component, const Property& property, 
     }
 
     return execute(
-        std::make_unique<SetPropertyCommand>(PropertyTarget{.node = node->id(), .component = index}, property, value));
+        std::make_unique<SetPropertyCommand>(PropertyTarget{.node = node->id(), .component = index}, property, value)
+    );
 }
 
 bool EditorSession::setTransform(Node3D& node, const TransformValues& values)

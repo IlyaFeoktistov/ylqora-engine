@@ -20,8 +20,10 @@ bool SelectionGizmo::draw(GizmoContext& context)
         return false;
     }
     const ImVec2 mouse = ImGui::GetMousePos();
-    const Ray ray = context.camera.screenRay({mouse.x - context.origin.x, mouse.y - context.origin.y},
-                                            {context.size.x, context.size.y});
+    const Ray ray = context.camera.screenRay(
+        {mouse.x - context.origin.x, mouse.y - context.origin.y},
+        {context.size.x, context.size.y}
+    );
     context.session.selection().select(pickNode(context.session.scene(), ray));
 
     return false;

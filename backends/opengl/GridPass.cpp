@@ -87,10 +87,12 @@ GridPass::GridPass()
     : m_shader("grid", kVertexShader, kFragmentShader)
 {
     // Два треугольника на квадрат [-1, 1], размер и положение задаёт вершинный шейдер.
+    // clang-format off
     const float corners[] = {
         -1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f,
         -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f,
     };
+    // clang-format on
 
     glGenVertexArrays(1, &m_vertexArray);
     glGenBuffers(1, &m_vertexBuffer);

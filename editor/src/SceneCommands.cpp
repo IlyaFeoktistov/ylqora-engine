@@ -123,8 +123,12 @@ bool getProperty(EditorSession& session, const PropertyTarget& target, const Pro
     return true;
 }
 
-bool setProperty(EditorSession& session, const PropertyTarget& target, const Property& property,
-                 const PropertyValue& value)
+bool setProperty(
+    EditorSession& session,
+    const PropertyTarget& target,
+    const Property& property,
+    const PropertyValue& value
+)
 {
     Node* node = session.findNode(target.node);
     if (!node) {

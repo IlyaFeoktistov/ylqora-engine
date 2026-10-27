@@ -14,7 +14,11 @@ namespace {
 
 const Localization* g_active = nullptr;
 
-void flatten(const nlohmann::json& node, const std::string& prefix, std::map<std::string, std::string, std::less<>>& out)
+void flatten(
+    const nlohmann::json& node,
+    const std::string& prefix,
+    std::map<std::string, std::string, std::less<>>& out
+)
 {
     for (const auto& [key, value] : node.items()) {
         const std::string fullKey = prefix.empty() ? key : prefix + "." + key;
@@ -122,8 +126,7 @@ std::vector<std::string> Localization::availableLanguages() const
     return result;
 }
 
-std::string Localization::pickLanguage(std::span<const std::string> preferred,
-                                       std::span<const std::string> available)
+std::string Localization::pickLanguage(std::span<const std::string> preferred, std::span<const std::string> available)
 {
     for (const auto& code : preferred) {
         const auto normalized = normalizeLanguageCode(code);

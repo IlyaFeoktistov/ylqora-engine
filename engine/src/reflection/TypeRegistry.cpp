@@ -46,8 +46,7 @@ std::vector<const Property*> TypeRegistry::properties(const TypeInfo& type) cons
 
 void registerEngineTypes(TypeRegistry& registry)
 {
-    registry.registerNode<Node>("Node")
-        .property("name", &Node::name, &Node::setName);
+    registry.registerNode<Node>("Node").property("name", &Node::name, &Node::setName);
 
     registry.registerNode<Node3D>("Node3D");
 

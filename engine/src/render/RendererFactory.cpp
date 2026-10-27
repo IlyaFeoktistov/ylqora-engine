@@ -30,8 +30,7 @@ void prepareWindowForApi(GraphicsApi api)
         break;
 #endif
     case GraphicsApi::Vulkan:
-    case GraphicsApi::Direct3D12:
-        break;
+    case GraphicsApi::Direct3D12: break;
     }
     throwNotBuilt(api);
 }
@@ -47,8 +46,7 @@ std::unique_ptr<Renderer> createRenderer(GraphicsApi api, [[maybe_unused]] Windo
         break;
 #endif
     case GraphicsApi::Vulkan:
-    case GraphicsApi::Direct3D12:
-        break;
+    case GraphicsApi::Direct3D12: break;
     }
     throwNotBuilt(api);
 }

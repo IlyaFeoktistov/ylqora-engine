@@ -43,15 +43,11 @@ bool iconButton(const char* icon, const std::string& hint)
 
 } // namespace
 
-std::optional<std::filesystem::path> FileSystemPanel::takeOpenRequest()
+void FileSystemPanel::draw(EditorContext& context)
 {
-    return std::exchange(m_openRequest, std::nullopt);
-}
-
-void FileSystemPanel::draw(EditorSession& session, const SceneSerializer& serializer)
-{
-    const std::string title = tr("editor.window.files") + "###FileSystem";
-    if (!ImGui::Begin(title.c_str()) || !session.project()) {
+    EditorSession& session = context.session;
+    const SceneSerializer& serializer = context.serializer;
+    if (!ImGui::Begin(title().c_str(), visibleFlag()) || !session.project()) {
         ImGui::End();
 
         return;
@@ -103,10 +99,17 @@ void FileSystemPanel::draw(EditorSession& session, const SceneSerializer& serial
     drawRenameDialog(session);
     drawDeleteDialog(session);
     ImGui::End();
+
+    if (m_openRequest) {
+        context.openScene(*std::exchange(m_openRequest, std::nullopt));
+    }
 }
 
-void FileSystemPanel::drawEntry(const projectfiles::Entry& entry, EditorSession& session,
-                                const SceneSerializer& serializer)
+void FileSystemPanel::drawEntry(
+    const projectfiles::Entry& entry,
+    EditorSession& session,
+    const SceneSerializer& serializer
+)
 {
     const bool selected = entry.path == m_selected;
     const bool openScene = entry.path == session.scenePath();
@@ -158,8 +161,11 @@ void FileSystemPanel::drawEntry(const projectfiles::Entry& entry, EditorSession&
     }
 }
 
-void FileSystemPanel::drawContextMenu(const projectfiles::Entry& entry, EditorSession& session,
-                                      const SceneSerializer& serializer)
+void FileSystemPanel::drawContextMenu(
+    const projectfiles::Entry& entry,
+    EditorSession& session,
+    const SceneSerializer& serializer
+)
 {
     if (!ImGui::BeginPopupContextItem()) {
         return;

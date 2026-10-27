@@ -1,8 +1,8 @@
-#include "yqlora/editor/UndoHistory.hpp"
+#include "yqlora/editor/EditHistory.hpp"
 
 namespace yqlora {
 
-bool UndoHistory::execute(EditorSession& session, std::unique_ptr<Command> command)
+bool EditHistory::execute(EditorSession& session, std::unique_ptr<Command> command)
 {
     if (!command || !command->apply(session)) {
         return false;
@@ -27,7 +27,7 @@ bool UndoHistory::execute(EditorSession& session, std::unique_ptr<Command> comma
     return true;
 }
 
-bool UndoHistory::undo(EditorSession& session)
+bool EditHistory::undo(EditorSession& session)
 {
     if (!canUndo()) {
         return false;
@@ -39,7 +39,7 @@ bool UndoHistory::undo(EditorSession& session)
     return true;
 }
 
-bool UndoHistory::redo(EditorSession& session)
+bool EditHistory::redo(EditorSession& session)
 {
     if (!canRedo()) {
         return false;
@@ -54,7 +54,7 @@ bool UndoHistory::redo(EditorSession& session)
     return true;
 }
 
-void UndoHistory::clear()
+void EditHistory::clear()
 {
     m_commands.clear();
     m_position = 0;

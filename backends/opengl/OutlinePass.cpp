@@ -109,9 +109,10 @@ OutlinePass::~OutlinePass()
 void OutlinePass::draw(const FrameData& frame, int width, int height)
 {
     const NodeId selected = frame.editor.selected;
-    const bool hasSelectedMesh = selected != 0 && std::ranges::any_of(frame.drawItems, [&](const DrawItem& item) {
+    const auto isSelected = [&](const DrawItem& item) {
         return item.node == selected;
-    });
+    };
+    const bool hasSelectedMesh = selected != 0 && std::ranges::any_of(frame.drawItems, isSelected);
     if (!hasSelectedMesh || width <= 0 || height <= 0) {
         return;
     }

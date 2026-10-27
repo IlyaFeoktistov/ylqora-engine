@@ -23,7 +23,10 @@ bool AxisGizmo::draw(GizmoContext& context)
     const Vec4 axisColors[] = {colors.axisX, colors.axisY, colors.axisZ};
     const char* names[] = {"X", "Y", "Z"};
 
-    const ImVec2 center(origin.x + size.x - kRadius - kBallRadius - kMargin, origin.y + kRadius + kBallRadius + kMargin);
+    const ImVec2 center(
+        origin.x + size.x - kRadius - kBallRadius - kMargin,
+        origin.y + kRadius + kBallRadius + kMargin
+    );
     const Mat3 rotation(view);
 
     struct End {
@@ -40,8 +43,8 @@ bool AxisGizmo::draw(GizmoContext& context)
         const Vec3 v = rotation * direction;
         const ImVec2 offset(v.x * kRadius, -v.y * kRadius);
         ends[static_cast<std::size_t>(axis * 2)] = {ImVec2(center.x + offset.x, center.y + offset.y), v.z, axis, true};
-        ends[static_cast<std::size_t>(axis * 2 + 1)] = {ImVec2(center.x - offset.x, center.y - offset.y), -v.z, axis,
-                                                        false};
+        ends[static_cast<std::size_t>(axis * 2 + 1)] =
+            {ImVec2(center.x - offset.x, center.y - offset.y), -v.z, axis, false};
     }
     // Сначала дальние, потом ближние: ближние перекрывают дальние.
     std::ranges::sort(ends, [](const End& a, const End& b) {
@@ -68,11 +71,18 @@ bool AxisGizmo::draw(GizmoContext& context)
         if (end.positive) {
             list.AddLine(center, end.position, theme::toImU32(color, alpha), 2.0f);
         }
-        list.AddCircleFilled(end.position, end.positive ? kBallRadius : kBallRadius * 0.75f, theme::toImU32(color, alpha));
+        list.AddCircleFilled(
+            end.position,
+            end.positive ? kBallRadius : kBallRadius * 0.75f,
+            theme::toImU32(color, alpha)
+        );
         if (end.positive) {
             const ImVec2 textSize = ImGui::CalcTextSize(names[end.axis]);
-            list.AddText(ImVec2(end.position.x - textSize.x * 0.5f, end.position.y - textSize.y * 0.5f),
-                         IM_COL32(20, 20, 20, 255), names[end.axis]);
+            list.AddText(
+                ImVec2(end.position.x - textSize.x * 0.5f, end.position.y - textSize.y * 0.5f),
+                IM_COL32(20, 20, 20, 255),
+                names[end.axis]
+            );
         }
     }
 

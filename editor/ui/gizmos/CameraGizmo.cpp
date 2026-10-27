@@ -26,8 +26,15 @@ std::optional<ImVec2> project(const Mat4& viewProjection, const Vec3& point, con
     return ImVec2(origin.x + (ndc.x * 0.5f + 0.5f) * size.x, origin.y + (0.5f - ndc.y * 0.5f) * size.y);
 }
 
-void line(ImDrawList& list, const Mat4& viewProjection, const Vec3& a, const Vec3& b, const ImVec2& origin,
-          const ImVec2& size, ImU32 color)
+void line(
+    ImDrawList& list,
+    const Mat4& viewProjection,
+    const Vec3& a,
+    const Vec3& b,
+    const ImVec2& origin,
+    const ImVec2& size,
+    ImU32 color
+)
 {
     const auto screenA = project(viewProjection, a, origin, size);
     const auto screenB = project(viewProjection, b, origin, size);
@@ -36,8 +43,14 @@ void line(ImDrawList& list, const Mat4& viewProjection, const Vec3& a, const Vec
     }
 }
 
-void drawCamera(ImDrawList& list, const Camera3D& camera, ImU32 color, const Mat4& viewProjection,
-                const ImVec2& origin, const ImVec2& size)
+void drawCamera(
+    ImDrawList& list,
+    const Camera3D& camera,
+    ImU32 color,
+    const Mat4& viewProjection,
+    const ImVec2& origin,
+    const ImVec2& size
+)
 {
     // Пирамида глубиной в полметра, пропорции экрана 16:9.
     constexpr float kDepth = 0.5f;
@@ -70,8 +83,14 @@ void drawCamera(ImDrawList& list, const Camera3D& camera, ImU32 color, const Mat
     line(list, viewProjection, top, left, origin, size, color);
 }
 
-void drawCamerasRecursive(ImDrawList& list, const Node& node, NodeId selected, const Mat4& viewProjection,
-                          const ImVec2& origin, const ImVec2& size)
+void drawCamerasRecursive(
+    ImDrawList& list,
+    const Node& node,
+    NodeId selected,
+    const Mat4& viewProjection,
+    const ImVec2& origin,
+    const ImVec2& size
+)
 {
     if (const auto* camera = dynamic_cast<const Camera3D*>(&node)) {
         const EditorColors& colors = theme::colors();
@@ -95,8 +114,14 @@ bool CameraGizmo::draw(GizmoContext& context)
     const ImVec2& size = context.size;
     ImDrawList& list = *ImGui::GetWindowDrawList();
     list.PushClipRect(origin, ImVec2(origin.x + size.x, origin.y + size.y), true);
-    drawCamerasRecursive(list, *root, context.session.selection().selected(),
-                         context.view.projection * context.view.view, origin, size);
+    drawCamerasRecursive(
+        list,
+        *root,
+        context.session.selection().selected(),
+        context.view.projection * context.view.view,
+        origin,
+        size
+    );
     list.PopClipRect();
 
     return false;

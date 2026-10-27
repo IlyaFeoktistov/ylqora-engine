@@ -60,7 +60,8 @@ Json valueToJson(const PropertyValue& value)
                 return Json(v);
             }
         },
-        value);
+        value
+    );
 }
 
 std::optional<PropertyValue> valueFromJson(const Json& json, PropertyType type)
@@ -86,12 +87,9 @@ std::optional<PropertyValue> valueFromJson(const Json& json, PropertyType type)
             return json.get<std::string>();
         }
         break;
-    case PropertyType::Vector2:
-        return vectorFromJson<Vec2>(json);
-    case PropertyType::Vector3:
-        return vectorFromJson<Vec3>(json);
-    case PropertyType::Vector4:
-        return vectorFromJson<Vec4>(json);
+    case PropertyType::Vector2: return vectorFromJson<Vec2>(json);
+    case PropertyType::Vector3: return vectorFromJson<Vec3>(json);
+    case PropertyType::Vector4: return vectorFromJson<Vec4>(json);
     }
 
     return std::nullopt;
