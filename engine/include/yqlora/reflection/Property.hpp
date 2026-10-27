@@ -129,7 +129,7 @@ constexpr PropertyType propertyTypeOf()
 enum class PropertyHint {
     None,
     Color, // Vec4 как цвет RGBA с палитрой
-    Mesh,  // строка с именем меша: выбор из доступных мешей
+    Mesh,  // ссылка на ресурс меша: выбор из доступных мешей
     Angle, // градусы: при перетаскивании значение меняется медленнее
 };
 

@@ -5,6 +5,7 @@
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/render/MeshData.hpp"
+#include "yqlora/resource/ResourceDatabase.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <imgui.h>
@@ -98,15 +99,36 @@ void vectorFields(float* values, int count, float speed, const EditorColors& col
     }
 }
 
-bool meshCombo(std::string& value)
+// Ресурс по имени: у встроенных - имя меша, у ресурсов проекта - путь к файлу.
+std::string resourceLabel(ResourceRef value, const ResourceDatabase* resources)
+{
+    if (value.id == 0) {
+        return tr("editor.inspector.none");
+    }
+    for (const BuiltinMesh& mesh : builtinMeshes()) {
+        if (mesh.id == value.id) {
+            return std::string(mesh.name);
+        }
+    }
+    if (const auto path = resources ? resources->path(value.id) : std::nullopt) {
+        const std::u8string text = path->generic_u8string();
+
+        return {text.begin(), text.end()};
+    }
+
+    return tr("editor.inspector.missing");
+}
+
+// Пока выбираются только встроенные меши: загрузка мешей из файлов будет позже.
+bool meshCombo(ResourceRef& value, const ResourceDatabase* resources)
 {
     bool changed = false;
     ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::BeginCombo("##value", value.c_str())) {
-        for (const std::string_view name : builtinMeshNames()) {
-            const std::string item(name);
-            if (ImGui::Selectable(item.c_str(), item == value)) {
-                value = item;
+    if (ImGui::BeginCombo("##value", resourceLabel(value, resources).c_str())) {
+        for (const BuiltinMesh& mesh : builtinMeshes()) {
+            const std::string name(mesh.name);
+            if (ImGui::Selectable(name.c_str(), mesh.id == value.id)) {
+                value.id = mesh.id;
                 changed = true;
             }
         }
@@ -218,12 +240,8 @@ void valueField(
         break;
     case PropertyType::Float: floatField("##value", std::get<float>(value), -FLT_MIN, "%.3f", result); break;
     case PropertyType::String:
-        if (property.hint() == PropertyHint::Mesh) {
-            result.changed = meshCombo(std::get<std::string>(value)) || result.changed;
-        } else {
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            result.changed = ImGui::InputText("##value", &std::get<std::string>(value)) || result.changed;
-        }
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        result.changed = ImGui::InputText("##value", &std::get<std::string>(value)) || result.changed;
         break;
     case PropertyType::Vector2: vectorFields(&std::get<Vec2>(value).x, 2, speed, context.colors, result); break;
     case PropertyType::Vector3: vectorFields(&std::get<Vec3>(value).x, 3, speed, context.colors, result); break;
@@ -240,9 +258,12 @@ void valueField(
         result.changed = nodeCombo(context.scene, std::get<NodeRef>(value)) || result.changed;
         break;
     case PropertyType::Resource:
-        // Выбор ресурса появится вместе с базой ресурсов проекта, пока только ID.
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextDisabled("%llu", static_cast<unsigned long long>(std::get<ResourceRef>(value).id));
+        if (property.hint() == PropertyHint::Mesh) {
+            result.changed = meshCombo(std::get<ResourceRef>(value), context.resources) || result.changed;
+        } else {
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(resourceLabel(std::get<ResourceRef>(value), context.resources).c_str());
+        }
         break;
     }
 }

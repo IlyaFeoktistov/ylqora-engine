@@ -1,20 +1,16 @@
-#include "yqlora/editor/Project.hpp"
+#include "yqlora/editor/ProjectSetup.hpp"
 
 #include "yqlora/core/Log.hpp"
+#include "yqlora/editor/ProjectFiles.hpp"
+#include "yqlora/resource/BuiltinResources.hpp"
 #include "yqlora/scene/Camera3D.hpp"
-#include "yqlora/scene/MeshInstance3D.hpp"
+#include "yqlora/scene/MeshRenderer.hpp"
 #include "yqlora/scene/Scene.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
-
-#include <nlohmann/json.hpp>
-
-#include <fstream>
 
 namespace yqlora::editor {
 
 namespace {
-
-using Json = nlohmann::json;
 
 std::string toUtf8(const std::filesystem::path& path)
 {
@@ -32,61 +28,26 @@ std::filesystem::path fromUtf8(const std::string& text)
 void buildStarterScene(Scene& scene)
 {
     auto& root = scene.createRoot<Node3D>("Main");
-
     auto& camera = root.addChild<Camera3D>("Camera");
     camera.transform().setPosition({0.0f, 2.0f, 5.0f});
     camera.transform().lookAt({0.0f, 0.5f, 0.0f});
     scene.setActiveCamera(&camera);
 
-    auto& cube = root.addChild<MeshInstance3D>("Cube");
+    auto& cube = root.addChild<Node3D>("Cube");
     cube.transform().setPosition({0.0f, 0.5f, 0.0f});
+    cube.addComponent<MeshRenderer>().setMesh(ResourceRef{builtin::kCubeMesh});
 }
 
 } // namespace
 
-std::optional<Project> Project::load(const std::filesystem::path& directory)
-{
-    std::ifstream in(directory / kFileName);
-    if (!in) {
-        return std::nullopt;
-    }
-    const Json json = Json::parse(in, nullptr, /*allow_exceptions=*/false);
-    if (!json.is_object() || !json.contains("name") || !json["name"].is_string()) {
-        log::warn("Project file in '{}' is broken", toUtf8(directory));
-
-        return std::nullopt;
-    }
-
-    Project project;
-    project.name = json["name"].get<std::string>();
-    project.directory = directory;
-    if (const auto it = json.find("mainScene"); it != json.end() && it->is_string()) {
-        project.mainScene = fromUtf8(it->get<std::string>());
-    }
-
-    return project;
-}
-
-bool Project::save() const
-{
-    Json json;
-    json["name"] = name;
-    json["mainScene"] = toUtf8(mainScene);
-
-    std::ofstream out(projectFile());
-    out << json.dump(4) << '\n';
-
-    return static_cast<bool>(out);
-}
-
-std::optional<Project> Project::create(
+std::optional<Project> createProject(
     const std::filesystem::path& location,
     const std::string& name,
     const SceneSerializer& serializer,
     std::string& error
 )
 {
-    if (!isValidName(name)) {
+    if (!isValidFileName(name)) {
         error = "projects.error.invalidName";
 
         return std::nullopt;
@@ -104,13 +65,17 @@ std::optional<Project> Project::create(
         return std::nullopt;
     }
 
-    Project project;
-    project.name = name;
-    project.directory = directory;
-
+    const std::filesystem::path mainScene = std::string("main") + std::string(ProjectFiles::sceneExtension());
     Scene scene;
     buildStarterScene(scene);
-    if (!project.save() || !serializer.save(scene, project.mainScenePath())) {
+    auto project = Project::create(directory, name);
+    if (!project || !serializer.save(scene, directory / mainScene)) {
+        error = "projects.error.cannotCreate";
+
+        return std::nullopt;
+    }
+    project->setMainScene(project->resources().add(mainScene));
+    if (!project->save()) {
         error = "projects.error.cannotCreate";
 
         return std::nullopt;
@@ -119,10 +84,10 @@ std::optional<Project> Project::create(
     return project;
 }
 
-bool Project::deleteFolder(const std::filesystem::path& directory, std::string& error)
+bool deleteProjectFolder(const std::filesystem::path& directory, std::string& error)
 {
     std::error_code ec;
-    if (!std::filesystem::is_regular_file(directory / kFileName, ec)) {
+    if (!std::filesystem::is_regular_file(directory / Project::fileName(), ec)) {
         error = "projects.error.notProject";
 
         return false;
@@ -138,7 +103,7 @@ bool Project::deleteFolder(const std::filesystem::path& directory, std::string& 
     return true;
 }
 
-bool Project::isValidName(std::string_view name)
+bool isValidFileName(std::string_view name)
 {
     if (name.empty() || name.size() > 64 || name == "." || name == "..") {
         return false;

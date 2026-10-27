@@ -144,8 +144,8 @@ void EditorApp::onGui()
     m_unsaved.draw(m_session);
 
     if (!m_session.project()) {
-        if (const auto project = m_projectManager->draw(*this)) {
-            openProject(*project);
+        if (auto project = m_projectManager->draw(*this)) {
+            openProject(std::move(*project));
         }
 
         return;
@@ -184,16 +184,17 @@ void EditorApp::onCloseRequested()
     m_actions.run("app.quit");
 }
 
-void EditorApp::openProject(const Project& project)
+void EditorApp::openProject(Project project)
 {
-    m_session.open(project);
+    const std::filesystem::path directory = project.directory();
+    m_session.open(std::move(project));
     EditorContext frame = context();
     for (const auto& panel : m_panels) {
         panel->onProjectOpened(frame);
     }
     updateTitle();
 
-    m_projects->markOpened(project.directory);
+    m_projects->markOpened(directory);
     if (!m_projects->save()) {
         log::error("Cannot save the project list");
     }
@@ -232,7 +233,7 @@ void EditorApp::updateTitle()
     std::string title;
     if (m_session.project()) {
         const std::u8string scene = m_session.scenePath().filename().u8string();
-        title = m_session.project()->name + " - " + std::string(scene.begin(), scene.end());
+        title = m_session.project()->name() + " - " + std::string(scene.begin(), scene.end());
         if (m_session.modified()) {
             title += " *";
         }

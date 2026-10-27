@@ -8,6 +8,7 @@ namespace yqlora {
 
 class Component;
 class Node;
+class ResourceDatabase;
 class Scene;
 
 } // namespace yqlora
@@ -36,6 +37,8 @@ struct PropertyEditorContext {
     const EditorColors& colors;
     // Из неё выбирается узел для ссылки на узел.
     const Scene& scene;
+    // Ресурсы проекта для ссылок на ресурсы. nullptr, если проекта нет.
+    const ResourceDatabase* resources = nullptr;
 };
 
 PropertyResult drawProperty(const Property& property, Node& node, const PropertyEditorContext& context);

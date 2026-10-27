@@ -23,13 +23,13 @@ std::string toUtf8(const std::filesystem::path& path)
     return {text.begin(), text.end()};
 }
 
-const char* iconFor(const projectfiles::Entry& entry, bool open)
+const char* iconFor(const ProjectFiles::Entry& entry, bool open)
 {
     if (entry.directory) {
         return open ? icons::kFolderOpen : icons::kFolder;
     }
 
-    return projectfiles::isScene(entry.path) ? icons::kScene : icons::kFile;
+    return ProjectFiles::isScene(entry.path) ? icons::kScene : icons::kFile;
 }
 
 // Кнопка с иконкой; текст - во всплывающей подсказке.
@@ -52,30 +52,31 @@ void FileSystemPanel::draw(EditorContext& context)
 
         return;
     }
-    const Project& project = *session.project();
+    Project& project = *session.project();
+    ProjectFiles files(project);
 
     // Перечитываем, когда открыли другой проект и когда панель получила фокус:
     // файлы могли поменять в проводнике.
     const bool focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
-    if (project.directory != m_projectDirectory || (focused && !m_wasFocused)) {
-        m_projectDirectory = project.directory;
+    if (project.directory() != m_projectDirectory || (focused && !m_wasFocused)) {
+        m_projectDirectory = project.directory();
         m_dirty = true;
     }
     m_wasFocused = focused;
     if (m_dirty) {
-        m_root = projectfiles::scan(project);
+        m_root = files.scan();
         m_dirty = false;
     }
 
     if (iconButton(icons::kAddFile, tr("editor.files.newScene"))) {
-        if (const auto created = projectfiles::createScene(project, targetFolder(), serializer)) {
+        if (const auto created = files.createScene(targetFolder(), serializer)) {
             m_dirty = true;
             startRename(*created);
         }
     }
     ImGui::SameLine();
     if (iconButton(icons::kAddFolder, tr("editor.files.newFolder"))) {
-        if (const auto created = projectfiles::createFolder(project, targetFolder())) {
+        if (const auto created = files.createFolder(targetFolder())) {
             m_dirty = true;
             startRename(*created);
         }
@@ -106,7 +107,7 @@ void FileSystemPanel::draw(EditorContext& context)
 }
 
 void FileSystemPanel::drawEntry(
-    const projectfiles::Entry& entry,
+    const ProjectFiles::Entry& entry,
     EditorSession& session,
     const SceneSerializer& serializer,
     const EditorColors& colors
@@ -114,7 +115,8 @@ void FileSystemPanel::drawEntry(
 {
     const bool selected = entry.path == m_selected;
     const bool openScene = entry.path == session.scenePath();
-    const bool mainScene = session.project() && entry.path == session.project()->mainScene;
+    const auto mainScenePath = session.project()->mainScenePath();
+    const bool mainScene = mainScenePath && entry.path == *mainScenePath;
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick
                                | ImGuiTreeNodeFlags_SpanAvailWidth;
@@ -141,7 +143,7 @@ void FileSystemPanel::drawEntry(
         m_selected = entry.path;
         m_selectedIsDirectory = entry.directory;
     }
-    if (!entry.directory && projectfiles::isScene(entry.path) && ImGui::IsItemHovered()
+    if (!entry.directory && ProjectFiles::isScene(entry.path) && ImGui::IsItemHovered()
         && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
         m_openRequest = entry.path;
     }
@@ -162,7 +164,7 @@ void FileSystemPanel::drawEntry(
 }
 
 void FileSystemPanel::drawContextMenu(
-    const projectfiles::Entry& entry,
+    const ProjectFiles::Entry& entry,
     EditorSession& session,
     const SceneSerializer& serializer
 )
@@ -170,7 +172,8 @@ void FileSystemPanel::drawContextMenu(
     if (!ImGui::BeginPopupContextItem()) {
         return;
     }
-    const Project& project = *session.project();
+    ProjectFiles files(*session.project());
+    const auto mainScene = session.project()->mainScenePath();
     const auto item = [](const char* icon, const char* key) {
         const std::string label = std::string(icon) + "  " + tr(key);
 
@@ -179,23 +182,23 @@ void FileSystemPanel::drawContextMenu(
 
     if (entry.directory) {
         if (item(icons::kAddFile, "editor.files.newScene")) {
-            if (const auto created = projectfiles::createScene(project, entry.path, serializer)) {
+            if (const auto created = files.createScene(entry.path, serializer)) {
                 m_dirty = true;
                 startRename(*created);
             }
         }
         if (item(icons::kAddFolder, "editor.files.newFolder")) {
-            if (const auto created = projectfiles::createFolder(project, entry.path)) {
+            if (const auto created = files.createFolder(entry.path)) {
                 m_dirty = true;
                 startRename(*created);
             }
         }
         ImGui::Separator();
-    } else if (projectfiles::isScene(entry.path)) {
+    } else if (ProjectFiles::isScene(entry.path)) {
         if (item(icons::kScene, "editor.files.open")) {
             m_openRequest = entry.path;
         }
-        if (entry.path != project.mainScene && item(icons::kMainScene, "editor.files.setMain")) {
+        if (entry.path != mainScene && item(icons::kMainScene, "editor.files.setMain")) {
             session.setMainScene(entry.path);
         }
         ImGui::Separator();
@@ -230,8 +233,7 @@ void FileSystemPanel::drawRenameDialog(EditorSession& session, const EditorColor
     }
 
     if (ImGui::Button(tr("editor.files.rename").c_str()) || entered) {
-        if (const auto renamed = projectfiles::rename(*session.project(), m_renaming, m_newName)) {
-            session.fileRenamed(m_renaming, *renamed);
+        if (const auto renamed = ProjectFiles(*session.project()).rename(m_renaming, m_newName)) {
             if (m_selected == m_renaming) {
                 m_selected = *renamed;
             }
@@ -263,7 +265,7 @@ void FileSystemPanel::drawDeleteDialog(EditorSession& session)
     ImGui::Separator();
 
     if (ImGui::Button(tr("editor.files.delete").c_str())) {
-        projectfiles::remove(*session.project(), m_deleting);
+        ProjectFiles(*session.project()).remove(m_deleting);
         if (m_selected == m_deleting) {
             m_selected.clear();
         }

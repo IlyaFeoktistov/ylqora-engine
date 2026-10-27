@@ -8,7 +8,6 @@
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/editor/EditorSession.hpp"
-#include "yqlora/editor/Project.hpp"
 #include "yqlora/editor/ProjectList.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
@@ -35,7 +34,7 @@ protected:
 
 private:
     EditorContext context();
-    void openProject(const Project& project);
+    void openProject(Project project);
     void closeProject();
     // Сначала спросит про несохранённые изменения в текущей сцене.
     void openScene(const std::filesystem::path& path);

@@ -2,7 +2,7 @@
 
 #include "yqlora/render/MeshData.hpp"
 #include "yqlora/scene/Camera3D.hpp"
-#include "yqlora/scene/MeshInstance3D.hpp"
+#include "yqlora/scene/MeshRenderer.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 namespace yqlora {
@@ -11,15 +11,15 @@ namespace {
 
 void collectDrawItems(const Node& node, std::vector<DrawItem>& out)
 {
-    if (const auto* instance = dynamic_cast<const MeshInstance3D*>(&node)) {
-        if (const MeshData* mesh = findBuiltinMesh(instance->mesh())) {
-            out.push_back({
-                .mesh = mesh,
-                .world = instance->worldMatrix(),
-                .color = instance->color(),
-                .node = instance->id(),
-            });
-        }
+    const auto* node3D = dynamic_cast<const Node3D*>(&node);
+    const MeshRenderer* renderer = node3D ? node3D->getComponent<MeshRenderer>() : nullptr;
+    if (const MeshData* mesh = renderer ? findBuiltinMesh(renderer->mesh().id) : nullptr) {
+        out.push_back({
+            .mesh = mesh,
+            .world = node3D->worldMatrix(),
+            .color = renderer->color(),
+            .node = node3D->id(),
+        });
     }
     for (const auto& child : node.children()) {
         collectDrawItems(*child, out);

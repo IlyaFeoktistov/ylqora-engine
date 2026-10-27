@@ -5,7 +5,7 @@
 #include <yqlora/editor/Selection.hpp>
 #include <yqlora/platform/InputFeeder.hpp>
 #include <yqlora/scene/Camera3D.hpp>
-#include <yqlora/scene/MeshInstance3D.hpp>
+#include <yqlora/scene/MeshRenderer.hpp>
 #include <yqlora/scene/Scene.hpp>
 
 #include <glm/gtc/epsilon.hpp>
@@ -106,17 +106,30 @@ TEST_CASE("EditorCamera: ray through the screen center goes forward")
     CHECK(camera.screenRay({1280.0f, 360.0f}, {1280.0f, 720.0f}).direction.x > 0.0f);
 }
 
+namespace {
+
+Node3D& addMesh(Node& parent, const char* name, ResourceId mesh = builtin::kCubeMesh)
+{
+    auto& node = parent.addChild<Node3D>(name);
+    node.addComponent<MeshRenderer>().setMesh(ResourceRef{mesh});
+
+    return node;
+}
+
+} // namespace
+
 TEST_CASE("Picking: the nearest mesh under the ray wins")
 {
     Scene scene;
     auto& root = scene.createRoot<Node>();
-    auto& front = root.addChild<MeshInstance3D>("Front");
+    auto& front = addMesh(root, "Front");
     front.transform().setPosition({0.0f, 0.0f, -3.0f});
-    auto& back = root.addChild<MeshInstance3D>("Back");
+    auto& back = addMesh(root, "Back");
     back.transform().setPosition({0.0f, 0.0f, -6.0f});
-    auto& ball = root.addChild<MeshInstance3D>("Ball");
-    ball.setMesh("sphere");
+    auto& ball = addMesh(root, "Ball", builtin::kSphereMesh);
     ball.transform().setPosition({3.0f, 0.0f, -3.0f});
+    // Узел без MeshRenderer не выбирается кликом.
+    root.addChild<Node3D>("Empty").transform().setPosition({0.0f, 0.0f, -1.0f});
 
     const Vec3 origin(0.0f, 0.0f, 0.0f);
     CHECK(pickNode(scene, {origin, {0.0f, 0.0f, -1.0f}}) == front.id());
@@ -133,7 +146,8 @@ TEST_CASE("Picking: the nearest mesh under the ray wins")
 TEST_CASE("Picking: scale and rotation of the node are taken into account")
 {
     Scene scene;
-    auto& cube = scene.createRoot<MeshInstance3D>();
+    auto& cube = scene.createRoot<Node3D>();
+    cube.addComponent<MeshRenderer>();
     cube.transform().setPosition({0.0f, 0.0f, -5.0f});
     cube.transform().setScale({4.0f, 1.0f, 1.0f});
 

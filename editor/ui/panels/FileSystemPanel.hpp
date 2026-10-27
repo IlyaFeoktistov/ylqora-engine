@@ -42,19 +42,19 @@ public:
 
 private:
     void drawEntry(
-        const projectfiles::Entry& entry,
+        const ProjectFiles::Entry& entry,
         EditorSession& session,
         const SceneSerializer& serializer,
         const EditorColors& colors
     );
-    void drawContextMenu(const projectfiles::Entry& entry, EditorSession& session, const SceneSerializer& serializer);
+    void drawContextMenu(const ProjectFiles::Entry& entry, EditorSession& session, const SceneSerializer& serializer);
     void drawRenameDialog(EditorSession& session, const EditorColors& colors);
     void drawDeleteDialog(EditorSession& session);
     // Папка, куда класть новые файлы: выбранная папка или папка выбранного файла.
     std::filesystem::path targetFolder() const;
     void startRename(const std::filesystem::path& path);
 
-    projectfiles::Entry m_root;
+    ProjectFiles::Entry m_root;
     std::filesystem::path m_projectDirectory;
     std::filesystem::path m_selected;
     bool m_selectedIsDirectory = false;

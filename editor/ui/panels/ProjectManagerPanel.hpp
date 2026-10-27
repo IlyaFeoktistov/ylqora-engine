@@ -1,6 +1,6 @@
 #pragma once
 
-#include "yqlora/editor/Project.hpp"
+#include "yqlora/project/Project.hpp"
 
 #include <filesystem>
 #include <optional>

@@ -167,7 +167,7 @@ TEST_CASE_FIXTURE(Fixture, "Undo: a created node goes away and comes back with t
 {
     Node* root = session.createNode(type("Node3D"), nullptr);
     session.createNode(type("Node3D"), root);
-    Node* cube = session.createNode(type("MeshInstance3D"), root);
+    Node* cube = session.createNode(type("Camera3D"), root);
     const NodeId cubeId = cube->id();
     REQUIRE(session.modified());
 

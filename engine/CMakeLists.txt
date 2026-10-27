@@ -32,20 +32,21 @@ add_library(yqlora SHARED
     src/scene/Node2D.cpp
     src/scene/Node3D.cpp
     src/scene/Camera3D.cpp
-    src/scene/MeshInstance3D.cpp
     src/scene/Scene.cpp
     src/scene/SceneSerializer.cpp
+    src/project/Project.cpp
     src/reflection/Property.cpp
     src/reflection/TypeRegistry.cpp
     src/render/FrameBuilder.cpp
     src/render/MeshData.cpp
     src/render/RendererFactory.cpp
+    src/resource/ResourceDatabase.cpp
 )
 add_library(yqlora::yqlora ALIAS yqlora)
 
 # include/ - публичный API для игр: математика, сцена, ввод, лог, tr().
 # internal/ - окно, платформа, рендер, Application: см. yqlora::internal ниже.
-target_include_directories(yqlora PUBLIC include)
+target_include_directories(yqlora PUBLIC include PRIVATE src)
 target_link_libraries(yqlora
     PUBLIC glm::glm imgui_headers
     PRIVATE yqlora_engine_code imgui SDL3::SDL3-static nlohmann_json::nlohmann_json

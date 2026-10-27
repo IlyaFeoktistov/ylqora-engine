@@ -2,10 +2,11 @@
 
 #include "yqlora/editor/Command.hpp"
 #include "yqlora/editor/EditHistory.hpp"
-#include "yqlora/editor/Project.hpp"
 #include "yqlora/editor/Selection.hpp"
 #include "yqlora/editor/TransformEdit.hpp"
+#include "yqlora/project/Project.hpp"
 #include "yqlora/reflection/Property.hpp"
+#include "yqlora/resource/ResourceId.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -37,6 +38,11 @@ public:
         return m_project;
     }
 
+    std::optional<Project>& project()
+    {
+        return m_project;
+    }
+
     Scene& scene()
     {
         return m_scene;
@@ -54,14 +60,18 @@ public:
 
     // Открывает проект и его главную сцену. Если сцена не читается, проект
     // всё равно открывается с пустой сценой, а метод возвращает false.
-    bool open(const Project& project);
+    bool open(Project project);
     void close();
 
-    // Открытая сцена, путь от папки проекта.
-    const std::filesystem::path& scenePath() const
+    // Открытая сцена как ресурс проекта: путь к ней меняется при
+    // переименовании, а ID нет.
+    ResourceId sceneId() const
     {
-        return m_scenePath;
+        return m_sceneId;
     }
+
+    // Путь к открытой сцене от папки проекта. Пусто, если сцены нет.
+    std::filesystem::path scenePath() const;
 
     // Открывает другую сцену проекта. Если файл не читается, остаётся прежняя.
     bool openScene(const std::filesystem::path& path);
@@ -71,10 +81,6 @@ public:
 
     // Делает сцену главной: она откроется вместе с проектом.
     bool setMainScene(const std::filesystem::path& path);
-
-    // Файл или папку переименовали или удалили в панели файлов: если это
-    // открытая сцена (или папка с ней), путь к ней обновляется.
-    void fileRenamed(const std::filesystem::path& from, const std::filesystem::path& to);
 
     // Сцену меняли после открытия или последнего сохранения.
     bool modified() const
@@ -156,7 +162,7 @@ private:
     Scene& m_scene;
     const SceneSerializer& m_serializer;
     std::optional<Project> m_project;
-    std::filesystem::path m_scenePath;
+    ResourceId m_sceneId = 0;
     Selection m_selection;
     EditHistory m_history;
 

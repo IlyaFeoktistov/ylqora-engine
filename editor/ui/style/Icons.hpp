@@ -22,10 +22,9 @@ inline constexpr const char* kPause = "\uE12E"; // pause
 inline constexpr const char* kStop = "\uE167";  // square
 
 // Типы узлов в дереве сцены.
-inline constexpr const char* kNode = "\uE345";           // circle-dot
-inline constexpr const char* kNode3D = "\uE2FE";         // axis-3d
-inline constexpr const char* kCamera3D = "\uE1A5";       // video
-inline constexpr const char* kMeshInstance3D = "\uE524"; // cuboid
+inline constexpr const char* kNode = "\uE345";     // circle-dot
+inline constexpr const char* kNode3D = "\uE2FE";   // axis-3d
+inline constexpr const char* kCamera3D = "\uE1A5"; // video
 
 // Файлы и действия.
 inline constexpr const char* kFolder = "\uE0D7";     // folder
@@ -48,9 +47,6 @@ inline const char* forNodeType(std::string_view type)
 {
     if (type == "Camera3D") {
         return kCamera3D;
-    }
-    if (type == "MeshInstance3D") {
-        return kMeshInstance3D;
     }
     if (type == "Node3D") {
         return kNode3D;

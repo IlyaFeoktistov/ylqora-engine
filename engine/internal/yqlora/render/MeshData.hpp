@@ -2,6 +2,7 @@
 
 #include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
+#include "yqlora/resource/ResourceId.hpp"
 
 #include <cstdint>
 #include <span>
@@ -22,12 +23,17 @@ struct MeshData {
     std::vector<std::uint32_t> indices;
 };
 
-// Встроенные меши: "cube" (ребро 1), "sphere" (радиус 0.5), "plane" (1 x 1 на XZ).
-// Все с центром в начале координат. nullptr для неизвестного имени.
-// Данные живут до конца программы, указатель можно хранить.
-YQLORA_API const MeshData* findBuiltinMesh(std::string_view name);
+// Встроенный меш с центром в начале координат (см. BuiltinResources.hpp).
+// nullptr, если это не встроенный меш. Данные живут до конца программы.
+YQLORA_API const MeshData* findBuiltinMesh(ResourceId id);
 
-// Имена всех встроенных мешей, для выбора в редакторе.
-YQLORA_API std::span<const std::string_view> builtinMeshNames();
+struct BuiltinMesh {
+    ResourceId id;
+    // Английское имя: "cube", "sphere", "plane".
+    std::string_view name;
+};
+
+// Все встроенные меши, для выбора в редакторе.
+YQLORA_API std::span<const BuiltinMesh> builtinMeshes();
 
 } // namespace yqlora

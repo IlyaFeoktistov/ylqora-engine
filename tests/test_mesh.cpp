@@ -4,7 +4,7 @@
 #include <yqlora/render/FrameBuilder.hpp>
 #include <yqlora/render/MeshData.hpp>
 #include <yqlora/scene/Camera3D.hpp>
-#include <yqlora/scene/MeshInstance3D.hpp>
+#include <yqlora/scene/MeshRenderer.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 
@@ -14,9 +14,9 @@ using namespace yqlora;
 
 TEST_CASE("MeshData: builtin meshes are valid and face outwards")
 {
-    for (const char* name : {"cube", "sphere", "plane"}) {
-        CAPTURE(name);
-        const MeshData* mesh = findBuiltinMesh(name);
+    for (const BuiltinMesh& builtinMesh : builtinMeshes()) {
+        CAPTURE(builtinMesh.name);
+        const MeshData* mesh = findBuiltinMesh(builtinMesh.id);
         REQUIRE(mesh);
         REQUIRE(mesh->indices.size() % 3 == 0);
 
@@ -42,47 +42,85 @@ TEST_CASE("MeshData: builtin meshes are valid and face outwards")
         }
     }
 
-    CHECK(findBuiltinMesh("teapot") == nullptr);
+    CHECK(findBuiltinMesh(0) == nullptr);
+    CHECK(findBuiltinMesh(builtin::kFirstProjectId) == nullptr);
 }
 
-TEST_CASE("FrameBuilder: every MeshInstance3D with a known mesh becomes a draw item")
+TEST_CASE("FrameBuilder: every Node3D with a MeshRenderer and a known mesh becomes a draw item")
 {
     Scene scene;
     auto& root = scene.createRoot<Node3D>("Root");
     root.transform().setPosition({0.0f, 1.0f, 0.0f});
 
-    auto& cube = root.addChild<MeshInstance3D>("Cube");
+    auto& cube = root.addChild<Node3D>("Cube");
     cube.transform().setPosition({2.0f, 0.0f, 0.0f});
-    cube.setColor({1.0f, 0.0f, 0.0f, 1.0f});
+    cube.addComponent<MeshRenderer>().setColor({1.0f, 0.0f, 0.0f, 1.0f});
 
-    auto& unknown = root.addChild<MeshInstance3D>("Unknown");
-    unknown.setMesh("teapot");
+    auto& unknown = root.addChild<Node3D>("Unknown");
+    unknown.addComponent<MeshRenderer>().setMesh(ResourceRef{123456});
 
     const FrameData frame = buildFrameData(scene, 1.0f, DepthRange::MinusOneToOne);
     REQUIRE(frame.drawItems.size() == 1);
     const DrawItem& item = frame.drawItems[0];
-    CHECK(item.mesh == findBuiltinMesh("cube"));
+    CHECK(item.mesh == findBuiltinMesh(builtin::kCubeMesh));
     CHECK(item.node == cube.id());
     CHECK(item.color == Vec4(1.0f, 0.0f, 0.0f, 1.0f));
     // Мировая матрица учитывает родителя.
     CHECK(Vec3(item.world[3]) == Vec3(2.0f, 1.0f, 0.0f));
 }
 
-TEST_CASE("MeshInstance3D: mesh and color are saved with the scene")
+TEST_CASE("MeshRenderer: mesh and color are saved with the scene")
 {
     TypeRegistry registry;
     registerEngineTypes(registry);
     const SceneSerializer serializer(registry);
 
     Scene original;
-    auto& sphere = original.createRoot<MeshInstance3D>("Ball");
-    sphere.setMesh("sphere");
-    sphere.setColor({0.2f, 0.4f, 0.6f, 1.0f});
+    auto& ball = original.createRoot<Node3D>("Ball");
+    auto& renderer = ball.addComponent<MeshRenderer>();
+    renderer.setMesh(ResourceRef{builtin::kSphereMesh});
+    renderer.setColor({0.2f, 0.4f, 0.6f, 1.0f});
 
     Scene loaded;
     REQUIRE(serializer.fromJson(loaded, serializer.toJson(original)));
-    auto* loadedSphere = dynamic_cast<MeshInstance3D*>(loaded.root());
-    REQUIRE(loadedSphere);
-    CHECK(loadedSphere->mesh() == "sphere");
-    CHECK(loadedSphere->color() == Vec4(0.2f, 0.4f, 0.6f, 1.0f));
+    const auto* loadedRenderer = loaded.root()->getComponent<MeshRenderer>();
+    REQUIRE(loadedRenderer);
+    CHECK(loadedRenderer->mesh().id == builtin::kSphereMesh);
+    CHECK(loadedRenderer->color() == Vec4(0.2f, 0.4f, 0.6f, 1.0f));
+}
+
+TEST_CASE("SceneSerializer: a version 1 MeshInstance3D becomes a Node3D with a MeshRenderer")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    const SceneSerializer serializer(registry);
+
+    // Так сцену сохранял движок до версии 2: ID числами, меш по имени.
+    const char* oldScene = R"({
+        "version": 1,
+        "activeCamera": 0,
+        "root": {
+            "type": "MeshInstance3D",
+            "id": 77,
+            "properties": {"name": "Ball", "mesh": "sphere", "color": [0.2, 0.4, 0.6, 1.0]},
+            "components": [{"type": "Transform3D", "properties": {"position": [1.0, 2.0, 3.0]}}],
+            "children": []
+        }
+    })";
+
+    Scene scene;
+    REQUIRE(serializer.fromJson(scene, oldScene));
+    auto* ball = dynamic_cast<Node3D*>(scene.root());
+    REQUIRE(ball);
+    CHECK(ball->typeName() == "Node3D");
+    CHECK(ball->id() == 77);
+    CHECK(ball->name() == "Ball");
+    CHECK(ball->transform().position() == Vec3(1.0f, 2.0f, 3.0f));
+    const auto* renderer = ball->getComponent<MeshRenderer>();
+    REQUIRE(renderer);
+    CHECK(renderer->mesh().id == builtin::kSphereMesh);
+    CHECK(renderer->color() == Vec4(0.2f, 0.4f, 0.6f, 1.0f));
+
+    // Новые версии формата старый движок не открывает, а новый - не угадывает.
+    CHECK_FALSE(serializer.fromJson(scene, R"({"version": 99, "root": null})"));
 }

@@ -295,7 +295,7 @@ private:
     std::string m_module{engineModule()};
 };
 
-// Типы движка: Node, Node3D, Camera3D, MeshInstance3D, Transform3D.
+// Типы движка: Node, Node3D, Camera3D, Transform3D, MeshRenderer.
 YQLORA_API void registerEngineTypes(TypeRegistry& registry);
 
 } // namespace yqlora

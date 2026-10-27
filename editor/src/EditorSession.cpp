@@ -42,25 +42,6 @@ std::optional<std::size_t> componentIndex(const Node& node, const Component& com
     return std::nullopt;
 }
 
-// path лежит внутри from (или равен ему): тот же путь, но от to. Иначе nullopt.
-std::optional<std::filesystem::path> replacePrefix(
-    const std::filesystem::path& path,
-    const std::filesystem::path& from,
-    const std::filesystem::path& to
-)
-{
-    const auto [fromEnd, pathIt] = std::ranges::mismatch(from, path);
-    if (path.empty() || fromEnd != from.end()) {
-        return std::nullopt;
-    }
-    std::filesystem::path result = to;
-    for (auto it = pathIt; it != path.end(); ++it) {
-        result /= *it;
-    }
-
-    return result;
-}
-
 } // namespace
 
 EditorSession::EditorSession(Scene& scene, const SceneSerializer& serializer)
@@ -69,19 +50,20 @@ EditorSession::EditorSession(Scene& scene, const SceneSerializer& serializer)
 {
 }
 
-bool EditorSession::open(const Project& project)
+bool EditorSession::open(Project project)
 {
     stop();
-    m_project = project;
-    m_scenePath = project.mainScene;
+    m_project = std::move(project);
+    m_sceneId = m_project->mainScene();
     m_selection.clear();
     m_history.clear();
 
     // Загрузка при ошибке оставляет сцену как была, поэтому сначала очищаем:
     // от прошлого проекта ничего не должно остаться.
     m_scene.setRoot(nullptr);
-    if (!m_serializer.load(m_scene, project.mainScenePath())) {
-        log::warn("Main scene of '{}' is not loaded, starting with an empty scene", project.name);
+    const auto path = m_project->mainScenePath();
+    if (!path || !m_serializer.load(m_scene, m_project->directory() / *path)) {
+        log::warn("Main scene of '{}' is not loaded, starting with an empty scene", m_project->name());
 
         return false;
     }
@@ -94,18 +76,25 @@ void EditorSession::close()
     stop();
     m_scene.setRoot(nullptr);
     m_project.reset();
-    m_scenePath.clear();
+    m_sceneId = 0;
     m_selection.clear();
     m_history.clear();
+}
+
+std::filesystem::path EditorSession::scenePath() const
+{
+    return m_project ? m_project->resources().path(m_sceneId).value_or(std::filesystem::path())
+                     : std::filesystem::path();
 }
 
 bool EditorSession::openScene(const std::filesystem::path& path)
 {
     stop();
-    if (!m_project || !m_serializer.load(m_scene, m_project->directory / path)) {
+    const ResourceId id = m_project ? m_project->resources().id(path) : 0;
+    if (id == 0 || !m_serializer.load(m_scene, m_project->directory() / path)) {
         return false;
     }
-    m_scenePath = path;
+    m_sceneId = id;
     m_selection.clear();
     m_history.clear();
 
@@ -150,32 +139,19 @@ void EditorSession::stop()
 
 bool EditorSession::setMainScene(const std::filesystem::path& path)
 {
-    if (!m_project) {
+    const ResourceId id = m_project ? m_project->resources().id(path) : 0;
+    if (id == 0) {
         return false;
     }
-    const std::filesystem::path previous = m_project->mainScene;
-    m_project->mainScene = path;
+    const ResourceId previous = m_project->mainScene();
+    m_project->setMainScene(id);
     if (!m_project->save()) {
-        m_project->mainScene = previous;
+        m_project->setMainScene(previous);
 
         return false;
     }
 
     return true;
-}
-
-void EditorSession::fileRenamed(const std::filesystem::path& from, const std::filesystem::path& to)
-{
-    if (!m_project) {
-        return;
-    }
-    // Переименовали саму сцену или папку, где она лежит.
-    if (const auto scene = replacePrefix(m_scenePath, from, to)) {
-        m_scenePath = *scene;
-    }
-    if (const auto main = replacePrefix(m_project->mainScene, from, to)) {
-        setMainScene(*main);
-    }
 }
 
 bool EditorSession::saveScene()
@@ -185,7 +161,8 @@ bool EditorSession::saveScene()
         return false;
     }
 
-    if (!m_serializer.save(m_scene, m_project->directory / m_scenePath)) {
+    const std::filesystem::path path = scenePath();
+    if (path.empty() || !m_serializer.save(m_scene, m_project->directory() / path)) {
         return false;
     }
     m_history.markSaved();

@@ -1,13 +1,15 @@
 #include <doctest/doctest.h>
 
 #include <yqlora/editor/EditorSession.hpp>
-#include <yqlora/editor/Project.hpp>
 #include <yqlora/editor/ProjectList.hpp>
+#include <yqlora/editor/ProjectSetup.hpp>
+#include <yqlora/project/Project.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 
 #include <filesystem>
+#include <fstream>
 
 using namespace yqlora;
 using namespace yqlora::editor;
@@ -34,42 +36,45 @@ TEST_CASE("Project: create makes a folder with the project file and a starter sc
     const auto location = freshDirectory("project_create");
 
     std::string error;
-    const auto project = Project::create(location, "My Game", serializer, error);
+    const auto project = createProject(location, "My Game", serializer, error);
     REQUIRE(project);
-    CHECK(project->directory == location / "My Game");
+    CHECK(project->directory() == location / "My Game");
     CHECK(std::filesystem::exists(project->projectFile()));
 
-    const auto loaded = Project::load(project->directory);
+    const auto loaded = Project::open(project->directory());
     REQUIRE(loaded);
-    CHECK(loaded->name == "My Game");
+    CHECK(loaded->name() == "My Game");
+    CHECK(loaded->mainScene() == project->mainScene());
+    REQUIRE(loaded->mainScenePath());
 
     Scene scene;
-    REQUIRE(serializer.load(scene, loaded->mainScenePath()));
+    REQUIRE(serializer.load(scene, loaded->directory() / *loaded->mainScenePath()));
     REQUIRE(scene.root());
     CHECK(scene.root()->children().size() == 2);
     CHECK(scene.activeCamera() != nullptr);
 
     // Второй раз в ту же папку нельзя.
-    CHECK_FALSE(Project::create(location, "My Game", serializer, error));
+    CHECK_FALSE(createProject(location, "My Game", serializer, error));
     CHECK(error == "projects.error.exists");
 }
 
-TEST_CASE("Project: names must be usable as folder names everywhere")
+TEST_CASE("isValidFileName: names must be usable as file and folder names everywhere")
 {
-    CHECK(Project::isValidName("Game"));
-    CHECK(Project::isValidName("Моя игра 2"));
+    CHECK(isValidFileName("Game"));
+    CHECK(isValidFileName("Моя игра 2"));
 
-    CHECK_FALSE(Project::isValidName(""));
-    CHECK_FALSE(Project::isValidName(".."));
-    CHECK_FALSE(Project::isValidName("a/b"));
-    CHECK_FALSE(Project::isValidName("what?"));
-    CHECK_FALSE(Project::isValidName(" padded"));
-    CHECK_FALSE(Project::isValidName("dot."));
+    CHECK_FALSE(isValidFileName(""));
+    CHECK_FALSE(isValidFileName(".."));
+    CHECK_FALSE(isValidFileName("a/b"));
+    CHECK_FALSE(isValidFileName("what?"));
+    CHECK_FALSE(isValidFileName(" padded"));
+    CHECK_FALSE(isValidFileName("dot."));
 }
 
 TEST_CASE("Project: a folder without a project file is not a project")
 {
-    CHECK_FALSE(Project::load(freshDirectory("project_missing")));
+    CHECK_FALSE(Project::open(freshDirectory("project_missing")));
+    CHECK_FALSE(Project::readName(freshDirectory("project_missing")));
 }
 
 TEST_CASE("ProjectList: recently opened first, saved between runs")
@@ -110,7 +115,7 @@ TEST_CASE("EditorSession: open, change, save and reopen a project")
     registerEngineTypes(registry);
     const SceneSerializer serializer(registry);
     std::string error;
-    const auto project = Project::create(freshDirectory("session"), "Game", serializer, error);
+    const auto project = createProject(freshDirectory("session"), "Game", serializer, error);
     REQUIRE(project);
 
     Scene scene;
@@ -138,9 +143,9 @@ TEST_CASE("EditorSession: a project with a broken scene opens with an empty scen
     registerEngineTypes(registry);
     const SceneSerializer serializer(registry);
     std::string error;
-    const auto project = Project::create(freshDirectory("session_broken"), "Game", serializer, error);
+    const auto project = createProject(freshDirectory("session_broken"), "Game", serializer, error);
     REQUIRE(project);
-    std::filesystem::remove(project->mainScenePath());
+    std::filesystem::remove(project->directory() / *project->mainScenePath());
 
     Scene scene;
     scene.createRoot<Node>("FromBefore");
@@ -150,22 +155,40 @@ TEST_CASE("EditorSession: a project with a broken scene opens with an empty scen
     CHECK(scene.empty());
 }
 
-TEST_CASE("Project: deleteFolder removes only real project folders")
+TEST_CASE("deleteProjectFolder: removes only real project folders")
 {
     TypeRegistry registry;
     registerEngineTypes(registry);
     const SceneSerializer serializer(registry);
     const auto location = freshDirectory("project_delete");
     std::string error;
-    const auto project = Project::create(location, "Game", serializer, error);
+    const auto project = createProject(location, "Game", serializer, error);
     REQUIRE(project);
 
     const auto notProject = location / "Photos";
     std::filesystem::create_directories(notProject);
-    CHECK_FALSE(Project::deleteFolder(notProject, error));
+    CHECK_FALSE(deleteProjectFolder(notProject, error));
     CHECK(error == "projects.error.notProject");
     CHECK(std::filesystem::exists(notProject));
 
-    CHECK(Project::deleteFolder(project->directory, error));
-    CHECK_FALSE(std::filesystem::exists(project->directory));
+    CHECK(deleteProjectFolder(project->directory(), error));
+    CHECK_FALSE(std::filesystem::exists(project->directory()));
+}
+
+TEST_CASE("Project: a version 1 file with the main scene as a path is updated")
+{
+    const auto directory = freshDirectory("project_v1");
+    {
+        std::ofstream(directory / "project.yqlora") << R"({"name": "Old", "mainScene": "levels/start.yscene"})";
+        std::filesystem::create_directories(directory / "levels");
+        std::ofstream(directory / "levels" / "start.yscene") << "{}";
+    }
+
+    const auto project = Project::open(directory);
+    REQUIRE(project);
+    REQUIRE(project->mainScene() != 0);
+    CHECK(project->mainScenePath() == std::filesystem::path("levels/start.yscene"));
+
+    // Файл уже в новом виде: при повторном открытии та же сцена.
+    CHECK(Project::open(directory)->mainScene() == project->mainScene());
 }

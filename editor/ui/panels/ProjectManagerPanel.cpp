@@ -6,6 +6,7 @@
 #include "yqlora/core/Application.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/editor/ProjectList.hpp"
+#include "yqlora/editor/ProjectSetup.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/platform/Platform.hpp"
 
@@ -111,8 +112,8 @@ void ProjectManagerPanel::refresh()
     for (const ProjectList::Entry& entry : m_projects.entries()) {
         Row row;
         row.directory = entry.directory;
-        if (const auto project = Project::load(entry.directory)) {
-            row.name = project->name;
+        if (auto name = Project::readName(entry.directory)) {
+            row.name = std::move(*name);
         } else {
             row.name = toUtf8(entry.directory.filename());
             row.missing = true;
@@ -205,8 +206,8 @@ void ProjectManagerPanel::drawCreateDialog(Application& app)
 
     ImGui::Separator();
     if (ImGui::Button(tr("projects.create").c_str())) {
-        if (auto project = Project::create(fromUtf8(m_location), m_newName, m_serializer, m_error)) {
-            m_projects.add(project->directory);
+        if (auto project = createProject(fromUtf8(m_location), m_newName, m_serializer, m_error)) {
+            m_projects.add(project->directory());
             commit();
             m_toOpen = std::move(project);
             ImGui::CloseCurrentPopup();
@@ -245,7 +246,7 @@ void ProjectManagerPanel::drawImportDialog(Application& app)
     ImGui::Separator();
     if (ImGui::Button(tr("projects.add").c_str())) {
         const std::filesystem::path directory = fromUtf8(m_importPath);
-        if (Project::load(directory)) {
+        if (Project::readName(directory)) {
             m_projects.add(directory);
             commit();
             ImGui::CloseCurrentPopup();
@@ -290,7 +291,7 @@ void ProjectManagerPanel::drawRemoveDialog()
 
     ImGui::Separator();
     if (ImGui::Button(tr("projects.remove").c_str())) {
-        const bool removed = !m_deleteFolder || row.missing || Project::deleteFolder(row.directory, m_error);
+        const bool removed = !m_deleteFolder || row.missing || deleteProjectFolder(row.directory, m_error);
         if (removed) {
             m_projects.remove(row.directory);
             m_selected = -1;
@@ -307,7 +308,7 @@ void ProjectManagerPanel::drawRemoveDialog()
 
 void ProjectManagerPanel::open(const Row& row)
 {
-    if (auto project = Project::load(row.directory)) {
+    if (auto project = Project::open(row.directory)) {
         m_toOpen = std::move(project);
     } else {
         // Папку убрали, пока менеджер был открыт. Перечитываем список

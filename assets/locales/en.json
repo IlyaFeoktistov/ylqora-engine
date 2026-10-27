@@ -15,8 +15,8 @@
         "Camera3D": {
             "description": "Perspective camera. The scene is shown through the active camera."
         },
-        "MeshInstance3D": {
-            "description": "Draws a mesh at the node position."
+        "MeshRenderer": {
+            "description": "Draws a mesh at the position of its Node3D."
         },
         "Transform3D": {
             "description": "Position, rotation and scale relative to the parent node."
@@ -48,7 +48,8 @@
             "nothing": "Select a node to see its properties",
             "addComponent": "Add component",
             "noComponents": "No components to add yet",
-            "none": "None"
+            "none": "None",
+            "missing": "Missing"
         },
         "tree": {
             "addNode": "Add node",

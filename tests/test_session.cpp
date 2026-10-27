@@ -3,7 +3,6 @@
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Camera3D.hpp>
-#include <yqlora/scene/MeshInstance3D.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 
@@ -45,14 +44,14 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: the first node becomes the root, the 
     CHECK(session.selection().selected() == root->id());
     CHECK(session.modified());
 
-    Node* cube = session.createNode(type("MeshInstance3D"), nullptr);
-    Node* cube2 = session.createNode(type("MeshInstance3D"), nullptr);
+    Node* cube = session.createNode(type("Camera3D"), nullptr);
+    Node* cube2 = session.createNode(type("Camera3D"), nullptr);
     REQUIRE(cube);
     REQUIRE(cube2);
     CHECK(cube->parent() == root);
     // Имена среди соседей не повторяются.
-    CHECK(cube->name() == "MeshInstance3D");
-    CHECK(cube2->name() == "MeshInstance3D2");
+    CHECK(cube->name() == "Camera3D");
+    CHECK(cube2->name() == "Camera3D2");
 
     Node* child = session.createNode(type("Camera3D"), cube);
     REQUIRE(child);
@@ -100,7 +99,7 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: components can be added and removed, 
 TEST_CASE_FIXTURE(Fixture, "EditorSession: Stop returns the scene as it was before Play")
 {
     Node* root = session.createNode(type("Node3D"), nullptr);
-    auto* cube = static_cast<Node3D*>(session.createNode(type("MeshInstance3D"), root));
+    auto* cube = static_cast<Node3D*>(session.createNode(type("Camera3D"), root));
     cube->transform().setPosition({1.0f, 0.0f, 0.0f});
     const NodeId cubeId = cube->id();
     session.selection().select(cubeId);

@@ -22,7 +22,11 @@ template <typename Object>
 bool drawPropertyTable(EditorContext& context, const TypeInfo& type, Object& object)
 {
     EditorSession& session = context.session;
-    const PropertyEditorContext widgets{.colors = context.theme.colors(), .scene = session.scene()};
+    const PropertyEditorContext widgets{
+        .colors = context.theme.colors(),
+        .scene = session.scene(),
+        .resources = session.project() ? &session.project()->resources() : nullptr,
+    };
     const auto properties = context.registry.properties(type);
     if (properties.empty() || !ImGui::BeginTable("properties", 2)) {
         return false;

@@ -1,7 +1,10 @@
 #include "yqlora/scene/SceneSerializer.hpp"
 
+#include "core/JsonId.hpp"
+
 #include "yqlora/core/Log.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
+#include "yqlora/render/MeshData.hpp"
 #include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/Scene.hpp"
 
@@ -18,8 +21,9 @@ namespace {
 
 using Json = nlohmann::json;
 
-// Меняется, когда старые файлы перестают читаться новым кодом.
-constexpr int kFormatVersion = 1;
+// Версия формата файла сцены. Когда формат меняется, версия растёт, а в
+// kMigrations добавляется перевод с предыдущей версии: старые сцены открываются.
+constexpr int kFormatVersion = 2;
 
 template <typename Vec>
 Json vectorToJson(const Vec& vec)
@@ -67,7 +71,7 @@ Json valueToJson(const Property& property, const PropertyValue& value)
 
                 return v.value;
             } else if constexpr (std::is_same_v<T, NodeRef> || std::is_same_v<T, ResourceRef>) {
-                return v.id;
+                return idToJson(v.id);
             } else {
                 return Json(v);
             }
@@ -121,18 +125,90 @@ std::optional<PropertyValue> valueFromJson(const Json& json, const Property& pro
     case PropertyType::Vector4: return vectorFromJson<Vec4>(json);
     case PropertyType::Enum: return enumFromJson(json, property);
     case PropertyType::Node:
-        if (json.is_number_unsigned()) {
-            return NodeRef{json.get<NodeId>()};
+        if (const auto id = idFromJson(json)) {
+            return NodeRef{*id};
         }
         break;
     case PropertyType::Resource:
-        if (json.is_number_unsigned()) {
-            return ResourceRef{json.get<ResourceId>()};
+        if (const auto id = idFromJson(json)) {
+            return ResourceRef{*id};
         }
         break;
     }
 
     return std::nullopt;
+}
+
+// 1 -> 2: узел MeshInstance3D стал Node3D с компонентом MeshRenderer,
+// а меш задаётся ID ресурса вместо имени встроенного меша. ID стали строками,
+// но числа из версии 1 читаются и так (см. idFromJson).
+void migrateMeshInstances(Json& node)
+{
+    if (!node.is_object()) {
+        return;
+    }
+    if (node.value("type", "") == "MeshInstance3D") {
+        node["type"] = "Node3D";
+        Json& properties = node["properties"];
+        Json renderer = Json::object();
+        if (properties.is_object()) {
+            if (const auto it = properties.find("mesh"); it != properties.end() && it->is_string()) {
+                const auto meshes = builtinMeshes();
+                const auto builtin = std::ranges::find(meshes, it->get<std::string>(), &BuiltinMesh::name);
+                renderer["mesh"] = idToJson(builtin != meshes.end() ? builtin->id : ResourceId{0});
+                properties.erase(it);
+            }
+            if (const auto it = properties.find("color"); it != properties.end()) {
+                renderer["color"] = *it;
+                properties.erase(it);
+            }
+        }
+        node["components"].push_back({{"type", "MeshRenderer"}, {"properties", std::move(renderer)}});
+    }
+    if (const auto it = node.find("children"); it != node.end() && it->is_array()) {
+        for (Json& child : *it) {
+            migrateMeshInstances(child);
+        }
+    }
+}
+
+void migrate1To2(Json& scene)
+{
+    if (const auto it = scene.find("root"); it != scene.end()) {
+        migrateMeshInstances(*it);
+    }
+}
+
+using Migration = void (*)(Json& scene);
+
+// kMigrations[i] переводит версию i + 1 в i + 2.
+constexpr Migration kMigrations[] = {&migrate1To2};
+static_assert(
+    std::size(kMigrations) == kFormatVersion - 1,
+    "Every format version needs a migration from the previous one"
+);
+
+// Приводит файл к текущей версии. false, если версия неизвестна.
+bool migrate(Json& scene)
+{
+    const auto it = scene.find("version");
+    if (it == scene.end() || !it->is_number_integer()) {
+        log::error("Scene: no format version");
+
+        return false;
+    }
+    const int version = it->get<int>();
+    if (version < 1 || version > kFormatVersion) {
+        log::error("Scene: format version {} is not supported, this engine reads up to {}", version, kFormatVersion);
+
+        return false;
+    }
+    for (int from = version; from < kFormatVersion; ++from) {
+        kMigrations[from - 1](scene);
+    }
+    scene["version"] = kFormatVersion;
+
+    return true;
 }
 
 template <typename Object>
@@ -179,7 +255,7 @@ Json nodeToJson(const TypeRegistry& registry, const Node& node)
 
     Json result;
     result["type"] = type->name();
-    result["id"] = node.id();
+    result["id"] = idToJson(node.id());
     result["properties"] = propertiesToJson(registry, *type, node);
 
     Json components = Json::array();
@@ -249,8 +325,9 @@ struct SceneSerializer::Reader {
             return nullptr;
         }
 
-        if (const auto it = json.find("id"); it != json.end() && it->is_number_unsigned() && it->get<NodeId>() != 0) {
-            assignId(*node, it->get<NodeId>());
+        const auto id = json.contains("id") ? idFromJson(json["id"]) : std::nullopt;
+        if (id && *id != 0) {
+            assignId(*node, *id);
         }
         if (const auto it = json.find("properties"); it != json.end()) {
             propertiesFromJson(registry, *type, *node, *it);
@@ -328,7 +405,7 @@ std::string SceneSerializer::toJson(const Scene& scene) const
     Json json;
     json["version"] = kFormatVersion;
     json["clearColor"] = vectorToJson(scene.clearColor());
-    json["activeCamera"] = scene.activeCamera() ? scene.activeCamera()->id() : NodeId{0};
+    json["activeCamera"] = idToJson(scene.activeCamera() ? scene.activeCamera()->id() : NodeId{0});
     json["root"] = scene.root() ? nodeToJson(m_registry, *scene.root()) : Json(nullptr);
 
     return json.dump(4);
@@ -336,16 +413,13 @@ std::string SceneSerializer::toJson(const Scene& scene) const
 
 bool SceneSerializer::fromJson(Scene& scene, std::string_view text) const
 {
-    const Json json = Json::parse(text, nullptr, /*allow_exceptions=*/false);
+    Json json = Json::parse(text, nullptr, /*allow_exceptions=*/false);
     if (json.is_discarded() || !json.is_object()) {
         log::error("Scene: file is not a valid JSON object");
 
         return false;
     }
-    const auto version = json.find("version");
-    if (version == json.end() || !version->is_number_integer() || version->get<int>() != kFormatVersion) {
-        log::error("Scene: unsupported format version");
-
+    if (!migrate(json)) {
         return false;
     }
 
@@ -364,8 +438,9 @@ bool SceneSerializer::fromJson(Scene& scene, std::string_view text) const
             scene.setClearColor(*color);
         }
     }
-    if (const auto it = json.find("activeCamera"); it != json.end() && it->is_number_unsigned() && scene.root()) {
-        Node* node = findById(*scene.root(), it->get<NodeId>());
+    const auto camera = json.contains("activeCamera") ? idFromJson(json["activeCamera"]) : std::nullopt;
+    if (camera && scene.root()) {
+        Node* node = findById(*scene.root(), *camera);
         scene.setActiveCamera(dynamic_cast<Camera3D*>(node));
     }
 

@@ -1,13 +1,15 @@
 #include "yqlora/editor/ProjectFiles.hpp"
 
 #include "yqlora/core/Log.hpp"
-#include "yqlora/editor/Project.hpp"
+#include "yqlora/editor/ProjectSetup.hpp"
+#include "yqlora/project/Project.hpp"
+#include "yqlora/resource/ResourceDatabase.hpp"
 #include "yqlora/scene/Scene.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
 
 #include <algorithm>
 
-namespace yqlora::editor::projectfiles {
+namespace yqlora::editor {
 
 namespace {
 
@@ -25,15 +27,16 @@ fs::path fromUtf8(const std::string& text)
     return fs::path(std::u8string(text.begin(), text.end()));
 }
 
-void scanDirectory(const fs::path& root, const fs::path& relative, Entry& out)
+void scanDirectory(const fs::path& root, const fs::path& relative, ProjectFiles::Entry& out)
 {
     std::error_code ec;
     for (const fs::directory_entry& item : fs::directory_iterator(root / relative, ec)) {
         const std::string name = toUtf8(item.path().filename());
-        if (name.empty() || name.front() == '.' || (relative.empty() && name == Project::kFileName)) {
+        if (name.empty() || name.front() == '.' || item.path().extension() == ResourceDatabase::metaExtension()
+            || (relative.empty() && name == Project::fileName())) {
             continue;
         }
-        Entry entry;
+        ProjectFiles::Entry entry;
         entry.name = name;
         entry.path = relative / item.path().filename();
         entry.directory = item.is_directory(ec);
@@ -42,7 +45,7 @@ void scanDirectory(const fs::path& root, const fs::path& relative, Entry& out)
         }
         out.children.push_back(std::move(entry));
     }
-    std::ranges::sort(out.children, [](const Entry& a, const Entry& b) {
+    std::ranges::sort(out.children, [](const ProjectFiles::Entry& a, const ProjectFiles::Entry& b) {
         if (a.directory != b.directory) {
             return a.directory;
         }
@@ -65,94 +68,106 @@ fs::path freeName(const fs::path& directory, const std::string& base, const std:
 
 } // namespace
 
-Entry scan(const Project& project)
+ProjectFiles::ProjectFiles(Project& project)
+    : m_project(project)
+{
+}
+
+ProjectFiles::Entry ProjectFiles::scan() const
 {
     Entry root;
-    root.name = project.name;
+    root.name = m_project.name();
     root.directory = true;
-    scanDirectory(project.directory, {}, root);
+    scanDirectory(m_project.directory(), {}, root);
 
     return root;
 }
 
-bool isScene(const fs::path& path)
+bool ProjectFiles::isScene(const fs::path& path)
 {
-    return path.extension() == kSceneExtension;
+    return path.extension() == sceneExtension();
 }
 
-bool canModify(const Project& project, const fs::path& path)
+bool ProjectFiles::canModify(const fs::path& path) const
 {
     const fs::path normal = path.lexically_normal();
-    if (normal.empty() || normal == "." || normal.is_absolute() || normal == Project::kFileName) {
+    if (normal.empty() || normal == "." || normal.is_absolute() || normal == Project::fileName()) {
         return false;
     }
     // ".." в начале - путь выходит из папки проекта.
     const auto first = *normal.begin();
 
-    return first != ".." && !project.directory.empty();
+    return first != ".." && !m_project.directory().empty();
 }
 
-std::optional<fs::path> createScene(const Project& project, const fs::path& folder, const SceneSerializer& serializer)
+std::optional<fs::path> ProjectFiles::createScene(const fs::path& folder, const SceneSerializer& serializer)
 {
-    if (!folder.empty() && !canModify(project, folder)) {
+    if (!folder.empty() && !canModify(folder)) {
         return std::nullopt;
     }
-    const fs::path file = freeName(project.directory / folder, "New Scene", kSceneExtension);
+    const fs::path file = freeName(m_project.directory() / folder, "New Scene", std::string(sceneExtension()));
     if (!serializer.save(Scene{}, file)) {
         return std::nullopt;
     }
+    const fs::path relative = fs::relative(file, m_project.directory());
+    m_project.resources().add(relative);
 
-    return fs::relative(file, project.directory);
+    return relative;
 }
 
-std::optional<fs::path> createFolder(const Project& project, const fs::path& folder)
+std::optional<fs::path> ProjectFiles::createFolder(const fs::path& folder)
 {
-    if (!folder.empty() && !canModify(project, folder)) {
+    if (!folder.empty() && !canModify(folder)) {
         return std::nullopt;
     }
-    const fs::path directory = freeName(project.directory / folder, "New Folder", "");
+    const fs::path directory = freeName(m_project.directory() / folder, "New Folder", "");
     std::error_code ec;
     if (!fs::create_directory(directory, ec)) {
         return std::nullopt;
     }
 
-    return fs::relative(directory, project.directory);
+    return fs::relative(directory, m_project.directory());
 }
 
-std::optional<fs::path> rename(const Project& project, const fs::path& path, const std::string& newName)
+std::optional<fs::path> ProjectFiles::rename(const fs::path& path, const std::string& newName)
 {
-    if (!canModify(project, path) || !Project::isValidName(newName) || newName == Project::kFileName) {
+    if (!canModify(path) || !isValidFileName(newName) || newName == Project::fileName()) {
         return std::nullopt;
     }
     const fs::path target = path.parent_path() / fromUtf8(newName);
-    std::error_code ec;
-    if (fs::exists(project.directory / target, ec)) {
+    if (target.extension() == ResourceDatabase::metaExtension()) {
         return std::nullopt;
     }
-    fs::rename(project.directory / path, project.directory / target, ec);
+    std::error_code ec;
+    if (fs::exists(m_project.directory() / target, ec)) {
+        return std::nullopt;
+    }
+    fs::rename(m_project.directory() / path, m_project.directory() / target, ec);
     if (ec) {
         log::error("Cannot rename '{}': {}", toUtf8(path), ec.message());
 
         return std::nullopt;
     }
+    m_project.resources().moved(path, target);
 
     return target;
 }
 
-bool remove(const Project& project, const fs::path& path)
+bool ProjectFiles::remove(const fs::path& path)
 {
-    if (!canModify(project, path)) {
+    if (!canModify(path)) {
         return false;
     }
     std::error_code ec;
-    fs::remove_all(project.directory / path, ec);
+    fs::remove_all(m_project.directory() / path, ec);
     if (ec) {
         log::error("Cannot delete '{}': {}", toUtf8(path), ec.message());
 
         return false;
     }
+    m_project.resources().removed(path);
 
     return true;
 }
 
-} // namespace yqlora::editor::projectfiles
+} // namespace yqlora::editor

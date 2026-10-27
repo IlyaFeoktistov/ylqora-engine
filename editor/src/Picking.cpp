@@ -2,7 +2,7 @@
 
 #include "yqlora/render/MeshData.hpp"
 #include "yqlora/scene/Camera3D.hpp"
-#include "yqlora/scene/MeshInstance3D.hpp"
+#include "yqlora/scene/MeshRenderer.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <glm/geometric.hpp>
@@ -76,12 +76,14 @@ void pick(const Node& node, const Ray& worldRay, std::optional<Hit>& best)
             best = Hit{camera->id(), *t};
         }
     }
-    if (const auto* instance = dynamic_cast<const MeshInstance3D*>(&node)) {
-        if (const MeshData* mesh = findBuiltinMesh(instance->mesh())) {
+    const auto* node3D = dynamic_cast<const Node3D*>(&node);
+    const MeshRenderer* renderer = node3D ? node3D->getComponent<MeshRenderer>() : nullptr;
+    if (renderer) {
+        if (const MeshData* mesh = findBuiltinMesh(renderer->mesh().id)) {
             // Луч переводим в координаты меша, а не меш в мир. Направление
             // не нормализуем: тогда t в локальных координатах тот же, что в мире,
             // и попадания в разные объекты можно сравнивать.
-            const Mat4 toLocal = glm::inverse(instance->worldMatrix());
+            const Mat4 toLocal = glm::inverse(node3D->worldMatrix());
             const Ray localRay{
                 Vec3(toLocal * Vec4(worldRay.origin, 1.0f)),
                 Vec3(toLocal * Vec4(worldRay.direction, 0.0f))
@@ -95,7 +97,7 @@ void pick(const Node& node, const Ray& worldRay, std::optional<Hit>& best)
                     mesh->vertices[mesh->indices[i + 2]].position
                 );
                 if (t && (!best || *t < best->t)) {
-                    best = Hit{instance->id(), *t};
+                    best = Hit{node3D->id(), *t};
                 }
             }
         }

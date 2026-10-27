@@ -1,5 +1,7 @@
 #include "yqlora/render/MeshData.hpp"
 
+#include "yqlora/resource/BuiltinResources.hpp"
+
 #include <glm/gtc/constants.hpp>
 
 #include <cmath>
@@ -80,30 +82,29 @@ MeshData makeSphere()
 
 } // namespace
 
-std::span<const std::string_view> builtinMeshNames()
+std::span<const BuiltinMesh> builtinMeshes()
 {
-    static constexpr std::string_view kNames[] = {"cube", "sphere", "plane"};
+    static constexpr BuiltinMesh kMeshes[] = {
+        {builtin::kCubeMesh, "cube"},
+        {builtin::kSphereMesh, "sphere"},
+        {builtin::kPlaneMesh, "plane"},
+    };
 
-    return kNames;
+    return kMeshes;
 }
 
-const MeshData* findBuiltinMesh(std::string_view name)
+const MeshData* findBuiltinMesh(ResourceId id)
 {
     static const MeshData cube = makeCube();
     static const MeshData sphere = makeSphere();
     static const MeshData plane = makePlane();
 
-    if (name == "cube") {
-        return &cube;
+    switch (id) {
+    case builtin::kCubeMesh: return &cube;
+    case builtin::kSphereMesh: return &sphere;
+    case builtin::kPlaneMesh: return &plane;
+    default: return nullptr;
     }
-    if (name == "sphere") {
-        return &sphere;
-    }
-    if (name == "plane") {
-        return &plane;
-    }
-
-    return nullptr;
 }
 
 } // namespace yqlora

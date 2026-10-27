@@ -1,7 +1,7 @@
 #include "yqlora/reflection/TypeRegistry.hpp"
 
 #include "yqlora/scene/Camera3D.hpp"
-#include "yqlora/scene/MeshInstance3D.hpp"
+#include "yqlora/scene/MeshRenderer.hpp"
 #include "yqlora/scene/Node3D.hpp"
 #include "yqlora/scene/Transform3D.hpp"
 
@@ -80,14 +80,14 @@ void registerEngineTypes(TypeRegistry& registry)
         .property("near", &Camera3D::nearPlane, &Camera3D::setNearPlane)
         .property("far", &Camera3D::farPlane, &Camera3D::setFarPlane);
 
-    registry.registerNode<MeshInstance3D, Node3D>()
-        .property("mesh", &MeshInstance3D::mesh, &MeshInstance3D::setMesh, PropertyHint::Mesh)
-        .property("color", &MeshInstance3D::color, &MeshInstance3D::setColor, PropertyHint::Color);
-
     registry.registerComponent<Transform3D>()
         .property("position", &Transform3D::position, &Transform3D::setPosition)
         .property("rotation", &Transform3D::rotationDegrees, &Transform3D::setRotationDegrees, PropertyHint::Angle)
         .property("scale", &Transform3D::scale, &Transform3D::setScale);
+
+    registry.registerComponent<MeshRenderer>()
+        .property("mesh", &MeshRenderer::mesh, &MeshRenderer::setMesh, PropertyHint::Mesh)
+        .property("color", &MeshRenderer::color, &MeshRenderer::setColor, PropertyHint::Color);
 }
 
 } // namespace yqlora
