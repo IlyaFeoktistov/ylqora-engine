@@ -9,6 +9,7 @@
 #include "core/JsonId.hpp"
 
 #include <array>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -138,13 +139,14 @@ bool Project::upgrade(const std::filesystem::path& directory, const SceneSeriali
     }
 
     // Чтение переводит сцену на текущий формат, запись сохраняет уже в нём.
-    std::vector<std::pair<std::filesystem::path, Scene>> scenes;
+    // Сцену нельзя переместить в памяти (на неё указывают узлы), поэтому по указателю.
+    std::vector<std::pair<std::filesystem::path, std::unique_ptr<Scene>>> scenes;
     std::error_code ec;
     for (auto it = std::filesystem::recursive_directory_iterator(directory, ec);
          !ec && it != std::filesystem::recursive_directory_iterator();
          it.increment(ec)) {
         if (it->is_regular_file(ec) && it->path().extension() == SceneSerializer::fileExtension()) {
-            Scene& scene = scenes.emplace_back(it->path(), Scene{}).second;
+            Scene& scene = *scenes.emplace_back(it->path(), std::make_unique<Scene>()).second;
             if (!serializer.load(scene, it->path())) {
                 log::error("Project upgrade: scene '{}' is not read, nothing is changed", toUtf8(it->path()));
 
@@ -153,7 +155,7 @@ bool Project::upgrade(const std::filesystem::path& directory, const SceneSeriali
         }
     }
     for (const auto& [path, scene] : scenes) {
-        if (!serializer.save(scene, path)) {
+        if (!serializer.save(*scene, path)) {
             log::error("Project upgrade: cannot write scene '{}'", toUtf8(path));
 
             return false;

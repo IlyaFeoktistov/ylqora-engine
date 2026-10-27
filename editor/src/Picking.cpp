@@ -70,42 +70,39 @@ struct Hit {
     float t = 0.0f;
 };
 
-void pick(const Node& node, const Ray& worldRay, std::optional<Hit>& best)
+void keepNearest(std::optional<Hit>& best, NodeId node, std::optional<float> t)
+{
+    if (t && (!best || *t < best->t)) {
+        best = Hit{node, *t};
+    }
+}
+
+// Камеры - узлы, а не компоненты, поэтому их ищем по дереву.
+void pickCameras(const Node& node, const Ray& worldRay, std::optional<Hit>& best)
 {
     if (const auto* camera = dynamic_cast<const Camera3D*>(&node)) {
-        const auto t = intersectSphere(worldRay, camera->worldPosition(), kCameraPickRadius);
-        if (t && (!best || *t < best->t)) {
-            best = Hit{camera->id(), *t};
-        }
-    }
-    const auto* node3D = dynamic_cast<const Node3D*>(&node);
-    const MeshRenderer* renderer = node3D ? node3D->getComponent<MeshRenderer>() : nullptr;
-    if (renderer) {
-        if (const MeshData* mesh = findBuiltinMesh(renderer->mesh().id)) {
-            // Луч переводим в координаты меша, а не меш в мир. Направление
-            // не нормализуем: тогда t в локальных координатах тот же, что в мире,
-            // и попадания в разные объекты можно сравнивать.
-            const Mat4 toLocal = glm::inverse(node3D->worldMatrix());
-            const Ray localRay{
-                Vec3(toLocal * Vec4(worldRay.origin, 1.0f)),
-                Vec3(toLocal * Vec4(worldRay.direction, 0.0f))
-            };
-
-            for (std::size_t i = 0; i + kTriangleVertices <= mesh->indices.size(); i += kTriangleVertices) {
-                const auto t = intersect(
-                    localRay,
-                    mesh->vertices[mesh->indices[i]].position,
-                    mesh->vertices[mesh->indices[i + 1]].position,
-                    mesh->vertices[mesh->indices[i + 2]].position
-                );
-                if (t && (!best || *t < best->t)) {
-                    best = Hit{node3D->id(), *t};
-                }
-            }
-        }
+        keepNearest(best, camera->id(), intersectSphere(worldRay, camera->worldPosition(), kCameraPickRadius));
     }
     for (const auto& child : node.children()) {
-        pick(*child, worldRay, best);
+        pickCameras(*child, worldRay, best);
+    }
+}
+
+void pickMesh(const Node3D& node, const MeshData& mesh, const Ray& worldRay, std::optional<Hit>& best)
+{
+    // Луч переводим в координаты меша, а не меш в мир. Направление
+    // не нормализуем: тогда t в локальных координатах тот же, что в мире,
+    // и попадания в разные объекты можно сравнивать.
+    const Mat4 toLocal = glm::inverse(node.worldMatrix());
+    const Ray localRay{Vec3(toLocal * Vec4(worldRay.origin, 1.0f)), Vec3(toLocal * Vec4(worldRay.direction, 0.0f))};
+    for (std::size_t i = 0; i + kTriangleVertices <= mesh.indices.size(); i += kTriangleVertices) {
+        const auto t = intersect(
+            localRay,
+            mesh.vertices[mesh.indices[i]].position,
+            mesh.vertices[mesh.indices[i + 1]].position,
+            mesh.vertices[mesh.indices[i + 2]].position
+        );
+        keepNearest(best, node.id(), t);
     }
 }
 
@@ -117,7 +114,13 @@ NodeId pickNode(const Scene& scene, const Ray& ray)
         return 0;
     }
     std::optional<Hit> best;
-    pick(*scene.root(), ray, best);
+    pickCameras(*scene.root(), ray, best);
+    for (const MeshRenderer* renderer : scene.components<MeshRenderer>()) {
+        const auto* node = dynamic_cast<const Node3D*>(renderer->owner());
+        if (const MeshData* mesh = findBuiltinMesh(renderer->mesh().id); node && mesh) {
+            pickMesh(*node, *mesh, ray, best);
+        }
+    }
 
     return best ? best->node : 0;
 }

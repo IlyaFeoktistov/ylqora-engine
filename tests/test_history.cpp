@@ -293,7 +293,7 @@ TEST_CASE_FIXTURE(Fixture, "Undo: history survives Play and Stop")
     CHECK_FALSE(session.undo());
     session.stop();
 
-    // Узлы после Stop новые, но ID те же: команды находят их.
+    // После Stop снова редактируемая сцена, история продолжается с того же места.
     REQUIRE(session.undo());
     CHECK(session.findNode(childId) == nullptr);
     REQUIRE(session.redo());

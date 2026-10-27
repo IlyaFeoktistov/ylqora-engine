@@ -86,7 +86,7 @@ void EditorApp::onStart()
     m_projectManager->refresh();
 
     registerActions();
-    // В редакторе сцена стоит, пока не нажали Play.
+    // Своя сцена приложения у редактора не обновляется: игра идёт в копии, см. EditorSession::play.
     setSceneRunning(false);
 }
 
@@ -157,6 +157,7 @@ void EditorApp::registerActions()
 
 void EditorApp::onUpdate(float deltaSeconds)
 {
+    m_session.update(deltaSeconds);
     // Камера обновляется в окне сцены, там же известно, над ним ли курсор.
     m_deltaSeconds = deltaSeconds;
 }
@@ -191,7 +192,6 @@ void EditorApp::onGui()
         }
     }
     updateTitle();
-    setSceneRunning(m_session.running());
 
     // Ничего не тянут и не печатают: следующая правка будет отдельным шагом отмены.
     if (!ImGui::IsAnyItemActive() && !ImGuizmo::IsUsing()) {

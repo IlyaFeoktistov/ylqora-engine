@@ -7,27 +7,6 @@
 
 namespace yqlora {
 
-namespace {
-
-void collectDrawItems(const Node& node, std::vector<DrawItem>& out)
-{
-    const auto* node3D = dynamic_cast<const Node3D*>(&node);
-    const MeshRenderer* renderer = node3D ? node3D->getComponent<MeshRenderer>() : nullptr;
-    if (const MeshData* mesh = renderer ? findBuiltinMesh(renderer->mesh().id) : nullptr) {
-        out.push_back({
-            .mesh = mesh,
-            .world = node3D->worldMatrix(),
-            .color = renderer->color(),
-            .node = node3D->id(),
-        });
-    }
-    for (const auto& child : node.children()) {
-        collectDrawItems(*child, out);
-    }
-}
-
-} // namespace
-
 FrameData buildFrameData(const Scene& scene, float aspect, DepthRange depthRange)
 {
     FrameData frame;
@@ -37,8 +16,17 @@ FrameData buildFrameData(const Scene& scene, float aspect, DepthRange depthRange
         frame.camera.projection = camera->projectionMatrix(aspect, depthRange);
         frame.camera.position = camera->worldPosition();
     }
-    if (const Node* root = scene.root()) {
-        collectDrawItems(*root, frame.drawItems);
+    for (const MeshRenderer* renderer : scene.components<MeshRenderer>()) {
+        const auto* node = dynamic_cast<const Node3D*>(renderer->owner());
+        const MeshData* mesh = findBuiltinMesh(renderer->mesh().id);
+        if (node && mesh) {
+            frame.drawItems.push_back({
+                .mesh = mesh,
+                .world = node->worldMatrix(),
+                .color = renderer->color(),
+                .node = node->id(),
+            });
+        }
     }
 
     return frame;

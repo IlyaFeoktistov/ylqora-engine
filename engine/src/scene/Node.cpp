@@ -1,5 +1,7 @@
 #include "yqlora/scene/Node.hpp"
 
+#include "yqlora/scene/Scene.hpp"
+
 #include <algorithm>
 #include <cassert>
 #include <random>
@@ -51,6 +53,9 @@ Node& Node::insertChild(std::size_t index, std::unique_ptr<Node> child)
     Node& ref = *child;
     m_children.insert(m_children.begin() + static_cast<std::ptrdiff_t>(index), std::move(child));
     ref.onParentChanged();
+    if (m_scene) {
+        ref.enterScene(*m_scene);
+    }
 
     return ref;
 }
@@ -63,10 +68,13 @@ std::unique_ptr<Node> Node::removeChild(Node& child)
     if (it == m_children.end()) {
         return nullptr;
     }
+    // Узел уходит из дерева посреди игры: он и его дети останавливаются.
+    child.stop();
+    if (child.m_scene) {
+        child.exitScene();
+    }
     std::unique_ptr<Node> result = std::move(*it);
     m_children.erase(it);
-    // Узел уходит из дерева посреди игры: он и его дети останавливаются.
-    result->stop();
     result->m_parent = nullptr;
     result->onParentChanged();
 
@@ -87,6 +95,10 @@ Component& Node::insertComponent(std::size_t index, std::unique_ptr<Component> c
     component->m_owner = this;
     Component& ref = *component;
     m_components.insert(m_components.begin() + static_cast<std::ptrdiff_t>(index), std::move(component));
+    if (m_scene) {
+        m_scene->indexComponent(ref);
+        ref.onEnterScene();
+    }
 
     return ref;
 }
@@ -115,12 +127,16 @@ std::unique_ptr<Component> Node::removeComponent(Component& component)
     if (it == m_components.end()) {
         return nullptr;
     }
+    if (component.m_started) {
+        component.m_started = false;
+        component.onStop();
+    }
+    if (m_scene) {
+        component.onExitScene();
+        m_scene->unindexComponent(component);
+    }
     std::unique_ptr<Component> result = std::move(*it);
     m_components.erase(it);
-    if (result->m_started) {
-        result->m_started = false;
-        result->onStop();
-    }
     result->m_owner = nullptr;
 
     return result;
@@ -156,6 +172,32 @@ void Node::update(float deltaSeconds)
     for (std::size_t i = 0; i < m_children.size(); ++i) {
         m_children[i]->update(deltaSeconds);
     }
+}
+
+void Node::enterScene(Scene& scene)
+{
+    m_scene = &scene;
+    for (const auto& component : m_components) {
+        scene.indexComponent(*component);
+        component->onEnterScene();
+    }
+    onEnterScene();
+    for (std::size_t i = 0; i < m_children.size(); ++i) {
+        m_children[i]->enterScene(scene);
+    }
+}
+
+void Node::exitScene()
+{
+    for (auto it = m_children.rbegin(); it != m_children.rend(); ++it) {
+        (*it)->exitScene();
+    }
+    onExitScene();
+    for (const auto& component : m_components) {
+        component->onExitScene();
+        m_scene->unindexComponent(*component);
+    }
+    m_scene = nullptr;
 }
 
 void Node::stop()

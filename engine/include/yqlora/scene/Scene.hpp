@@ -6,6 +6,11 @@
 
 #include <concepts>
 #include <memory>
+#include <ranges>
+#include <span>
+#include <typeindex>
+#include <unordered_map>
+#include <vector>
 
 namespace yqlora {
 
@@ -15,6 +20,13 @@ class Camera3D;
 // корня нет, пока его не создадут (любого типа: Node, Node3D, ...).
 class YQLORA_API Scene {
 public:
+    Scene() = default;
+    ~Scene();
+
+    // Узлы сцены хранят указатель на неё, поэтому сцену не копируют и не перемещают.
+    Scene(const Scene&) = delete;
+    Scene& operator=(const Scene&) = delete;
+
     bool empty() const
     {
         return !m_root;
@@ -71,6 +83,18 @@ public:
         return m_clearColor;
     }
 
+    // Компоненты в дереве сцены ровно этого типа (без наследников), в порядке
+    // попадания в сцену. Так подсистемы находят свои компоненты без обхода дерева.
+    template <std::derived_from<Component> T>
+    auto components() const
+    {
+        return componentsOfType(typeid(T)) | std::views::transform([](Component* component) {
+                   return static_cast<T*>(component);
+               });
+    }
+
+    std::span<Component* const> componentsOfType(std::type_index type) const;
+
     // Кадр игры для всего дерева. См. Node::update.
     void update(float deltaSeconds);
 
@@ -78,7 +102,12 @@ public:
     void stop();
 
 private:
+    friend class Node;
+    void indexComponent(Component& component);
+    void unindexComponent(Component& component);
+
     std::unique_ptr<Node> m_root;
+    std::unordered_map<std::type_index, std::vector<Component*>> m_components;
     Camera3D* m_activeCamera = nullptr;
     Vec4 m_clearColor{0.08f, 0.09f, 0.12f, 1.0f};
 };

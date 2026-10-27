@@ -108,10 +108,17 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: Stop returns the scene as it was befo
     session.play();
     CHECK(session.playing());
     CHECK(session.running());
+    // Игра идёт в копии: те же ID, но другие объекты.
+    CHECK(&session.scene() != &scene);
+    auto* playCube = dynamic_cast<Node3D*>(session.findNode(cubeId));
+    REQUIRE(playCube);
+    CHECK(playCube != cube);
+    CHECK(session.selection().selected() == cubeId);
 
-    // Во время игры сцену меняют, а изменения не помечаются и не сохраняются.
-    cube->transform().setPosition({5.0f, 5.0f, 5.0f});
-    session.createNode(type("Node3D"), root);
+    // Во время игры копию меняют, а изменения не помечаются и не сохраняются.
+    playCube->transform().setPosition({5.0f, 5.0f, 5.0f});
+    session.createNode(type("Node3D"), session.findNode(root->id()));
+    CHECK(cube->transform().position() == Vec3(1.0f, 0.0f, 0.0f));
     CHECK(session.modified() == modifiedBefore);
     CHECK_FALSE(session.canUndo());
     CHECK_FALSE(session.saveScene());
@@ -120,6 +127,7 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: Stop returns the scene as it was befo
     CHECK_FALSE(session.running());
 
     session.stop();
+    CHECK(&session.scene() == &scene);
     CHECK_FALSE(session.playing());
     REQUIRE(scene.root());
     CHECK(scene.root()->children().size() == 1);

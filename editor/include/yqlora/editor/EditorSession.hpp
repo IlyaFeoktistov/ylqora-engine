@@ -43,9 +43,16 @@ public:
         return m_project;
     }
 
+    // Сцена, с которой сейчас работают: во время игры - её копия для игры,
+    // иначе редактируемая.
     Scene& scene()
     {
-        return m_scene;
+        return m_playScene ? *m_playScene : m_editScene;
+    }
+
+    const Scene& scene() const
+    {
+        return m_playScene ? *m_playScene : m_editScene;
     }
 
     Selection& selection()
@@ -101,12 +108,12 @@ public:
     // Во время игры истории нет.
     bool canUndo() const
     {
-        return !m_playing && m_history.canUndo();
+        return !playing() && m_history.canUndo();
     }
 
     bool canRedo() const
     {
-        return !m_playing && m_history.canRedo();
+        return !playing() && m_history.canRedo();
     }
 
     bool undo();
@@ -114,7 +121,7 @@ public:
 
     bool playing() const
     {
-        return m_playing;
+        return m_playScene != nullptr;
     }
 
     bool paused() const
@@ -125,14 +132,18 @@ public:
     // Сцене пора обновляться: игра идёт и не на паузе.
     bool running() const
     {
-        return m_playing && !m_paused;
+        return playing() && !m_paused;
     }
 
-    // Запоминает сцену и запускает игру. Правки во время игры отбрасываются по Stop.
+    // Запускает игру в копии редактируемой сцены. Сама она во время игры не
+    // меняется, правки идут в копию и пропадают вместе с ней по Stop.
     void play();
     void setPaused(bool paused);
-    // Останавливает игру и возвращает сцену и выделение, какими они были до Play.
+    // Выбрасывает копию для игры и возвращается к редактируемой сцене.
     void stop();
+
+    // Кадр игры: обновляет копию сцены, пока игра идёт и не на паузе.
+    void update(float deltaSeconds);
 
     // nullptr, если такого узла в сцене нет.
     Node* findNode(NodeId id);
@@ -159,17 +170,15 @@ public:
     bool setTransform(Node3D& node, const TransformValues& values);
 
 private:
-    Scene& m_scene;
+    Scene& m_editScene;
+    std::unique_ptr<Scene> m_playScene;
     const SceneSerializer& m_serializer;
     std::optional<Project> m_project;
     ResourceId m_sceneId = 0;
     Selection m_selection;
     EditHistory m_history;
 
-    bool m_playing = false;
     bool m_paused = false;
-    // Сцена до Play, в виде файла сцены: так восстанавливаются и ID узлов.
-    std::string m_snapshot;
     NodeId m_selectedBeforePlay = 0;
 };
 

@@ -15,6 +15,8 @@
 
 namespace yqlora {
 
+class Scene;
+
 // Базовый элемент дерева сцены. Родитель владеет детьми, ребёнок хранит
 // невладеющий указатель на родителя. Имена и типы всегда на английском.
 //
@@ -61,6 +63,12 @@ public:
     Node* parent() const
     {
         return m_parent;
+    }
+
+    // Сцена, в дереве которой узел. nullptr, пока узел вне сцены.
+    Scene* scene() const
+    {
+        return m_scene;
     }
 
     std::span<const std::unique_ptr<Node>> children() const
@@ -166,14 +174,30 @@ protected:
     {
     }
 
+    // Узел попал в дерево сцены или ушёл из него, см. Component::onEnterScene.
+    // При входе сначала узел, потом дети; при выходе наоборот.
+    virtual void onEnterScene()
+    {
+    }
+
+    virtual void onExitScene()
+    {
+    }
+
 private:
     // ID из файла сцены выставляет только загрузчик.
     friend class SceneSerializer;
     void setId(NodeId id);
 
+    // Вход в сцену и выход вызывает сама сцена для корня, остальное - узлы по дереву.
+    friend class Scene;
+    void enterScene(Scene& scene);
+    void exitScene();
+
     NodeId m_id;
     std::string m_name;
     Node* m_parent = nullptr;
+    Scene* m_scene = nullptr;
     std::vector<std::unique_ptr<Component>> m_components;
     std::vector<std::unique_ptr<Node>> m_children;
     bool m_started = false;

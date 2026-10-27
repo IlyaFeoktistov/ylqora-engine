@@ -45,7 +45,7 @@ std::optional<std::size_t> componentIndex(const Node& node, const Component& com
 } // namespace
 
 EditorSession::EditorSession(Scene& scene, const SceneSerializer& serializer)
-    : m_scene(scene)
+    : m_editScene(scene)
     , m_serializer(serializer)
 {
 }
@@ -60,9 +60,9 @@ bool EditorSession::open(Project project)
 
     // Загрузка при ошибке оставляет сцену как была, поэтому сначала очищаем:
     // от прошлого проекта ничего не должно остаться.
-    m_scene.setRoot(nullptr);
+    m_editScene.setRoot(nullptr);
     const auto path = m_project->mainScenePath();
-    if (!path || !m_serializer.load(m_scene, m_project->directory() / *path)) {
+    if (!path || !m_serializer.load(m_editScene, m_project->directory() / *path)) {
         log::warn("Main scene of '{}' is not loaded, starting with an empty scene", m_project->name());
 
         return false;
@@ -74,7 +74,7 @@ bool EditorSession::open(Project project)
 void EditorSession::close()
 {
     stop();
-    m_scene.setRoot(nullptr);
+    m_editScene.setRoot(nullptr);
     m_project.reset();
     m_sceneId = 0;
     m_selection.clear();
@@ -91,7 +91,7 @@ bool EditorSession::openScene(const std::filesystem::path& path)
 {
     stop();
     const ResourceId id = m_project ? m_project->resources().id(path) : 0;
-    if (id == 0 || !m_serializer.load(m_scene, m_project->directory() / path)) {
+    if (id == 0 || !m_serializer.load(m_editScene, m_project->directory() / path)) {
         return false;
     }
     m_sceneId = id;
@@ -103,38 +103,45 @@ bool EditorSession::openScene(const std::filesystem::path& path)
 
 void EditorSession::play()
 {
-    if (m_playing) {
+    if (playing()) {
         return;
     }
     m_history.finishEdit();
-    m_snapshot = m_serializer.toJson(m_scene);
+    // Копия через формат файла: в ней те же ID узлов, и выделение остаётся на месте.
+    auto copy = std::make_unique<Scene>();
+    if (!m_serializer.fromJson(*copy, m_serializer.toJson(m_editScene))) {
+        log::error("Cannot copy the scene for Play");
+
+        return;
+    }
     m_selectedBeforePlay = m_selection.selected();
-    m_playing = true;
+    m_playScene = std::move(copy);
     m_paused = false;
 }
 
 void EditorSession::setPaused(bool paused)
 {
-    m_paused = m_playing && paused;
+    m_paused = playing() && paused;
 }
 
 void EditorSession::stop()
 {
-    if (!m_playing) {
+    if (!playing()) {
         return;
     }
-    m_scene.stop();
-    m_playing = false;
-    m_paused = false;
-
     const NodeId selected = m_selection.selected();
-    if (!m_serializer.fromJson(m_scene, m_snapshot)) {
-        log::error("Cannot restore the scene after Play");
-    }
-    m_snapshot.clear();
-    // ID узлов из файла сцены те же, поэтому выделение остаётся на том же узле,
-    // если он был до Play. Узла, созданного в игре, больше нет: возвращаем прежнее выделение.
+    m_playScene->stop();
+    m_playScene.reset();
+    m_paused = false;
+    // Узла, созданного в игре, в редактируемой сцене нет: возвращаем прежнее выделение.
     m_selection.select(findNode(selected) ? selected : m_selectedBeforePlay);
+}
+
+void EditorSession::update(float deltaSeconds)
+{
+    if (running()) {
+        m_playScene->update(deltaSeconds);
+    }
 }
 
 bool EditorSession::setMainScene(const std::filesystem::path& path)
@@ -157,12 +164,12 @@ bool EditorSession::setMainScene(const std::filesystem::path& path)
 bool EditorSession::saveScene()
 {
     // Во время игры в сцене состояние игры, а не то, что правили.
-    if (!m_project || m_playing) {
+    if (!m_project || playing()) {
         return false;
     }
 
     const std::filesystem::path path = scenePath();
-    if (path.empty() || !m_serializer.save(m_scene, m_project->directory() / path)) {
+    if (path.empty() || !m_serializer.save(m_editScene, m_project->directory() / path)) {
         return false;
     }
     m_history.markSaved();
@@ -172,7 +179,7 @@ bool EditorSession::saveScene()
 
 bool EditorSession::execute(std::unique_ptr<Command> command)
 {
-    if (m_playing) {
+    if (playing()) {
         return command && command->apply(*this);
     }
 
@@ -181,17 +188,19 @@ bool EditorSession::execute(std::unique_ptr<Command> command)
 
 bool EditorSession::undo()
 {
-    return !m_playing && m_history.undo(*this);
+    return !playing() && m_history.undo(*this);
 }
 
 bool EditorSession::redo()
 {
-    return !m_playing && m_history.redo(*this);
+    return !playing() && m_history.redo(*this);
 }
 
 Node* EditorSession::findNode(NodeId id)
 {
-    return m_scene.root() && id != 0 ? find(*m_scene.root(), id) : nullptr;
+    Scene& current = scene();
+
+    return current.root() && id != 0 ? find(*current.root(), id) : nullptr;
 }
 
 Node* EditorSession::selectedNode()
