@@ -2,6 +2,8 @@
 
 #include "yqlora/core/Export.hpp"
 
+#include "yqlora/reflection/TypeName.hpp"
+
 #include <string_view>
 
 namespace yqlora {

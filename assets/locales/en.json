@@ -47,7 +47,8 @@
         "inspector": {
             "nothing": "Select a node to see its properties",
             "addComponent": "Add component",
-            "noComponents": "No components to add yet"
+            "noComponents": "No components to add yet",
+            "none": "None"
         },
         "tree": {
             "addNode": "Add node",

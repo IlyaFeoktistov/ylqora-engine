@@ -7,6 +7,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <fstream>
 #include <optional>
 #include <sstream>
@@ -49,13 +50,24 @@ std::optional<Vec> vectorFromJson(const Json& json)
     return result;
 }
 
-Json valueToJson(const PropertyValue& value)
+Json valueToJson(const Property& property, const PropertyValue& value)
 {
     return std::visit(
-        [](const auto& v) -> Json {
+        [&](const auto& v) -> Json {
             using T = std::decay_t<decltype(v)>;
             if constexpr (std::is_same_v<T, Vec2> || std::is_same_v<T, Vec3> || std::is_same_v<T, Vec4>) {
                 return vectorToJson(v);
+            } else if constexpr (std::is_same_v<T, EnumValue>) {
+                // Именем, чтобы порядок значений в C++ можно было менять. Без имени - числом.
+                const auto& names = property.enumNames();
+                const auto index = static_cast<std::size_t>(v.value);
+                if (v.value >= 0 && index < names.size()) {
+                    return names[index];
+                }
+
+                return v.value;
+            } else if constexpr (std::is_same_v<T, NodeRef> || std::is_same_v<T, ResourceRef>) {
+                return v.id;
             } else {
                 return Json(v);
             }
@@ -64,9 +76,26 @@ Json valueToJson(const PropertyValue& value)
     );
 }
 
-std::optional<PropertyValue> valueFromJson(const Json& json, PropertyType type)
+std::optional<PropertyValue> enumFromJson(const Json& json, const Property& property)
 {
-    switch (type) {
+    if (json.is_number_integer()) {
+        return EnumValue{json.get<int>()};
+    }
+    if (!json.is_string()) {
+        return std::nullopt;
+    }
+    const auto& names = property.enumNames();
+    const auto it = std::ranges::find(names, json.get<std::string>());
+    if (it == names.end()) {
+        return std::nullopt;
+    }
+
+    return EnumValue{static_cast<int>(it - names.begin())};
+}
+
+std::optional<PropertyValue> valueFromJson(const Json& json, const Property& property)
+{
+    switch (property.type()) {
     case PropertyType::Bool:
         if (json.is_boolean()) {
             return json.get<bool>();
@@ -90,6 +119,17 @@ std::optional<PropertyValue> valueFromJson(const Json& json, PropertyType type)
     case PropertyType::Vector2: return vectorFromJson<Vec2>(json);
     case PropertyType::Vector3: return vectorFromJson<Vec3>(json);
     case PropertyType::Vector4: return vectorFromJson<Vec4>(json);
+    case PropertyType::Enum: return enumFromJson(json, property);
+    case PropertyType::Node:
+        if (json.is_number_unsigned()) {
+            return NodeRef{json.get<NodeId>()};
+        }
+        break;
+    case PropertyType::Resource:
+        if (json.is_number_unsigned()) {
+            return ResourceRef{json.get<ResourceId>()};
+        }
+        break;
     }
 
     return std::nullopt;
@@ -100,7 +140,7 @@ Json propertiesToJson(const TypeRegistry& registry, const TypeInfo& type, const 
 {
     Json result = Json::object();
     for (const Property* property : registry.properties(type)) {
-        result[property->name()] = valueToJson(property->get(object));
+        result[property->name()] = valueToJson(*property, property->get(object));
     }
 
     return result;
@@ -119,7 +159,7 @@ void propertiesFromJson(const TypeRegistry& registry, const TypeInfo& type, Obje
         if (it == json.end()) {
             continue;
         }
-        const auto value = valueFromJson(*it, property->type());
+        const auto value = valueFromJson(*it, *property);
         if (!value) {
             log::warn("Scene: property '{}.{}' has a wrong value, skipped", type.name(), property->name());
             continue;

@@ -2,6 +2,7 @@
 
 #include "yqlora/core/Export.hpp"
 #include "yqlora/scene/Component.hpp"
+#include "yqlora/scene/NodeId.hpp"
 
 #include <concepts>
 #include <cstddef>
@@ -13,9 +14,6 @@
 #include <vector>
 
 namespace yqlora {
-
-// 0 означает, что узла нет.
-using NodeId = std::uint64_t;
 
 // Базовый элемент дерева сцены. Родитель владеет детьми, ребёнок хранит
 // невладеющий указатель на родителя. Имена и типы всегда на английском.
@@ -30,9 +28,17 @@ public:
     Node(const Node&) = delete;
     Node& operator=(const Node&) = delete;
 
-    virtual std::string_view typeName() const
+    // Корень иерархии: свой typeName без override, поэтому без YQLORA_TYPE.
+    using YqloraThisType = Node;
+
+    static constexpr std::string_view staticTypeName()
     {
         return "Node";
+    }
+
+    virtual std::string_view typeName() const
+    {
+        return staticTypeName();
     }
 
     // Уникален и не меняется за жизнь узла: по нему узлы ссылаются друг

@@ -14,10 +14,7 @@ namespace {
 
 // Компонент, которого нет в движке: так тесты проверяют типы, зарегистрированные снаружи.
 struct TestComponent final : Component {
-    std::string_view typeName() const override
-    {
-        return "TestComponent";
-    }
+    YQLORA_TYPE(TestComponent)
 
     int value = 100;
 };
@@ -110,7 +107,7 @@ TEST_CASE("TypeRegistry: components registered outside the engine expose fields"
 {
     TypeRegistry registry;
     registerEngineTypes(registry);
-    registry.registerComponent<TestComponent>("TestComponent").property("value", &TestComponent::value);
+    registry.registerComponent<TestComponent>().property("value", &TestComponent::value);
 
     const TypeInfo* type = registry.find("TestComponent");
     REQUIRE(type);
@@ -142,4 +139,87 @@ TEST_CASE("TypeRegistry: every engine type has a description in every language")
         // Без своего перевода ru показал бы английский текст.
         CHECK(ru.translate(key) != en.translate(key));
     }
+}
+
+namespace {
+
+enum class Mood {
+    Calm,
+    Angry,
+};
+
+// Узел из "игры": свой модуль, перечисление и ссылки.
+struct Guard final : Node3D {
+    YQLORA_TYPE(Guard)
+
+    using Node3D::Node3D;
+
+    Mood mood = Mood::Calm;
+    NodeRef target;
+    ResourceRef weapon;
+};
+
+} // namespace
+
+TEST_CASE("TypeRegistry: the type name comes from YQLORA_TYPE")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    registry.registerNode<Guard, Node3D>();
+
+    const TypeInfo* guard = registry.find("Guard");
+    REQUIRE(guard);
+    CHECK(registry.find<Guard>() == guard);
+    CHECK(guard->baseName() == "Node3D");
+    CHECK(guard->createNode()->typeName() == "Guard");
+}
+
+TEST_CASE("TypeRegistry: types of a module go away together")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    const std::size_t engineTypes = registry.types().size();
+    {
+        TypeRegistry::ModuleScope scope(registry, "game");
+        registry.registerNode<Guard, Node3D>();
+    }
+    CHECK(registry.find("Guard")->module() == "game");
+    CHECK(registry.find("Node3D")->module() == TypeRegistry::engineModule());
+
+    CHECK(registry.removeModule("game") == 1);
+    CHECK(registry.find("Guard") == nullptr);
+    CHECK(registry.find<Guard>() == nullptr);
+    CHECK(registry.types().size() == engineTypes);
+
+    // Модуль можно зарегистрировать снова, как после перезагрузки dll.
+    registry.registerNode<Guard, Node3D>();
+    CHECK(registry.find("Guard"));
+}
+
+TEST_CASE("Property: enums, node and resource references")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    registry.registerNode<Guard, Node3D>()
+        .property("mood", &Guard::mood)
+        .enumNames({"Calm", "Angry"})
+        .property("target", &Guard::target)
+        .property("weapon", &Guard::weapon);
+
+    const auto properties = registry.properties(*registry.find("Guard"));
+    const auto find = [&](std::string_view name) {
+        return *std::ranges::find(properties, name, &Property::name);
+    };
+    const Property* mood = find("mood");
+    CHECK(mood->type() == PropertyType::Enum);
+    CHECK(mood->enumNames() == std::vector<std::string>{"Calm", "Angry"});
+    CHECK(find("target")->type() == PropertyType::Node);
+    CHECK(find("weapon")->type() == PropertyType::Resource);
+
+    Guard guard;
+    CHECK(mood->set(guard, EnumValue{1}));
+    CHECK(guard.mood == Mood::Angry);
+    CHECK(std::get<EnumValue>(mood->get(guard)).value == 1);
+    find("target")->set(guard, NodeRef{42});
+    CHECK(guard.target.id == 42);
 }

@@ -22,6 +22,7 @@ template <typename Object>
 bool drawPropertyTable(EditorContext& context, const TypeInfo& type, Object& object)
 {
     EditorSession& session = context.session;
+    const PropertyEditorContext widgets{.colors = context.theme.colors(), .scene = session.scene()};
     const auto properties = context.registry.properties(type);
     if (properties.empty() || !ImGui::BeginTable("properties", 2)) {
         return false;
@@ -33,7 +34,7 @@ bool drawPropertyTable(EditorContext& context, const TypeInfo& type, Object& obj
 
     bool dragging = false;
     for (const Property* property : properties) {
-        const PropertyResult result = drawProperty(*property, object, context.theme.colors());
+        const PropertyResult result = drawProperty(*property, object, widgets);
         if (result.changed) {
             session.setProperty(object, *property, result.value);
         }

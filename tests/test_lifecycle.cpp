@@ -17,10 +17,7 @@ struct Recorder final : Component {
     {
     }
 
-    std::string_view typeName() const override
-    {
-        return "Recorder";
-    }
+    YQLORA_TYPE(Recorder)
 
     void onStart() override
     {

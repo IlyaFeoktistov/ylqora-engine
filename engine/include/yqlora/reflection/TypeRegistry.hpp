@@ -8,6 +8,7 @@
 #include <cassert>
 #include <concepts>
 #include <functional>
+#include <initializer_list>
 #include <map>
 #include <memory>
 #include <span>
@@ -44,6 +45,13 @@ public:
         return m_kind;
     }
 
+    // Модуль, который зарегистрировал тип: движок или dll игры. Типы модуля
+    // убираются из реестра вместе, когда dll выгружают.
+    const std::string& module() const
+    {
+        return m_module;
+    }
+
     // Встроенные компоненты (Transform) создаёт сам узел, поэтому они не создаваемые.
     bool creatable() const
     {
@@ -73,6 +81,7 @@ private:
 
     std::string m_name;
     std::string m_baseName;
+    std::string m_module;
     TypeKind m_kind = TypeKind::Node;
     std::function<std::unique_ptr<Node>()> m_createNode;
     std::function<std::unique_ptr<Component>()> m_createComponent;
@@ -80,7 +89,7 @@ private:
 };
 
 // Добавляет свойства к только что зарегистрированному типу:
-//   registry.registerNode<Camera3D, Node3D>("Camera3D")
+//   registry.registerNode<Camera3D, Node3D>()
 //       .property("fov", &Camera3D::fovDegrees, &Camera3D::setFovDegrees);
 template <typename Class, typename Root>
 class TypeBuilder {
@@ -102,13 +111,31 @@ public:
         property.m_type = propertyTypeOf<Value>();
         property.m_hint = hint;
         property.m_forNode = std::is_same_v<Root, Node>;
+        using Storage = PropertyStorage<Value>;
+        using Stored = typename Storage::Type;
         property.m_get = [getter](const void* object) -> PropertyValue {
-            return PropertyValue(std::in_place_type<Value>, std::invoke(getter, cast(object)));
+            return PropertyValue(std::in_place_type<Stored>, Storage::store(std::invoke(getter, cast(object))));
         };
         property.m_set = [setter](void* object, const PropertyValue& value) {
-            std::invoke(setter, cast(object), std::get<Value>(value));
+            std::invoke(setter, cast(object), Storage::load(std::get<Stored>(value)));
         };
         m_info.m_properties.push_back(std::move(property));
+
+        return *this;
+    }
+
+    // Имена значений перечисления, которое добавили последним .property():
+    //   .property("projection", &Camera3D::projection, &Camera3D::setProjection)
+    //   .enumNames({"Perspective", "Orthographic"})
+    TypeBuilder& enumNames(std::initializer_list<std::string_view> names)
+    {
+        assert(
+            !m_info.m_properties.empty() && m_info.m_properties.back().m_type == PropertyType::Enum
+            && "enumNames: the last property is not an enum"
+        );
+        for (const std::string_view name : names) {
+            m_info.m_properties.back().m_enumNames.emplace_back(name);
+        }
 
         return *this;
     }
@@ -143,18 +170,49 @@ private:
 
 // Список типов узлов и компонентов, доступных редактору и файлам сцен.
 // Базовый тип регистрируется раньше наследника. Типы движка добавляет
-// registerEngineTypes(), игра регистрирует свои рядом.
+// registerEngineTypes(), игра регистрирует свои в своём модуле (см. ModuleScope).
 class YQLORA_API TypeRegistry {
 public:
+    // Модуль типов самого движка. Функция, а не константа: см. YQLORA_TYPE.
+    static constexpr std::string_view engineModule()
+    {
+        return "engine";
+    }
+
+    // Пока объект жив, новые типы записываются на модуль module:
+    //   TypeRegistry::ModuleScope scope(registry, "game");
+    //   registry.registerNode<Player, Node3D>();
+    class ModuleScope {
+    public:
+        ModuleScope(TypeRegistry& registry, std::string module)
+            : m_registry(registry)
+            , m_previous(std::exchange(registry.m_module, std::move(module)))
+        {
+        }
+
+        ~ModuleScope()
+        {
+            m_registry.m_module = std::move(m_previous);
+        }
+
+        ModuleScope(const ModuleScope&) = delete;
+        ModuleScope& operator=(const ModuleScope&) = delete;
+
+    private:
+        TypeRegistry& m_registry;
+        std::string m_previous;
+    };
+
     TypeRegistry() = default;
 
     TypeRegistry(const TypeRegistry&) = delete;
     TypeRegistry& operator=(const TypeRegistry&) = delete;
 
+    // Имя типа берётся из YQLORA_TYPE в классе.
     template <std::derived_from<Node> T, std::derived_from<Node> Base = Node>
-    TypeBuilder<T, Node> registerNode(std::string name)
+    TypeBuilder<T, Node> registerNode()
     {
-        TypeInfo& info = add<T, Base>(std::move(name), TypeKind::Node);
+        TypeInfo& info = add<T, Base>(TypeKind::Node);
         if constexpr (std::is_default_constructible_v<T>) {
             info.m_createNode = [] {
                 return std::unique_ptr<Node>(std::make_unique<T>());
@@ -165,9 +223,9 @@ public:
     }
 
     template <std::derived_from<Component> T, std::derived_from<Component> Base = Component>
-    TypeBuilder<T, Component> registerComponent(std::string name)
+    TypeBuilder<T, Component> registerComponent()
     {
-        TypeInfo& info = add<T, Base>(std::move(name), TypeKind::Component);
+        TypeInfo& info = add<T, Base>(TypeKind::Component);
         if constexpr (std::is_default_constructible_v<T>) {
             info.m_createComponent = [] {
                 return std::unique_ptr<Component>(std::make_unique<T>());
@@ -197,15 +255,25 @@ public:
     // Свойства типа вместе с базовыми, от Node к наследнику.
     std::vector<const Property*> properties(const TypeInfo& type) const;
 
+    // Убирает все типы модуля, например перед выгрузкой dll игры: иначе в
+    // реестре остались бы функции из выгруженного кода. Объектов этих типов
+    // к этому моменту быть не должно. Возвращает, сколько типов убрано.
+    std::size_t removeModule(std::string_view module);
+
 private:
     template <typename T, typename Base>
-    TypeInfo& add(std::string name, TypeKind kind)
+    TypeInfo& add(TypeKind kind)
     {
-        assert(!find(name) && "TypeRegistry: type name is already registered");
+        static_assert(
+            std::is_same_v<typename T::YqloraThisType, T>,
+            "Add YQLORA_TYPE(ClassName) to the public part of the class"
+        );
+        assert(!find(T::staticTypeName()) && "TypeRegistry: type name is already registered");
         assert(!find<T>() && "TypeRegistry: C++ type is already registered");
 
         auto info = std::make_unique<TypeInfo>();
-        info->m_name = std::move(name);
+        info->m_name = std::string(T::staticTypeName());
+        info->m_module = m_module;
         info->m_kind = kind;
         if constexpr (!std::is_same_v<T, Base> && !std::is_same_v<Base, Component>) {
             const TypeInfo* base = find<Base>();
@@ -224,6 +292,7 @@ private:
     std::vector<std::unique_ptr<TypeInfo>> m_types;
     std::map<std::string, TypeInfo*, std::less<>> m_byName;
     std::map<std::type_index, TypeInfo*> m_byCppType;
+    std::string m_module{engineModule()};
 };
 
 // Типы движка: Node, Node3D, Camera3D, MeshInstance3D, Transform3D.

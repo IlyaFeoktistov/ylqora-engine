@@ -49,17 +49,14 @@ struct AddCommand final : Command {
 };
 
 struct TestComponent final : Component {
-    std::string_view typeName() const override
-    {
-        return "TestComponent";
-    }
+    YQLORA_TYPE(TestComponent)
 };
 
 struct Fixture {
     Fixture()
     {
         registerEngineTypes(registry);
-        registry.registerComponent<TestComponent>("TestComponent");
+        registry.registerComponent<TestComponent>();
     }
 
     const TypeInfo& type(std::string_view name) const

@@ -18,10 +18,7 @@ class YQLORA_API Node3D : public Node {
 public:
     explicit Node3D(std::string name = "Node3D");
 
-    std::string_view typeName() const override
-    {
-        return "Node3D";
-    }
+    YQLORA_TYPE(Node3D)
 
     Transform3D& transform()
     {

@@ -14,10 +14,7 @@ namespace yqlora {
 // +X вправо, +Y вверх; положительный угол поворачивает против часовой стрелки.
 class YQLORA_API Transform2D final : public Component {
 public:
-    std::string_view typeName() const override
-    {
-        return "Transform2D";
-    }
+    YQLORA_TYPE(Transform2D)
 
     const Vec2& position() const
     {

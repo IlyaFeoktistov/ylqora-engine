@@ -15,10 +15,7 @@ namespace yqlora {
 // Система координат правая: +X вправо, +Y вверх, взгляд вдоль -Z.
 class YQLORA_API Transform3D final : public Component {
 public:
-    std::string_view typeName() const override
-    {
-        return "Transform3D";
-    }
+    YQLORA_TYPE(Transform3D)
 
     const Vec3& position() const
     {

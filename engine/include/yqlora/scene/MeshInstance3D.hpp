@@ -13,10 +13,7 @@ class YQLORA_API MeshInstance3D : public Node3D {
 public:
     explicit MeshInstance3D(std::string name = "MeshInstance3D");
 
-    std::string_view typeName() const override
-    {
-        return "MeshInstance3D";
-    }
+    YQLORA_TYPE(MeshInstance3D)
 
     // Пока только встроенные меши: "cube", "sphere", "plane". Позже здесь же
     // будет путь к файлу модели. С неизвестным именем узел ничего не рисует.

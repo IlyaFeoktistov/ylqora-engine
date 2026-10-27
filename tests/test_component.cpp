@@ -14,10 +14,7 @@ struct TestComponent final : Component {
         : value(initial)
     {
     }
-    std::string_view typeName() const override
-    {
-        return "TestComponent";
-    }
+    YQLORA_TYPE(TestComponent)
 
     int value;
 };

@@ -14,10 +14,7 @@ namespace {
 
 // Компонент, которого нет в движке: так тесты проверяют типы, зарегистрированные снаружи.
 struct TestComponent final : Component {
-    std::string_view typeName() const override
-    {
-        return "TestComponent";
-    }
+    YQLORA_TYPE(TestComponent)
 
     int value = 100;
 };
@@ -26,7 +23,7 @@ struct Fixture {
     Fixture()
     {
         registerEngineTypes(registry);
-        registry.registerComponent<TestComponent>("TestComponent").property("value", &TestComponent::value);
+        registry.registerComponent<TestComponent>().property("value", &TestComponent::value);
     }
 
     TypeRegistry registry;
@@ -135,4 +132,50 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: save and load a file")
     CHECK(loaded.root()->name() == "Level");
 
     CHECK_FALSE(serializer.load(loaded, file.parent_path() / "missing.yscene"));
+}
+
+namespace {
+
+enum class Mood {
+    Calm,
+    Angry,
+};
+
+struct Guard final : Node3D {
+    YQLORA_TYPE(Guard)
+
+    using Node3D::Node3D;
+
+    Mood mood = Mood::Calm;
+    NodeRef target;
+    ResourceRef weapon;
+};
+
+} // namespace
+
+TEST_CASE_FIXTURE(Fixture, "SceneSerializer: enums by name, node and resource references")
+{
+    registry.registerNode<Guard, Node3D>()
+        .property("mood", &Guard::mood)
+        .enumNames({"Calm", "Angry"})
+        .property("target", &Guard::target)
+        .property("weapon", &Guard::weapon);
+
+    Scene original;
+    auto& root = original.createRoot<Node3D>("Root");
+    auto& guard = root.addChild<Guard>("Guard");
+    guard.mood = Mood::Angry;
+    guard.target = NodeRef{root.id()};
+    guard.weapon = ResourceRef{777};
+
+    const std::string json = serializer.toJson(original);
+    CHECK(json.find("\"Angry\"") != std::string::npos);
+
+    Scene loaded;
+    REQUIRE(serializer.fromJson(loaded, json));
+    auto* loadedGuard = dynamic_cast<Guard*>(loaded.root()->children()[0].get());
+    REQUIRE(loadedGuard);
+    CHECK(loadedGuard->mood == Mood::Angry);
+    CHECK(loadedGuard->target.id == loaded.root()->id());
+    CHECK(loadedGuard->weapon.id == 777);
 }

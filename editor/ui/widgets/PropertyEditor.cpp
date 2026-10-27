@@ -5,13 +5,16 @@
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/render/MeshData.hpp"
+#include "yqlora/scene/Scene.hpp"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
+#include <algorithm>
 #include <cctype>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace yqlora::editor {
 
@@ -113,6 +116,68 @@ bool meshCombo(std::string& value)
     return changed;
 }
 
+bool enumCombo(const Property& property, EnumValue& value)
+{
+    const auto& names = property.enumNames();
+    const auto current = static_cast<std::size_t>(value.value);
+    const std::string preview = value.value >= 0 && current < names.size() ? names[current]
+                                                                           : std::to_string(value.value);
+
+    bool changed = false;
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (ImGui::BeginCombo("##value", preview.c_str())) {
+        for (std::size_t i = 0; i < names.size(); ++i) {
+            if (ImGui::Selectable(names[i].c_str(), i == current)) {
+                value.value = static_cast<int>(i);
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    return changed;
+}
+
+void collectNodes(const Node& node, std::vector<const Node*>& out)
+{
+    out.push_back(&node);
+    for (const auto& child : node.children()) {
+        collectNodes(*child, out);
+    }
+}
+
+// Узел сцены по имени. Удалённый узел показывается как "нет".
+bool nodeCombo(const Scene& scene, NodeRef& value)
+{
+    std::vector<const Node*> nodes;
+    if (const Node* root = scene.root()) {
+        collectNodes(*root, nodes);
+    }
+    const auto current = std::ranges::find(nodes, value.id, &Node::id);
+    const std::string none = tr("editor.inspector.none");
+    const char* preview = current != nodes.end() ? (*current)->name().c_str() : none.c_str();
+
+    bool changed = false;
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (ImGui::BeginCombo("##value", preview)) {
+        if (ImGui::Selectable(none.c_str(), value.id == 0)) {
+            value.id = 0;
+            changed = true;
+        }
+        for (const Node* node : nodes) {
+            ImGui::PushID(node);
+            if (ImGui::Selectable(node->name().c_str(), node->id() == value.id)) {
+                value.id = node->id();
+                changed = true;
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndCombo();
+    }
+
+    return changed;
+}
+
 // Подпись строки. У одиночного числа её можно тянуть, у остальных - просто текст.
 void rowLabel(const Property& property, PropertyValue& value, PropertyResult& result)
 {
@@ -135,7 +200,12 @@ void rowLabel(const Property& property, PropertyValue& value, PropertyResult& re
     ImGui::TextUnformatted(label.c_str());
 }
 
-void valueField(const Property& property, PropertyValue& value, const EditorColors& colors, PropertyResult& result)
+void valueField(
+    const Property& property,
+    PropertyValue& value,
+    const PropertyEditorContext& context,
+    PropertyResult& result
+)
 {
     const float speed = dragSpeed(property);
     switch (property.type()) {
@@ -155,21 +225,30 @@ void valueField(const Property& property, PropertyValue& value, const EditorColo
             result.changed = ImGui::InputText("##value", &std::get<std::string>(value)) || result.changed;
         }
         break;
-    case PropertyType::Vector2: vectorFields(&std::get<Vec2>(value).x, 2, speed, colors, result); break;
-    case PropertyType::Vector3: vectorFields(&std::get<Vec3>(value).x, 3, speed, colors, result); break;
+    case PropertyType::Vector2: vectorFields(&std::get<Vec2>(value).x, 2, speed, context.colors, result); break;
+    case PropertyType::Vector3: vectorFields(&std::get<Vec3>(value).x, 3, speed, context.colors, result); break;
     case PropertyType::Vector4:
         if (property.hint() == PropertyHint::Color) {
             ImGui::SetNextItemWidth(-FLT_MIN);
             result.changed = ImGui::ColorEdit4("##value", &std::get<Vec4>(value).x) || result.changed;
         } else {
-            vectorFields(&std::get<Vec4>(value).x, 4, speed, colors, result);
+            vectorFields(&std::get<Vec4>(value).x, 4, speed, context.colors, result);
         }
+        break;
+    case PropertyType::Enum: result.changed = enumCombo(property, std::get<EnumValue>(value)) || result.changed; break;
+    case PropertyType::Node:
+        result.changed = nodeCombo(context.scene, std::get<NodeRef>(value)) || result.changed;
+        break;
+    case PropertyType::Resource:
+        // Выбор ресурса появится вместе с базой ресурсов проекта, пока только ID.
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextDisabled("%llu", static_cast<unsigned long long>(std::get<ResourceRef>(value).id));
         break;
     }
 }
 
 template <typename Object>
-PropertyResult drawPropertyRow(const Property& property, Object& object, const EditorColors& colors)
+PropertyResult drawPropertyRow(const Property& property, Object& object, const PropertyEditorContext& context)
 {
     PropertyResult result;
     PropertyValue value = property.get(object);
@@ -179,7 +258,7 @@ PropertyResult drawPropertyRow(const Property& property, Object& object, const E
     ImGui::TableNextColumn();
     rowLabel(property, value, result);
     ImGui::TableNextColumn();
-    valueField(property, value, colors, result);
+    valueField(property, value, context, result);
     ImGui::PopID();
 
     result.value = std::move(value);
@@ -189,14 +268,14 @@ PropertyResult drawPropertyRow(const Property& property, Object& object, const E
 
 } // namespace
 
-PropertyResult drawProperty(const Property& property, Node& node, const EditorColors& colors)
+PropertyResult drawProperty(const Property& property, Node& node, const PropertyEditorContext& context)
 {
-    return drawPropertyRow(property, node, colors);
+    return drawPropertyRow(property, node, context);
 }
 
-PropertyResult drawProperty(const Property& property, Component& component, const EditorColors& colors)
+PropertyResult drawProperty(const Property& property, Component& component, const PropertyEditorContext& context)
 {
-    return drawPropertyRow(property, component, colors);
+    return drawPropertyRow(property, component, context);
 }
 
 std::string propertyLabel(const std::string& name)
