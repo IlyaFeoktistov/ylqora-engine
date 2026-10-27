@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/Version.hpp>
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/ProjectList.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
@@ -74,7 +75,7 @@ TEST_CASE("isValidFileName: names must be usable as file and folder names everyw
 TEST_CASE("Project: a folder without a project file is not a project")
 {
     CHECK_FALSE(Project::open(freshDirectory("project_missing")));
-    CHECK_FALSE(Project::readName(freshDirectory("project_missing")));
+    CHECK_FALSE(Project::readInfo(freshDirectory("project_missing")));
 }
 
 TEST_CASE("ProjectList: recently opened first, saved between runs")
@@ -173,4 +174,55 @@ TEST_CASE("deleteProjectFolder: removes only real project folders")
 
     CHECK(deleteProjectFolder(project->directory(), error));
     CHECK_FALSE(std::filesystem::exists(project->directory()));
+}
+
+TEST_CASE("Project: the version tells whether a project opens, needs an upgrade or is too new")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    const SceneSerializer serializer(registry);
+    std::string error;
+    const auto project = createProject(freshDirectory("project_version"), "Game", serializer, error);
+    REQUIRE(project);
+
+    const auto info = Project::readInfo(project->directory());
+    REQUIRE(info);
+    CHECK(info->name == "Game");
+    CHECK(info->formatVersion == Project::formatVersion());
+    CHECK(info->engineVersion == engineVersion());
+    CHECK(info->compatibility == ProjectCompatibility::Current);
+
+    const auto rewrite = [&](const char* text) {
+        std::ofstream(project->projectFile()) << text;
+    };
+    rewrite(R"({"name": "Game", "version": 99, "engine": "9.9.9"})");
+    CHECK(Project::readInfo(project->directory())->compatibility == ProjectCompatibility::Newer);
+    CHECK(Project::readInfo(project->directory())->engineVersion == "9.9.9");
+    CHECK_FALSE(Project::open(project->directory()));
+    CHECK_FALSE(Project::upgrade(project->directory(), serializer));
+
+    // Без версии - файл не этого формата, переводить не с чего.
+    rewrite(R"({"name": "Game"})");
+    CHECK(Project::readInfo(project->directory())->compatibility == ProjectCompatibility::Unsupported);
+    CHECK_FALSE(Project::open(project->directory()));
+}
+
+TEST_CASE("Project: upgrading a current project rewrites it and keeps it working")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    const SceneSerializer serializer(registry);
+    std::string error;
+    const auto project = createProject(freshDirectory("project_upgrade"), "Game", serializer, error);
+    REQUIRE(project);
+
+    REQUIRE(Project::upgrade(project->directory(), serializer));
+    const auto reopened = Project::open(project->directory());
+    REQUIRE(reopened);
+    CHECK(reopened->mainScene() == project->mainScene());
+
+    // Испорченная сцена: перевод отказывается и ничего не трогает.
+    std::ofstream(project->directory() / "broken.yscene") << "not json";
+    CHECK_FALSE(Project::upgrade(project->directory(), serializer));
+    CHECK(Project::open(project->directory()));
 }

@@ -20,11 +20,6 @@ namespace yqlora::editor {
 // Вместе с файлами обновляются ресурсы проекта, файлы .meta переезжают следом.
 class ProjectFiles {
 public:
-    static constexpr std::string_view sceneExtension()
-    {
-        return ".yscene";
-    }
-
     struct Entry {
         std::string name;
         std::filesystem::path path;

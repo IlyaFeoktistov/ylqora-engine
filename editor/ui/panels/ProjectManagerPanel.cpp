@@ -5,6 +5,7 @@
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/Version.hpp"
 #include "yqlora/editor/ProjectList.hpp"
 #include "yqlora/editor/ProjectSetup.hpp"
 #include "yqlora/i18n/Translate.hpp"
@@ -18,8 +19,8 @@ namespace yqlora::editor {
 namespace {
 
 constexpr float kFieldWidth = 420.0f;
-// Колонки списка: имя и путь, пути вдвое больше места.
-constexpr int kColumnCount = 2;
+// Колонки списка: имя, версия и путь; пути вдвое больше места, чем имени.
+constexpr int kColumnCount = 3;
 constexpr float kNameColumnWeight = 1.0f;
 constexpr float kPathColumnWeight = 2.0f;
 
@@ -41,6 +42,12 @@ void drawError(const std::string& errorKey, const EditorColors& colors)
     if (!errorKey.empty()) {
         ImGui::TextColored(toImVec4(colors.errorText), "%s", tr(errorKey).c_str());
     }
+}
+
+// Версия движка проекта или прочерк, если она не записана.
+std::string versionLabel(const std::string& version)
+{
+    return version.empty() ? "-" : version;
 }
 
 } // namespace
@@ -102,10 +109,13 @@ std::optional<Project> ProjectManagerPanel::draw(Application& app)
 
         ImGui::Spacing();
         drawList();
+        ImGui::TextDisabled("%s %s", tr("projects.engineVersion").c_str(), std::string(engineVersion()).c_str());
 
         drawCreateDialog(app);
         drawImportDialog(app);
         drawRemoveDialog();
+        drawUpgradeDialog();
+        drawCannotOpenDialog();
     }
     ImGui::End();
 
@@ -118,8 +128,10 @@ void ProjectManagerPanel::refresh()
     for (const ProjectList::Entry& entry : m_projects.entries()) {
         Row row;
         row.directory = entry.directory;
-        if (auto name = Project::readName(entry.directory)) {
-            row.name = std::move(*name);
+        if (auto info = Project::readInfo(entry.directory)) {
+            row.name = std::move(info->name);
+            row.engineVersion = std::move(info->engineVersion);
+            row.compatibility = info->compatibility;
         } else {
             row.name = toUtf8(entry.directory.filename());
             row.missing = true;
@@ -145,6 +157,7 @@ void ProjectManagerPanel::drawList()
     }
     ImGui::TableSetupScrollFreeze(0, 1);
     ImGui::TableSetupColumn(tr("projects.column.name").c_str(), ImGuiTableColumnFlags_WidthStretch, kNameColumnWeight);
+    ImGui::TableSetupColumn(tr("projects.column.version").c_str(), ImGuiTableColumnFlags_WidthFixed);
     ImGui::TableSetupColumn(tr("projects.column.path").c_str(), ImGuiTableColumnFlags_WidthStretch, kPathColumnWeight);
     ImGui::TableHeadersRow();
 
@@ -166,6 +179,8 @@ void ProjectManagerPanel::drawList()
                 open(row);
             }
         }
+        ImGui::TableNextColumn();
+        ImGui::TextUnformatted(versionLabel(row.engineVersion).c_str());
         ImGui::TableNextColumn();
         if (row.missing) {
             ImGui::Text("%s (%s)", toUtf8(row.directory).c_str(), tr("projects.missing").c_str());
@@ -252,7 +267,7 @@ void ProjectManagerPanel::drawImportDialog(Application& app)
     ImGui::Separator();
     if (ImGui::Button(tr("projects.add").c_str())) {
         const std::filesystem::path directory = fromUtf8(m_importPath);
-        if (Project::readName(directory)) {
+        if (Project::readInfo(directory)) {
             m_projects.add(directory);
             commit();
             ImGui::CloseCurrentPopup();
@@ -312,8 +327,74 @@ void ProjectManagerPanel::drawRemoveDialog()
     ImGui::EndPopup();
 }
 
+void ProjectManagerPanel::drawUpgradeDialog()
+{
+    const std::string title = tr("projects.upgrade.title") + "###UpgradeProject";
+    if (m_openUpgrade) {
+        ImGui::OpenPopup(title.c_str());
+        m_openUpgrade = false;
+    }
+    if (!ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        return;
+    }
+    ImGui::TextUnformatted(m_problemRow.name.c_str());
+    ImGui::Text("%s %s", tr("projects.upgrade.from").c_str(), versionLabel(m_problemRow.engineVersion).c_str());
+    ImGui::Text("%s %s", tr("projects.upgrade.to").c_str(), std::string(engineVersion()).c_str());
+    ImGui::Spacing();
+    ImGui::TextUnformatted(tr("projects.upgrade.question").c_str());
+    drawError("projects.upgrade.warning", m_theme.colors());
+    drawError(m_error, m_theme.colors());
+
+    ImGui::Separator();
+    if (ImGui::Button(tr("projects.upgrade.confirm").c_str())) {
+        if (Project::upgrade(m_problemRow.directory, m_serializer)) {
+            m_toOpen = Project::open(m_problemRow.directory);
+            m_refreshRequested = true;
+            ImGui::CloseCurrentPopup();
+        } else {
+            m_error = "projects.error.upgradeFailed";
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(tr("projects.cancel").c_str())) {
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+}
+
+void ProjectManagerPanel::drawCannotOpenDialog()
+{
+    const std::string title = tr("projects.cannotOpen") + "###CannotOpenProject";
+    if (m_openCannotOpen) {
+        ImGui::OpenPopup(title.c_str());
+        m_openCannotOpen = false;
+    }
+    if (!ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        return;
+    }
+    const bool newer = m_problemRow.compatibility == ProjectCompatibility::Newer;
+    ImGui::TextUnformatted(m_problemRow.name.c_str());
+    ImGui::Text("%s %s", tr("projects.upgrade.from").c_str(), versionLabel(m_problemRow.engineVersion).c_str());
+    ImGui::Text("%s %s", tr("projects.engineVersion").c_str(), std::string(engineVersion()).c_str());
+    ImGui::Spacing();
+    drawError(newer ? "projects.error.newer" : "projects.error.unsupported", m_theme.colors());
+
+    ImGui::Separator();
+    if (ImGui::Button(tr("projects.close").c_str()) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+}
+
 void ProjectManagerPanel::open(const Row& row)
 {
+    if (row.compatibility != ProjectCompatibility::Current) {
+        m_problemRow = row;
+        m_error.clear();
+        (row.compatibility == ProjectCompatibility::Older ? m_openUpgrade : m_openCannotOpen) = true;
+
+        return;
+    }
     if (auto project = Project::open(row.directory)) {
         m_toOpen = std::move(project);
     } else {

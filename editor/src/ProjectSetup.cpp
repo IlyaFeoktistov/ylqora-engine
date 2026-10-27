@@ -75,7 +75,7 @@ std::optional<Project> createProject(
         return std::nullopt;
     }
 
-    const std::filesystem::path mainScene = std::string(kMainSceneName) + std::string(ProjectFiles::sceneExtension());
+    const std::filesystem::path mainScene = std::string(kMainSceneName) + std::string(SceneSerializer::fileExtension());
     Scene scene;
     buildStarterScene(scene);
     auto project = Project::create(directory, name);

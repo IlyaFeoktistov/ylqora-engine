@@ -35,6 +35,9 @@ private:
     struct Row {
         std::filesystem::path directory;
         std::string name;
+        // Версия движка, который сохранил проект.
+        std::string engineVersion;
+        ProjectCompatibility compatibility = ProjectCompatibility::Unsupported;
         bool missing = false;
     };
 
@@ -42,6 +45,10 @@ private:
     void drawCreateDialog(Application& app);
     void drawImportDialog(Application& app);
     void drawRemoveDialog();
+    // Проект старого формата: спросить, переводить ли его на текущий.
+    void drawUpgradeDialog();
+    // Проект нельзя открыть: объяснить почему.
+    void drawCannotOpenDialog();
     void open(const Row& row);
     // Сохраняет список и перечитывает строки.
     void commit();
@@ -59,6 +66,10 @@ private:
     bool m_openCreate = false;
     bool m_openImport = false;
     bool m_openRemove = false;
+    bool m_openUpgrade = false;
+    bool m_openCannotOpen = false;
+    // Проект, о котором спрашивает окно перевода или окно "нельзя открыть".
+    Row m_problemRow;
     std::string m_newName;
     std::string m_location;
     std::string m_importPath;

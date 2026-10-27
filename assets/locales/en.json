@@ -111,7 +111,8 @@
         "missing": "folder not found",
         "column": {
             "name": "Name",
-            "path": "Folder"
+            "path": "Folder",
+            "version": "Version"
         },
         "name": "Name",
         "location": "Location",
@@ -129,7 +130,21 @@
             "exists": "A folder with this name already exists",
             "cannotCreate": "Could not create the project folder",
             "notProject": "There is no project.yqlora in this folder",
-            "cannotDelete": "Could not delete the project folder"
+            "cannotDelete": "Could not delete the project folder",
+            "newer": "The project was saved by a newer engine version. Update the engine.",
+            "unsupported": "Unknown project format version: it cannot be upgraded.",
+            "upgradeFailed": "The project was not upgraded, files are unchanged. See the log for details."
+        },
+        "engineVersion": "Engine version:",
+        "cannotOpen": "Cannot open the project",
+        "close": "Close",
+        "upgrade": {
+            "title": "Upgrade project",
+            "from": "Project version:",
+            "to": "Engine version:",
+            "question": "Upgrade the project to the current engine version?",
+            "warning": "After the upgrade, older engine versions will not open it.",
+            "confirm": "Upgrade"
         }
     },
     "property": {

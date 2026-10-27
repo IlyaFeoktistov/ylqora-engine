@@ -19,6 +19,7 @@ add_library(yqlora SHARED
     src/core/Application.cpp
     src/core/Log.cpp
     src/core/Settings.cpp
+    src/core/Version.cpp
     src/i18n/Localization.cpp
     src/platform/Platform.cpp
     src/platform/Window.cpp
@@ -51,6 +52,7 @@ target_link_libraries(yqlora
     PUBLIC glm::glm imgui_headers
     PRIVATE yqlora_engine_code imgui SDL3::SDL3-static nlohmann_json::nlohmann_json
 )
+target_compile_definitions(yqlora PRIVATE YQLORA_ENGINE_VERSION="${PROJECT_VERSION}")
 target_compile_definitions(yqlora INTERFACE
     GLM_FORCE_RADIANS
     GLM_ENABLE_EXPERIMENTAL

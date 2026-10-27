@@ -90,7 +90,7 @@ ProjectFiles::Entry ProjectFiles::scan() const
 
 bool ProjectFiles::isScene(const fs::path& path)
 {
-    return path.extension() == sceneExtension();
+    return path.extension() == SceneSerializer::fileExtension();
 }
 
 bool ProjectFiles::canModify(const fs::path& path) const
@@ -110,7 +110,11 @@ std::optional<fs::path> ProjectFiles::createScene(const fs::path& folder, const 
     if (!folder.empty() && !canModify(folder)) {
         return std::nullopt;
     }
-    const fs::path file = freeName(m_project.directory() / folder, kNewSceneName, std::string(sceneExtension()));
+    const fs::path file = freeName(
+        m_project.directory() / folder,
+        kNewSceneName,
+        std::string(SceneSerializer::fileExtension())
+    );
     if (!serializer.save(Scene{}, file)) {
         return std::nullopt;
     }

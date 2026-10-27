@@ -16,6 +16,12 @@ class TypeRegistry;
 // по именам типов из реестра, значения читаются и пишутся через их свойства.
 class YQLORA_API SceneSerializer {
 public:
+    // Расширение файлов сцен.
+    static constexpr std::string_view fileExtension()
+    {
+        return ".yscene";
+    }
+
     explicit SceneSerializer(const TypeRegistry& registry);
 
     std::string toJson(const Scene& scene) const;
