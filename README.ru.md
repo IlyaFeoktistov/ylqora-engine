@@ -29,7 +29,7 @@ MVP: всё, что нужно для небольшого прототипа и
 
 После MVP: скрипты на Luau, затем 2D.
 
-Архитектура (на английском): [сцена, узлы и компоненты](docs/architecture/scene.md), [настройки проекта](docs/architecture/project-settings.md).
+Архитектура: [сцена, узлы и компоненты](docs/architecture/scene.ru.md), [настройки проекта](docs/architecture/project-settings.ru.md).
 
 ## Сборка
 

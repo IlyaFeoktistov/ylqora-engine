@@ -1,5 +1,7 @@
 # Project settings
 
+[Русская версия](project-settings.ru.md)
+
 Settings of a game that live in its project folder, are shared by everyone who
 works on it and go to version control: input actions, time step, graphics API,
 physics, build targets. In the editor: **Project → Project Settings**.

@@ -18,6 +18,7 @@ jobs:
       # Та же версия, что ждёт хук .githooks/pre-commit: другие форматируют чуть иначе.
       - run: pip install clang-format==23.1.3
       - run: make format-check
+      - run: make docs-check
 
   linux:
     runs-on: ubuntu-24.04

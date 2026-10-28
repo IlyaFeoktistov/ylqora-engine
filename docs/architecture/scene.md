@@ -1,5 +1,7 @@
 # Scene architecture: nodes, components, resources
 
+[Русская версия](scene.ru.md)
+
 This is the contract for everything that lives in a scene: what is a node,
 what is a component, how types are registered, the lifecycle, and how scripts,
 the editor and hot reload rely on it. It changes together with the code.
