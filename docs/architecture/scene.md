@@ -203,7 +203,7 @@ public:
 - In the editor the Play copy sees input only while the viewport is focused,
   so keys typed in the inspector do not move the player.
 
-### Game time [next]
+### Game time [done]
 
 ```cpp
 class GameTime {
@@ -259,9 +259,10 @@ scene.advance(realDelta):
     apply deferred tree changes                   destroy, change of parent
 ```
 
-The game calls `advance` every frame, the editor's `PlayMode` calls it for the
-Play copy when not paused, tests call it directly. `Application` no longer
-updates a scene itself.
+The game (`Application`) calls `advance` every frame, the editor's `PlayMode`
+calls it for the Play copy when not paused, tests call it directly. Today
+`advance` does the phases and the fixed step; systems and deferred changes
+come with their items below.
 
 ## Lifecycle
 
@@ -271,18 +272,19 @@ updates a scene itself.
 | `onEnterScene` / `onExitScene` | editor and game | register in scene systems (physics, audio, lights) |
 | `onEnable` / `onDisable` | game only | the component starts or stops taking part: enabled and its node active in hierarchy **[next]** |
 | `onStart` | game only | once, before the first phase call of the component |
-| `onFixedUpdate(step)` | game only | physics, fixed step of game time **[next]** |
+| `onFixedUpdate(step)` | game only | physics, fixed step of game time **[done]** |
 | `onUpdate(delta)` | game only | per-frame logic |
-| `onLateUpdate(delta)` | game only | after all updates: follow cameras **[next]** |
+| `onLateUpdate(delta)` | game only | after all updates: follow cameras **[done]** |
 | `onStop` | game only | release what `onStart` took |
 
-### Phase lists instead of a tree walk [next]
+### Phase lists instead of a tree walk [done]
 
 - A scene keeps one list per phase (fixed update, update, late update) and
   calls only the components in it. A component gets into a list only if its
   type overrides that phase; the registry finds this out when the type is
-  registered (`YQLORA_TYPE` compares the declaring class of `onUpdate` and the
-  others). No tree walk, no empty virtual calls.
+  registered (`PhaseDetector` compares the declaring class of `onUpdate` and
+  the others; `YQLORA_TYPE` makes it a friend of the class). No tree walk, no
+  empty virtual calls.
 - Order inside a phase: the **execution order** of the type (default 0, lower
   first), then the order in which components entered the list. A type sets its
   default in code (`.executionOrder(-100)`); the project settings can override

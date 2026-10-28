@@ -91,6 +91,18 @@ public:
         return m_allowMultiple;
     }
 
+    // Фазы кадра, которые переопределил тип компонента (см. LifecyclePhase.hpp).
+    LifecyclePhases phases() const
+    {
+        return m_phases;
+    }
+
+    // Порядок выполнения по умолчанию из кода. Действующий порядок - executionOrderOf.
+    int executionOrder() const
+    {
+        return m_executionOrder;
+    }
+
     // nullptr, если это не узел (не компонент) или тип нельзя создать.
     std::unique_ptr<Node> createNode() const;
     std::unique_ptr<Component> createComponent() const;
@@ -110,6 +122,8 @@ private:
     std::string m_requiredNode;
     std::vector<std::string> m_requiredComponents;
     bool m_allowMultiple = false;
+    LifecyclePhases m_phases = 0;
+    int m_executionOrder = 0;
 };
 
 // Добавляет свойства к только что зарегистрированному типу:
@@ -182,6 +196,16 @@ public:
         requires std::same_as<Root, Component>
     {
         m_info.m_requiredComponents.emplace_back(typeNameOf<Required>());
+
+        return *this;
+    }
+
+    // Порядок выполнения в фазах кадра по умолчанию (меньше - раньше, по
+    // умолчанию 0). Настройки проекта могут его переопределить, см. executionOrderOf.
+    TypeBuilder& executionOrder(int order)
+        requires std::same_as<Root, Component>
+    {
+        m_info.m_executionOrder = order;
 
         return *this;
     }
@@ -281,6 +305,7 @@ public:
     TypeBuilder<T, Component> registerComponent()
     {
         TypeInfo& info = add<T>(TypeKind::Component);
+        info.m_phases = PhaseDetector::phasesOf<T>();
         if constexpr (std::is_default_constructible_v<T>) {
             info.m_createComponent = [] {
                 return std::unique_ptr<Component>(std::make_unique<T>());

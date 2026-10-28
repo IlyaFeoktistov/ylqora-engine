@@ -30,12 +30,15 @@ add_library(yqlora SHARED
     src/platform/InputFeeder.cpp
     src/platform/MouseWrap.cpp
     src/input/Input.cpp
+    src/scene/ExecutionOrder.cpp
+    src/scene/GameTime.cpp
     src/scene/Node.cpp
     src/scene/NodeTree.cpp
     src/scene/Component.cpp
     src/scene/Transform3D.cpp
     src/scene/Node3D.cpp
     src/scene/Camera3D.cpp
+    src/scene/PhaseList.cpp
     src/scene/Scene.cpp
     src/scene/SceneSerializer.cpp
     src/project/Project.cpp

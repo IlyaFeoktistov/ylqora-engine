@@ -43,7 +43,17 @@ protected:
     {
     }
 
+    // Фазы кадра, см. Scene::advance. Сцена вызывает только те, что
+    // переопределены в типе: пустые не стоят ничего.
+    virtual void onFixedUpdate(float /*stepSeconds*/)
+    {
+    }
+
     virtual void onUpdate(float /*deltaSeconds*/)
+    {
+    }
+
+    virtual void onLateUpdate(float /*deltaSeconds*/)
     {
     }
 
@@ -64,6 +74,7 @@ protected:
 
 private:
     friend class Node;
+    friend class Scene;
 
     Node* m_owner = nullptr;
     bool m_builtin = false;

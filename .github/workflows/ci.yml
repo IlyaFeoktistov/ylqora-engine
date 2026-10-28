@@ -33,6 +33,10 @@ jobs:
       - run: cmake --preset debug
       - run: cmake --build --preset debug
       - run: ctest --preset debug
+      # Ошибки памяти и неопределённое поведение, которые обычный прогон скрывает.
+      - run: cmake --preset asan
+      - run: cmake --build --preset asan --target yqlora_tests
+      - run: ctest --preset asan
 
   windows:
     runs-on: windows-2022

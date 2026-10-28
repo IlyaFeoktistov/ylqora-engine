@@ -19,7 +19,7 @@ TEST_CASE("Scene: new scene is empty")
     CHECK(scene.root() == nullptr);
 
     // Пустую сцену можно обновлять и рисовать.
-    scene.update(0.016f);
+    scene.advance(0.016f);
     const FrameData frame = buildFrameData(scene, 1.0f, DepthRange::MinusOneToOne);
     CHECK(frame.clearColor == scene.clearColor());
 }

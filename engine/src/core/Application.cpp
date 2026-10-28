@@ -214,7 +214,7 @@ void Application::mainLoop()
         }
 
         if (m_sceneRunning) {
-            m_scene.update(deltaSeconds);
+            m_scene.advance(deltaSeconds);
         }
         onUpdate(deltaSeconds);
 

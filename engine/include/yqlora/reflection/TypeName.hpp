@@ -1,5 +1,7 @@
 #pragma once
 
+#include "yqlora/scene/LifecyclePhase.hpp"
+
 #include <string_view>
 #include <type_traits>
 
@@ -30,7 +32,10 @@
     std::string_view typeName() const override                                                                         \
     {                                                                                                                  \
         return staticTypeName();                                                                                       \
-    }
+    }                                                                                                                  \
+                                                                                                                       \
+    /* Узнаёт, какие фазы кадра переопределены: снаружи защищённые методы не видны. */                                 \
+    friend struct ::yqlora::PhaseDetector;
 
 namespace yqlora {
 

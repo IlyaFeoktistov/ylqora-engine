@@ -1,5 +1,8 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineServices.hpp>
+#include <yqlora/input/Input.hpp>
+#include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Node3D.hpp>
 #include <yqlora/scene/Scene.hpp>
 
@@ -10,10 +13,13 @@ using namespace yqlora;
 
 namespace {
 
+using Events = std::vector<std::string>;
+
 // Записывает, какие события жизненного цикла и в каком порядке пришли.
-struct Recorder final : Component {
-    explicit Recorder(std::vector<std::string>& log)
+struct Recorder : Component {
+    Recorder(Events& log, std::string name = "")
         : events(log)
+        , prefix(std::move(name))
     {
     }
 
@@ -21,90 +27,218 @@ struct Recorder final : Component {
 
     void onStart() override
     {
-        events.push_back("start");
+        events.push_back(prefix + "start");
     }
+
+    void onFixedUpdate(float /*stepSeconds*/) override
+    {
+        events.push_back(prefix + "fixed");
+    }
+
+    void onUpdate(float /*deltaSeconds*/) override
+    {
+        events.push_back(prefix + "update");
+    }
+
+    void onLateUpdate(float /*deltaSeconds*/) override
+    {
+        events.push_back(prefix + "late");
+    }
+
+    void onStop() override
+    {
+        events.push_back(prefix + "stop");
+    }
+
+    Events& events;
+    std::string prefix;
+};
+
+// Только onUpdate: в списках других фаз его быть не должно.
+struct UpdateOnly final : Component {
+    explicit UpdateOnly(Events& log)
+        : events(log)
+    {
+    }
+
+    YQLORA_TYPE(UpdateOnly, Component)
 
     void onUpdate(float /*deltaSeconds*/) override
     {
         events.push_back("update");
     }
 
-    void onStop() override
+    Events& events;
+};
+
+// Порядок выполнения раньше остальных.
+struct Early final : Recorder {
+    using Recorder::Recorder;
+    YQLORA_TYPE(Early, Recorder)
+};
+
+// Шаг кадра больше фиксированного шага ровно вдвое: два фиксированных шага.
+constexpr float kTwoFixedSteps = 2.0f * kDefaultFixedStep;
+// Десятая доля фиксированного шага: тест делает меньше десяти таких кадров
+// подряд, и целый шаг в накопителе не набирается.
+constexpr float kNoFixedStep = 0.1f * kDefaultFixedStep;
+
+struct Fixture {
+    Fixture()
     {
-        events.push_back("stop");
+        registerEngineTypes(registry);
+        registry.registerComponent<Recorder>().allowMultiple();
+        registry.registerComponent<UpdateOnly>();
+        registry.registerComponent<Early>().executionOrder(-1);
     }
 
-    std::vector<std::string>& events;
+    // Журнал раньше сцены: сцена при уничтожении останавливает дерево и пишет в него.
+    Events events;
+    TypeRegistry registry;
+    Input input;
+    EngineServices services{input, registry};
+    Scene scene{services};
 };
 
 } // namespace
 
-TEST_CASE("Lifecycle: start before the first update, stop when the game stops")
+TEST_CASE_FIXTURE(Fixture, "Lifecycle: start once, then fixed steps, update and late update")
 {
-    std::vector<std::string> events;
-    Scene scene{EngineServices::none()};
     scene.createRoot<Node3D>().addComponent<Recorder>(events);
 
-    scene.update(0.016f);
-    scene.update(0.016f);
+    scene.advance(kTwoFixedSteps);
+    CHECK(events == Events{"start", "fixed", "fixed", "update", "late"});
+
+    events.clear();
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"update", "late"});
+
+    events.clear();
     scene.stop();
-    CHECK(events == std::vector<std::string>{"start", "update", "update", "stop"});
+    CHECK(events == Events{"stop"});
 
     // После остановки следующий запуск снова начинается с onStart.
     events.clear();
-    scene.update(0.016f);
-    CHECK(events == std::vector<std::string>{"start", "update"});
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"start", "update", "late"});
 }
 
-TEST_CASE("Lifecycle: a component added during the game starts on its first update")
+TEST_CASE_FIXTURE(Fixture, "Lifecycle: only overridden phases are called")
 {
-    std::vector<std::string> events;
-    Scene scene{EngineServices::none()};
+    scene.createRoot<Node3D>().addComponent<UpdateOnly>(events);
+    CHECK(registry.find<UpdateOnly>()->phases() == phaseBit(LifecyclePhase::Update));
+
+    scene.advance(kTwoFixedSteps);
+    CHECK(events == Events{"update"});
+}
+
+TEST_CASE_FIXTURE(Fixture, "Lifecycle: execution order, then the order of entering")
+{
     auto& root = scene.createRoot<Node3D>();
-    scene.update(0.016f);
+    root.addComponent<Recorder>(events, "a:");
+    root.addComponent<Early>(events, "early:");
+    root.addComponent<Recorder>(events, "b:");
+    scene.advance(kNoFixedStep);
+
+    // onStart - в порядке входа, фазы - по порядку выполнения типа.
+    CHECK(
+        events
+        == Events{
+            "a:start",
+            "early:start",
+            "b:start",
+            "early:update",
+            "a:update",
+            "b:update",
+            "early:late",
+            "a:late",
+            "b:late"
+        }
+    );
+}
+
+TEST_CASE_FIXTURE(Fixture, "Lifecycle: a component added during the game starts on its first call")
+{
+    auto& root = scene.createRoot<Node3D>();
+    scene.advance(kNoFixedStep);
 
     root.addComponent<Recorder>(events);
-    scene.update(0.016f);
-    CHECK(events == std::vector<std::string>{"start", "update"});
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"start", "update", "late"});
 }
 
-TEST_CASE("Lifecycle: removing a started component or node stops it")
+TEST_CASE_FIXTURE(Fixture, "Lifecycle: removing a started component or node stops it")
 {
-    std::vector<std::string> events;
-    Scene scene{EngineServices::none()};
     auto& root = scene.createRoot<Node3D>();
     auto& child = root.addChild<Node3D>();
     auto& recorder = child.addComponent<Recorder>(events);
-    scene.update(0.016f);
+    scene.advance(kNoFixedStep);
 
     events.clear();
     auto owned = child.removeComponent(recorder);
-    CHECK(events == std::vector<std::string>{"stop"});
+    CHECK(events == Events{"stop"});
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"stop"});
 
     child.addComponent(std::move(owned));
-    scene.update(0.016f);
+    scene.advance(kNoFixedStep);
     events.clear();
     auto removedNode = root.removeChild(child);
-    CHECK(events == std::vector<std::string>{"stop"});
+    CHECK(events == Events{"stop"});
 }
 
-TEST_CASE("Lifecycle: taking the tree out of the scene stops it")
+TEST_CASE_FIXTURE(Fixture, "Lifecycle: taking the tree out of the scene stops it")
 {
-    std::vector<std::string> events;
-    Scene scene{EngineServices::none()};
     scene.createRoot<Node3D>().addComponent<Recorder>(events);
-    scene.update(0.016f);
+    scene.advance(kNoFixedStep);
 
     events.clear();
     auto root = scene.takeRoot();
-    CHECK(events == std::vector<std::string>{"stop"});
+    CHECK(events == Events{"stop"});
 }
 
-TEST_CASE("Lifecycle: nothing happens without updates")
+TEST_CASE_FIXTURE(Fixture, "Lifecycle: nothing happens without advance")
 {
-    std::vector<std::string> events;
-    Scene scene{EngineServices::none()};
     scene.createRoot<Node3D>().addComponent<Recorder>(events);
     scene.stop();
     CHECK(events.empty());
+}
+
+TEST_CASE("Lifecycle: a scene without a registry calls nobody")
+{
+    Events events;
+    Scene scene{EngineServices::none()};
+    scene.createRoot<Node3D>().addComponent<UpdateOnly>(events);
+    scene.advance(kNoFixedStep);
+    CHECK(events.empty());
+}
+
+TEST_CASE("GameTime: scale, fixed steps and their limit")
+{
+    GameTime time;
+    time.beginFrame(0.1f);
+    CHECK(time.delta() == doctest::Approx(0.1f));
+    CHECK(time.frame() == 1);
+
+    time.setScale(0.5f);
+    time.beginFrame(0.1f);
+    CHECK(time.delta() == doctest::Approx(0.05f));
+    CHECK(time.unscaledDelta() == doctest::Approx(0.1f));
+    CHECK(time.elapsed() == doctest::Approx(0.15));
+
+    // Стоп: время стоит, шагов нет.
+    GameTime stopped;
+    stopped.setScale(0.0f);
+    stopped.beginFrame(1.0f);
+    CHECK(stopped.delta() == 0.0f);
+    CHECK_FALSE(stopped.takeFixedStep());
+
+    // После очень длинного кадра шагов не больше предела.
+    GameTime slow;
+    slow.beginFrame(10.0f);
+    int steps = 0;
+    while (slow.takeFixedStep()) {
+        ++steps;
+    }
+    CHECK(steps == kMaxFixedStepsPerFrame);
 }

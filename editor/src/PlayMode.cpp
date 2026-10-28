@@ -49,7 +49,7 @@ void PlayMode::setPaused(bool paused)
 void PlayMode::update(float deltaSeconds)
 {
     if (running()) {
-        m_scene->update(deltaSeconds);
+        m_scene->advance(deltaSeconds);
     }
 }
 

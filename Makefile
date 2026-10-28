@@ -3,6 +3,7 @@
 #   make test       собрать и прогнать тесты
 #   make run        собрать и запустить движок с редактором
 #   make release    собрать release; PRESET=release работает и с остальными целями
+#   make sanitize   собрать и прогнать тесты с AddressSanitizer и UBSan (только Linux)
 #   make format     отформатировать код по .clang-format
 #   make docs-check сверить документы с их русскими версиями
 #   make hooks      включить git-хук: форматирование и тесты перед коммитом
@@ -14,7 +15,7 @@ BUILD_DIR := build/$(PRESET)
 CLANG_FORMAT ?= clang-format
 SOURCES = $(shell find engine editor backends apps tests -name '*.cpp' -o -name '*.hpp')
 
-.PHONY: all build test run release format format-check docs-check hooks clean distclean
+.PHONY: all build test run release sanitize format format-check docs-check hooks clean distclean
 
 all: build
 
@@ -33,6 +34,9 @@ run: build
 
 release:
 	$(MAKE) build PRESET=release
+
+sanitize:
+	$(MAKE) test PRESET=asan
 
 format:
 	$(CLANG_FORMAT) -i $(SOURCES)

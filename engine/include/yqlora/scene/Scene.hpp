@@ -3,8 +3,12 @@
 #include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
+#include "yqlora/scene/GameTime.hpp"
+#include "yqlora/scene/LifecyclePhase.hpp"
 #include "yqlora/scene/Node.hpp"
+#include "yqlora/scene/PhaseList.hpp"
 
+#include <array>
 #include <concepts>
 #include <memory>
 #include <ranges>
@@ -102,18 +106,40 @@ public:
 
     std::span<Component* const> componentsOfType(std::type_index type) const;
 
-    // Кадр игры для всего дерева. См. Node::update.
-    void update(float deltaSeconds);
+    GameTime& time()
+    {
+        return m_time;
+    }
+
+    const GameTime& time() const
+    {
+        return m_time;
+    }
+
+    // Кадр игры длиной realDelta секунд по часам. Весь порядок кадра - здесь:
+    // onStart новым компонентам, фиксированные шаги, update, lateUpdate.
+    // Вызывают только компоненты, у типа которых эта фаза переопределена.
+    void advance(float realDelta);
 
     // Игра остановлена: onStop у всего, что успело запуститься.
     void stop();
 
 private:
     friend class Node;
-    void indexComponent(Component& component);
-    void unindexComponent(Component& component);
+    // Компонент вошёл в дерево сцены или вышел из него: индекс по типам,
+    // списки фаз, очередь onStart.
+    void enterComponent(Component& component);
+    void exitComponent(Component& component);
+
+    void startPending();
+    void start(Component& component);
+    void runPhase(LifecyclePhase phase, float seconds);
 
     const EngineServices& m_services;
+    GameTime m_time;
+    std::array<PhaseList, kLifecyclePhaseCount> m_phases;
+    // Вошли в сцену и ещё не получили onStart.
+    std::vector<Component*> m_starting;
     std::unique_ptr<Node> m_root;
     std::unordered_map<std::type_index, std::vector<Component*>> m_components;
     Camera3D* m_activeCamera = nullptr;

@@ -123,7 +123,7 @@ Component& Node::insertComponent(std::size_t index, std::unique_ptr<Component> c
     Component& ref = *component;
     m_components.insert(m_components.begin() + static_cast<std::ptrdiff_t>(index), std::move(component));
     if (m_scene) {
-        m_scene->indexComponent(ref);
+        m_scene->enterComponent(ref);
         ref.onEnterScene();
     }
 
@@ -160,7 +160,7 @@ std::unique_ptr<Component> Node::removeComponent(Component& component)
     }
     if (m_scene) {
         component.onExitScene();
-        m_scene->unindexComponent(component);
+        m_scene->exitComponent(component);
     }
     std::unique_ptr<Component> result = std::move(*it);
     m_components.erase(it);
@@ -178,28 +178,11 @@ Node* Node::findChild(std::string_view name) const
     return it != m_children.end() ? it->get() : nullptr;
 }
 
-void Node::update(float deltaSeconds)
-{
-    // По индексу, а не итератором: во время обновления компоненты и дети
-    // могут добавляться, и вектор переедет в другую память.
-    for (std::size_t i = 0; i < m_components.size(); ++i) {
-        Component& component = *m_components[i];
-        if (!component.m_started) {
-            component.m_started = true;
-            component.onStart();
-        }
-        component.onUpdate(deltaSeconds);
-    }
-    for (std::size_t i = 0; i < m_children.size(); ++i) {
-        m_children[i]->update(deltaSeconds);
-    }
-}
-
 void Node::enterScene(Scene& scene)
 {
     m_scene = &scene;
     for (const auto& component : m_components) {
-        scene.indexComponent(*component);
+        scene.enterComponent(*component);
         component->onEnterScene();
     }
     onEnterScene();
@@ -216,7 +199,7 @@ void Node::exitScene()
     onExitScene();
     for (const auto& component : m_components) {
         component->onExitScene();
-        m_scene->unindexComponent(*component);
+        m_scene->exitComponent(*component);
     }
     m_scene = nullptr;
 }

@@ -30,6 +30,24 @@
             }
         },
         {
+            "name": "asan",
+            "displayName": "Debug with AddressSanitizer and UBSan (Linux)",
+            "inherits": "base",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+                "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+                "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+                "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
             "name": "vs2022",
             "displayName": "Visual Studio 2022",
             "inherits": "base",
@@ -49,6 +67,10 @@
         {
             "name": "release",
             "configurePreset": "release"
+        },
+        {
+            "name": "asan",
+            "configurePreset": "asan"
         },
         {
             "name": "vs2022-debug",
@@ -78,6 +100,14 @@
             "name": "release",
             "inherits": "base",
             "configurePreset": "release"
+        },
+        {
+            "name": "asan",
+            "inherits": "base",
+            "configurePreset": "asan",
+            "environment": {
+                "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+            }
         },
         {
             "name": "vs2022-debug",
