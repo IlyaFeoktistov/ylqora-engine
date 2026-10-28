@@ -259,7 +259,7 @@ bool EditorSession::deleteNodes(std::span<const NodeId> ids)
 
 Component* EditorSession::addComponent(Node& node, const TypeInfo& type)
 {
-    const TypeRegistry& registry = m_serializer.registry();
+    const TypeRegistry& registry = this->registry();
     const auto missing = canAttach(registry, type, node) ? missingRequirements(registry, type, node) : std::nullopt;
     if (!missing) {
         return nullptr;
@@ -281,13 +281,23 @@ bool EditorSession::removeComponent(Node& node, Component& component)
 {
     const auto index = componentIndex(node, component);
 
-    return index && componentDependents(node, component).empty()
+    return index && canRemoveComponent(node, component)
            && execute(std::make_unique<RemoveComponentCommand>(node.id(), *index));
+}
+
+bool EditorSession::canRemoveComponent(const Node& node, const Component& component) const
+{
+    return node.canRemoveComponent(component) && componentDependents(node, component).empty();
+}
+
+const TypeRegistry& EditorSession::registry() const
+{
+    return m_serializer.registry();
 }
 
 std::vector<const TypeInfo*> EditorSession::addableComponents(const Node& node) const
 {
-    const TypeRegistry& registry = m_serializer.registry();
+    const TypeRegistry& registry = this->registry();
     std::vector<const TypeInfo*> result;
     for (const auto& type : registry.types()) {
         if (type->creatable() && canAttach(registry, *type, node) && missingRequirements(registry, *type, node)) {
@@ -300,7 +310,7 @@ std::vector<const TypeInfo*> EditorSession::addableComponents(const Node& node) 
 
 std::vector<const Component*> EditorSession::componentDependents(const Node& node, const Component& component) const
 {
-    return dependentsOf(m_serializer.registry(), node, component);
+    return dependentsOf(registry(), node, component);
 }
 
 bool EditorSession::setProperty(Node& node, const Property& property, const PropertyValue& value)

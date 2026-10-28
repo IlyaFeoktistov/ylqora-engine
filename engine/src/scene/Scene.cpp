@@ -28,6 +28,7 @@ std::unique_ptr<Node> Scene::takeRoot()
 {
     m_activeCamera = nullptr;
     if (m_root) {
+        m_root->stop();
         m_root->exitScene();
     }
 

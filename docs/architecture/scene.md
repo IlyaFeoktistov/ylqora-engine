@@ -61,7 +61,7 @@ Node                     no position: a group, a root, a holder of scripts
   and registers itself in scene systems in `onEnterScene` / `onExitScene`.
   **No game logic in node classes**: per-frame work of engine nodes belongs to
   their system. `onStart` / `onUpdate` / `onStop` are for components only
-  **[next]**.
+  **[done]**.
 
 ## Components
 

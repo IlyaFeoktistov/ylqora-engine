@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 
 #include <yqlora/editor/EditorSession.hpp>
+#include <yqlora/editor/Inspection.hpp>
 #include <yqlora/reflection/ComponentRules.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Camera3D.hpp>
@@ -236,4 +237,37 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: component rules on load")
     // Компонент на неподходящем узле пропущен.
     REQUIRE(loadedRoot->children().size() == 1);
     CHECK(loadedRoot->children()[0]->components().empty());
+}
+
+TEST_CASE_FIXTURE(Fixture, "Inspection: what the inspector shows for the selected node")
+{
+    SceneSerializer serializer{registry};
+    Scene scene;
+    EditorSession session{scene, serializer};
+    CHECK_FALSE(inspect(session));
+
+    Node* node = session.createNode(type("Node3D"), nullptr);
+    REQUIRE(node);
+    REQUIRE(session.addComponent(*node, type("BoxCollider")));
+
+    const auto inspection = inspect(session);
+    REQUIRE(inspection);
+    CHECK(&inspection->node == node);
+    CHECK(inspection->type.name() == "Node3D");
+    REQUIRE(inspection->components.size() == 3);
+
+    // Transform3D встроенный, Body нужен коллайдеру, коллайдер снять можно.
+    const auto& transform = inspection->components[0];
+    const auto& body = inspection->components[1];
+    const auto& collider = inspection->components[2];
+    CHECK_FALSE(transform.removable);
+    CHECK_FALSE(body.removable);
+    CHECK(body.requiredBy == std::vector<const Component*>{&collider.component});
+    CHECK(collider.removable);
+    CHECK(collider.type == &type("BoxCollider"));
+
+    // Уже есть Body, второго не предложат.
+    CHECK(std::ranges::none_of(inspection->addable, [&](const TypeInfo* t) {
+        return t->name() == "Body";
+    }));
 }

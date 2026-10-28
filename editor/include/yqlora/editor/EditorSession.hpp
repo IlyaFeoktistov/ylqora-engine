@@ -23,6 +23,7 @@ class Node3D;
 class Scene;
 class SceneSerializer;
 class TypeInfo;
+class TypeRegistry;
 
 } // namespace yqlora
 
@@ -61,6 +62,9 @@ public:
     {
         return m_selection;
     }
+
+    // Типы, которые знает сессия: те же, что у её сериализатора.
+    const TypeRegistry& registry() const;
 
     const Selection& selection() const
     {
@@ -171,9 +175,12 @@ public:
     // (см. canAttach и missingRequirements в ComponentRules.hpp).
     Component* addComponent(Node& node, const TypeInfo& type);
 
-    // Нельзя снять встроенный компонент и тот, от которого зависят другие
-    // (см. componentDependents).
+    // Снимает компонент, если canRemoveComponent.
     bool removeComponent(Node& node, Component& component);
+
+    // Единственное правило, можно ли снять компонент: не встроенный
+    // и не нужен другим (см. componentDependents).
+    bool canRemoveComponent(const Node& node, const Component& component) const;
 
     // Типы компонентов, которые addComponent сейчас добавит к узлу, в порядке регистрации.
     std::vector<const TypeInfo*> addableComponents(const Node& node) const;

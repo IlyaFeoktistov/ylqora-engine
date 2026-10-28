@@ -4,6 +4,7 @@ add_library(yqlora_editor STATIC
     src/EditorCamera.cpp
     src/Picking.cpp
     src/EditorSession.cpp
+    src/Inspection.cpp
     src/ProjectSetup.cpp
     src/ProjectFiles.cpp
     src/ProjectList.cpp

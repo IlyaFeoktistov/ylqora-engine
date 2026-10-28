@@ -142,35 +142,9 @@ public:
     // (см. canRemoveComponent).
     std::unique_ptr<Component> removeComponent(Component& component);
 
-    // Кадр игры: узел, его компоненты, затем дети (сверху вниз). Кто
-    // обновляется впервые, сначала получает onStart.
-    void update(float deltaSeconds);
-
-    // Игра остановлена: onStop у узла, компонентов и детей, которые успели
-    // запуститься. Следующий update снова начнёт с onStart.
-    void stop();
-
-    bool started() const
-    {
-        return m_started;
-    }
-
 protected:
     // Для пространственных узлов (Node3D): подключает компонент, который нельзя снять.
     Component& addBuiltinComponent(std::unique_ptr<Component> component);
-
-    // Жизненный цикл узла в игре, как у компонентов.
-    virtual void onStart()
-    {
-    }
-
-    virtual void onUpdate(float /*deltaSeconds*/)
-    {
-    }
-
-    virtual void onStop()
-    {
-    }
 
     virtual void onParentChanged()
     {
@@ -191,10 +165,20 @@ private:
     friend class SceneSerializer;
     void setId(NodeId id);
 
-    // Вход в сцену и выход вызывает сама сцена для корня, остальное - узлы по дереву.
+    // Вход в сцену и выход, кадр игры и остановку вызывает сама сцена для
+    // корня, остальное - узлы по дереву.
     friend class Scene;
     void enterScene(Scene& scene);
     void exitScene();
+
+    // Кадр игры: компоненты узла, затем дети (сверху вниз). Компонент,
+    // который обновляется впервые, сначала получает onStart. Своего цикла у
+    // узла нет: игровая логика только в компонентах.
+    void update(float deltaSeconds);
+
+    // Игра остановлена: onStop у компонентов узла и детей, которые успели
+    // запуститься. Следующий update снова начнёт с onStart.
+    void stop();
 
     NodeId m_id;
     std::string m_name;
@@ -202,7 +186,6 @@ private:
     Scene* m_scene = nullptr;
     std::vector<std::unique_ptr<Component>> m_components;
     std::vector<std::unique_ptr<Node>> m_children;
-    bool m_started = false;
 };
 
 } // namespace yqlora

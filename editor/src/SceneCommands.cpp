@@ -64,8 +64,6 @@ DetachedBranch detach(EditorSession& session, Node& node)
     Node* parent = node.parent();
     if (!parent) {
         branch.node = scene.takeRoot();
-        // removeChild останавливает узел сам, а корень останавливаем мы.
-        branch.node->stop();
 
         return branch;
     }

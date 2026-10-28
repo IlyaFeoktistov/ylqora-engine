@@ -153,12 +153,6 @@ Node* Node::findChild(std::string_view name) const
 
 void Node::update(float deltaSeconds)
 {
-    if (!m_started) {
-        m_started = true;
-        onStart();
-    }
-    onUpdate(deltaSeconds);
-
     // По индексу, а не итератором: во время обновления компоненты и дети
     // могут добавляться, и вектор переедет в другую память.
     for (std::size_t i = 0; i < m_components.size(); ++i) {
@@ -210,10 +204,6 @@ void Node::stop()
             component->m_started = false;
             component->onStop();
         }
-    }
-    if (m_started) {
-        m_started = false;
-        onStop();
     }
 }
 

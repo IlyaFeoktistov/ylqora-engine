@@ -4,6 +4,7 @@
 #include "widgets/PropertyEditor.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
+#include "yqlora/editor/Inspection.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 
@@ -11,7 +12,9 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <vector>
 
 namespace yqlora::editor {
 
@@ -25,15 +28,14 @@ constexpr float kMaxLabelWidth = 130.0f;
 
 // Возвращает true, если какое-то значение тянут мышью.
 template <typename Object>
-bool drawPropertyTable(EditorContext& context, const TypeInfo& type, Object& object)
+bool drawPropertyTable(
+    EditorSession& session,
+    const PropertyEditorContext& widgets,
+    const TypeInfo& type,
+    Object& object
+)
 {
-    EditorSession& session = context.session;
-    const PropertyEditorContext widgets{
-        .colors = context.theme.colors(),
-        .scene = session.scene(),
-        .resources = session.project() ? &session.project()->resources() : nullptr,
-    };
-    const auto properties = context.registry.properties(type);
+    const auto properties = session.registry().properties(type);
     if (properties.empty() || !ImGui::BeginTable("properties", kColumnCount)) {
         return false;
     }
@@ -55,10 +57,63 @@ bool drawPropertyTable(EditorContext& context, const TypeInfo& type, Object& obj
     return dragging;
 }
 
-void drawAddComponent(EditorSession& session, Node& node)
+std::string joinTypeNames(const std::vector<const Component*>& components)
 {
-    const std::vector<const TypeInfo*> addable = session.addableComponents(node);
-    const bool any = !addable.empty();
+    std::string result;
+    for (const Component* component : components) {
+        result += result.empty() ? "" : ", ";
+        result += component->typeName();
+    }
+
+    return result;
+}
+
+// Возвращает true, если какое-то значение тянут мышью. Компонент, который
+// попросили снять, записывает в toRemove: снимать его посреди цикла по списку нельзя.
+bool drawComponent(
+    EditorSession& session,
+    const PropertyEditorContext& widgets,
+    const InspectedComponent& inspected,
+    Component*& toRemove
+)
+{
+    ImGui::PushID(&inspected.component);
+    ImGui::Spacing();
+
+    // Без крестика компонент, который снять нельзя.
+    bool keep = true;
+    const std::string name = inspected.type ? inspected.type->name() : std::string(inspected.component.typeName());
+    const std::string header = name + "###component";
+    const bool open = ImGui::CollapsingHeader(
+        header.c_str(),
+        inspected.removable ? &keep : nullptr,
+        ImGuiTreeNodeFlags_DefaultOpen
+    );
+    if (!inspected.requiredBy.empty()) {
+        ImGui::SetItemTooltip(
+            "%s %s",
+            tr("editor.inspector.requiredBy").c_str(),
+            joinTypeNames(inspected.requiredBy).c_str()
+        );
+    }
+
+    bool dragging = false;
+    if (open && inspected.type) {
+        dragging = drawPropertyTable(session, widgets, *inspected.type, inspected.component);
+    } else if (open) {
+        ImGui::TextDisabled("%s", tr("editor.inspector.missing").c_str());
+    }
+    if (!keep) {
+        toRemove = &inspected.component;
+    }
+    ImGui::PopID();
+
+    return dragging;
+}
+
+void drawAddComponent(EditorSession& session, const Inspection& inspection)
+{
+    const bool any = !inspection.addable.empty();
 
     ImGui::Spacing();
     ImGui::BeginDisabled(!any);
@@ -71,9 +126,9 @@ void drawAddComponent(EditorSession& session, Node& node)
     }
 
     if (ImGui::BeginPopup("AddComponent")) {
-        for (const TypeInfo* type : addable) {
+        for (const TypeInfo* type : inspection.addable) {
             if (ImGui::Selectable(type->name().c_str())) {
-                session.addComponent(node, *type);
+                session.addComponent(inspection.node, *type);
             }
             ImGui::SetItemTooltip("%s", tr(type->descriptionKey()).c_str());
         }
@@ -86,67 +141,38 @@ void drawAddComponent(EditorSession& session, Node& node)
 void InspectorPanel::draw(EditorContext& context)
 {
     EditorSession& session = context.session;
-    const TypeRegistry& registry = context.registry;
     if (!ImGui::Begin(title().c_str(), visibleFlag())) {
         ImGui::End();
 
         return;
     }
 
-    Node* node = session.selectedNode();
-    const TypeInfo* type = node ? registry.find(node->typeName()) : nullptr;
-    if (!node || !type) {
+    const std::optional<Inspection> inspection = inspect(session);
+    if (!inspection) {
         ImGui::TextDisabled("%s", tr("editor.inspector.nothing").c_str());
         ImGui::End();
 
         return;
     }
 
-    ImGui::TextDisabled("%s", type->name().c_str());
-    ImGui::SetItemTooltip("%s", tr(type->descriptionKey()).c_str());
-    bool dragging = drawPropertyTable(context, *type, *node);
+    const PropertyEditorContext widgets{
+        .colors = context.theme.colors(),
+        .scene = session.scene(),
+        .resources = session.project() ? &session.project()->resources() : nullptr,
+    };
+    ImGui::TextDisabled("%s", inspection->type.name().c_str());
+    ImGui::SetItemTooltip("%s", tr(inspection->type.descriptionKey()).c_str());
+    bool dragging = drawPropertyTable(session, widgets, inspection->type, inspection->node);
 
-    // Удалять компонент можно только после цикла: список меняется.
     Component* toRemove = nullptr;
-    for (const auto& component : node->components()) {
-        const TypeInfo* componentType = registry.find(component->typeName());
-        if (!componentType) {
-            continue;
-        }
-        ImGui::PushID(component.get());
-        ImGui::Spacing();
-
-        // Нет крестика у встроенных компонентов и у тех, что нужны другим: их снять нельзя.
-        bool keep = true;
-        const auto dependents = session.componentDependents(*node, *component);
-        const bool removable = node->canRemoveComponent(*component) && dependents.empty();
-        const std::string header = componentType->name() + "###component";
-        const bool open = ImGui::CollapsingHeader(
-            header.c_str(),
-            removable ? &keep : nullptr,
-            ImGuiTreeNodeFlags_DefaultOpen
-        );
-        if (!dependents.empty()) {
-            std::string names;
-            for (const Component* dependent : dependents) {
-                names += names.empty() ? "" : ", ";
-                names += dependent->typeName();
-            }
-            ImGui::SetItemTooltip("%s %s", tr("editor.inspector.requiredBy").c_str(), names.c_str());
-        }
-        if (open) {
-            dragging = drawPropertyTable(context, *componentType, *component) || dragging;
-        }
-        if (!keep) {
-            toRemove = component.get();
-        }
-        ImGui::PopID();
+    for (const InspectedComponent& inspected : inspection->components) {
+        dragging = drawComponent(session, widgets, inspected, toRemove) || dragging;
     }
     if (toRemove) {
-        session.removeComponent(*node, *toRemove);
+        session.removeComponent(inspection->node, *toRemove);
     }
 
-    drawAddComponent(session, *node);
+    drawAddComponent(session, *inspection);
     ImGui::End();
     context.mouseWrapping = context.mouseWrapping || dragging;
 }

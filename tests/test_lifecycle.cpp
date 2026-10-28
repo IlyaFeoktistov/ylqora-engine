@@ -86,7 +86,18 @@ TEST_CASE("Lifecycle: removing a started component or node stops it")
     events.clear();
     auto removedNode = root.removeChild(child);
     CHECK(events == std::vector<std::string>{"stop"});
-    CHECK_FALSE(removedNode->started());
+}
+
+TEST_CASE("Lifecycle: taking the tree out of the scene stops it")
+{
+    std::vector<std::string> events;
+    Scene scene;
+    scene.createRoot<Node3D>().addComponent<Recorder>(events);
+    scene.update(0.016f);
+
+    events.clear();
+    auto root = scene.takeRoot();
+    CHECK(events == std::vector<std::string>{"stop"});
 }
 
 TEST_CASE("Lifecycle: nothing happens without updates")
