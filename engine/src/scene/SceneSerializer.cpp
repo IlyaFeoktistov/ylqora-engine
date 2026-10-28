@@ -4,6 +4,7 @@
 
 #include "yqlora/core/JsonFile.hpp"
 #include "yqlora/core/Log.hpp"
+#include "yqlora/reflection/ComponentRules.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/Scene.hpp"
@@ -309,6 +310,7 @@ struct SceneSerializer::Format {
                 readComponent(*node, componentJson);
             }
         }
+        addMissingRequirements(*node);
         if (const auto it = json.find(kChildrenKey); it != json.end() && it->is_array()) {
             for (const Json& childJson : *it) {
                 std::unique_ptr<Node> child = readNode(childJson);
@@ -341,6 +343,16 @@ struct SceneSerializer::Format {
 
         Component* component = nullptr;
         if (type->creatable()) {
+            if (!canAttach(registry, *type, node)) {
+                log::error(
+                    "Scene: component '{}' does not fit node '{}' of type '{}', skipped",
+                    typeName,
+                    node.name(),
+                    node.typeName()
+                );
+
+                return;
+            }
             component = &node.addComponent(type->createComponent());
         } else {
             // Встроенный компонент узел уже создал сам, только заполняем его.
@@ -358,6 +370,39 @@ struct SceneSerializer::Format {
         }
         if (const auto it = json.find(kPropertiesKey); it != json.end()) {
             propertiesFromJson(registry, *type, *component, *it);
+        }
+    }
+
+    // Файл правили руками или правила типа поменялись: обязательного компонента
+    // в файле нет. Добавляем его со значениями по умолчанию, чтобы правила
+    // выполнялись для любой загруженной сцены.
+    void addMissingRequirements(Node& node) const
+    {
+        std::vector<const TypeInfo*> present;
+        for (const auto& component : node.components()) {
+            if (const TypeInfo* type = registry.find(component->typeName())) {
+                present.push_back(type);
+            }
+        }
+        for (const TypeInfo* type : present) {
+            const auto missing = missingRequirements(registry, *type, node);
+            if (!missing) {
+                log::error(
+                    "Scene: requirements of component '{}' on node '{}' cannot be met",
+                    type->name(),
+                    node.name()
+                );
+                continue;
+            }
+            for (const TypeInfo* required : *missing) {
+                log::warn(
+                    "Scene: component '{}' on node '{}' requires '{}', added",
+                    type->name(),
+                    node.name(),
+                    required->name()
+                );
+                node.addComponent(required->createComponent());
+            }
         }
     }
 };

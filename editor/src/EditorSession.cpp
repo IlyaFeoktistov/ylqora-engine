@@ -3,6 +3,7 @@
 #include "yqlora/editor/SceneCommands.hpp"
 
 #include "yqlora/core/Log.hpp"
+#include "yqlora/reflection/ComponentRules.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/Scene.hpp"
@@ -258,19 +259,48 @@ bool EditorSession::deleteNodes(std::span<const NodeId> ids)
 
 Component* EditorSession::addComponent(Node& node, const TypeInfo& type)
 {
-    const std::size_t index = node.components().size();
-    if (!execute(std::make_unique<AddComponentCommand>(node.id(), type))) {
+    const TypeRegistry& registry = m_serializer.registry();
+    const auto missing = canAttach(registry, type, node) ? missingRequirements(registry, type, node) : std::nullopt;
+    if (!missing) {
         return nullptr;
     }
 
-    return node.components()[index].get();
+    std::vector<std::unique_ptr<Command>> commands;
+    for (const TypeInfo* required : *missing) {
+        commands.push_back(std::make_unique<AddComponentCommand>(node.id(), *required));
+    }
+    commands.push_back(std::make_unique<AddComponentCommand>(node.id(), type));
+    if (!execute(std::make_unique<CompositeCommand>(std::move(commands)))) {
+        return nullptr;
+    }
+
+    return node.components().back().get();
 }
 
 bool EditorSession::removeComponent(Node& node, Component& component)
 {
     const auto index = componentIndex(node, component);
 
-    return index && execute(std::make_unique<RemoveComponentCommand>(node.id(), *index));
+    return index && componentDependents(node, component).empty()
+           && execute(std::make_unique<RemoveComponentCommand>(node.id(), *index));
+}
+
+std::vector<const TypeInfo*> EditorSession::addableComponents(const Node& node) const
+{
+    const TypeRegistry& registry = m_serializer.registry();
+    std::vector<const TypeInfo*> result;
+    for (const auto& type : registry.types()) {
+        if (type->creatable() && canAttach(registry, *type, node) && missingRequirements(registry, *type, node)) {
+            result.push_back(type.get());
+        }
+    }
+
+    return result;
+}
+
+std::vector<const Component*> EditorSession::componentDependents(const Node& node, const Component& component) const
+{
+    return dependentsOf(m_serializer.registry(), node, component);
 }
 
 bool EditorSession::setProperty(Node& node, const Property& property, const PropertyValue& value)

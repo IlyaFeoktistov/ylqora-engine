@@ -55,12 +55,10 @@ bool drawPropertyTable(EditorContext& context, const TypeInfo& type, Object& obj
     return dragging;
 }
 
-void drawAddComponent(EditorSession& session, const TypeRegistry& registry, Node& node)
+void drawAddComponent(EditorSession& session, Node& node)
 {
-    bool any = false;
-    for (const auto& type : registry.types()) {
-        any = any || (type->kind() == TypeKind::Component && type->creatable());
-    }
+    const std::vector<const TypeInfo*> addable = session.addableComponents(node);
+    const bool any = !addable.empty();
 
     ImGui::Spacing();
     ImGui::BeginDisabled(!any);
@@ -73,10 +71,7 @@ void drawAddComponent(EditorSession& session, const TypeRegistry& registry, Node
     }
 
     if (ImGui::BeginPopup("AddComponent")) {
-        for (const auto& type : registry.types()) {
-            if (type->kind() != TypeKind::Component || !type->creatable()) {
-                continue;
-            }
+        for (const TypeInfo* type : addable) {
             if (ImGui::Selectable(type->name().c_str())) {
                 session.addComponent(node, *type);
             }
@@ -121,11 +116,25 @@ void InspectorPanel::draw(EditorContext& context)
         ImGui::PushID(component.get());
         ImGui::Spacing();
 
-        // У встроенных компонентов нет крестика: их снять нельзя.
+        // Нет крестика у встроенных компонентов и у тех, что нужны другим: их снять нельзя.
         bool keep = true;
-        const bool removable = node->canRemoveComponent(*component);
+        const auto dependents = session.componentDependents(*node, *component);
+        const bool removable = node->canRemoveComponent(*component) && dependents.empty();
         const std::string header = componentType->name() + "###component";
-        if (ImGui::CollapsingHeader(header.c_str(), removable ? &keep : nullptr, ImGuiTreeNodeFlags_DefaultOpen)) {
+        const bool open = ImGui::CollapsingHeader(
+            header.c_str(),
+            removable ? &keep : nullptr,
+            ImGuiTreeNodeFlags_DefaultOpen
+        );
+        if (!dependents.empty()) {
+            std::string names;
+            for (const Component* dependent : dependents) {
+                names += names.empty() ? "" : ", ";
+                names += dependent->typeName();
+            }
+            ImGui::SetItemTooltip("%s %s", tr("editor.inspector.requiredBy").c_str(), names.c_str());
+        }
+        if (open) {
             dragging = drawPropertyTable(context, *componentType, *component) || dragging;
         }
         if (!keep) {
@@ -137,7 +146,7 @@ void InspectorPanel::draw(EditorContext& context)
         session.removeComponent(*node, *toRemove);
     }
 
-    drawAddComponent(session, registry, *node);
+    drawAddComponent(session, *node);
     ImGui::End();
     context.mouseWrapping = context.mouseWrapping || dragging;
 }

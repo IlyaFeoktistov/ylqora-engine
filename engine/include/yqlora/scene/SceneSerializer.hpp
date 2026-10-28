@@ -24,6 +24,11 @@ public:
 
     explicit SceneSerializer(const TypeRegistry& registry);
 
+    const TypeRegistry& registry() const
+    {
+        return m_registry;
+    }
+
     std::string toJson(const Scene& scene) const;
 
     // При ошибке возвращает false и оставляет сцену как была.

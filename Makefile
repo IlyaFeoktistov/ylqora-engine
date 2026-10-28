@@ -11,7 +11,7 @@
 PRESET ?= debug
 BUILD_DIR := build/$(PRESET)
 CLANG_FORMAT ?= clang-format
-SOURCES = $(shell find engine editor backends tests -name '*.cpp' -o -name '*.hpp')
+SOURCES = $(shell find engine editor backends apps tests -name '*.cpp' -o -name '*.hpp')
 
 .PHONY: all build test run release format format-check hooks clean distclean
 

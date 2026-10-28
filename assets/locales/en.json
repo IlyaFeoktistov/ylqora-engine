@@ -49,7 +49,8 @@
             "addComponent": "Add component",
             "noComponents": "No components to add yet",
             "none": "None",
-            "missing": "Missing"
+            "missing": "Missing",
+            "requiredBy": "Cannot be removed, required by:"
         },
         "tree": {
             "addNode": "Add node",

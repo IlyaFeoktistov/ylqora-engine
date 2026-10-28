@@ -13,6 +13,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <vector>
 
 namespace yqlora {
 
@@ -165,9 +166,20 @@ public:
     // удаляемых веток пропускаются: они уходят вместе с веткой.
     bool deleteNodes(std::span<const NodeId> ids);
 
-    // nullptr, если тип не компонент или его нельзя создать.
+    // Добавляет компонент вместе с недостающими обязательными одним шагом
+    // истории. nullptr, если тип нельзя создать или он не подходит узлу
+    // (см. canAttach и missingRequirements в ComponentRules.hpp).
     Component* addComponent(Node& node, const TypeInfo& type);
+
+    // Нельзя снять встроенный компонент и тот, от которого зависят другие
+    // (см. componentDependents).
     bool removeComponent(Node& node, Component& component);
+
+    // Типы компонентов, которые addComponent сейчас добавит к узлу, в порядке регистрации.
+    std::vector<const TypeInfo*> addableComponents(const Node& node) const;
+
+    // Компоненты узла, которым нужен component; пока они есть, его не снять.
+    std::vector<const Component*> componentDependents(const Node& node, const Component& component) const;
 
     bool setProperty(Node& node, const Property& property, const PropertyValue& value);
     bool setProperty(Component& component, const Property& property, const PropertyValue& value);

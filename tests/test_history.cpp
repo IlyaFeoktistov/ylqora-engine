@@ -57,7 +57,8 @@ struct Fixture {
     Fixture()
     {
         registerEngineTypes(registry);
-        registry.registerComponent<TestComponent>();
+        // Несколько на узле: тесты проверяют порядок одинаковых компонентов.
+        registry.registerComponent<TestComponent>().allowMultiple();
     }
 
     const TypeInfo& type(std::string_view name) const

@@ -27,6 +27,10 @@ MVP: everything needed to build a small game prototype.
 - [ ] Running a game without the editor
 - [ ] Documentation: public API, engine internals, editor user guide
 
+After the MVP: Luau scripts, then 2D.
+
+Architecture: [scene, nodes and components](docs/architecture/scene.md).
+
 ## Building
 
 Requirements: CMake 3.24+, a C++20 compiler (GCC 13+, MinGW-w64 or Visual Studio 2022), Ninja.

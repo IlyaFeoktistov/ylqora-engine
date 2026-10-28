@@ -8,7 +8,7 @@
 
 namespace yqlora {
 
-// Рисует меш в положении узла. Работает на Node3D: положение берётся из его Transform.
+// Рисует меш в положении узла. Живёт только на Node3D (requiresNode): положение берётся из его Transform.
 class YQLORA_API MeshRenderer final : public Component {
 public:
     YQLORA_TYPE(MeshRenderer)

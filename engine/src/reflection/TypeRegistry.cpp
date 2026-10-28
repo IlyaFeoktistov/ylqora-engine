@@ -27,16 +27,21 @@ const TypeInfo* TypeRegistry::find(std::string_view name) const
     return it != m_byName.end() ? it->second : nullptr;
 }
 
-std::vector<const Property*> TypeRegistry::properties(const TypeInfo& type) const
+std::vector<const TypeInfo*> TypeRegistry::chain(const TypeInfo& type) const
 {
-    // Собираем цепочку от типа к корню, потом идём обратно: базовые свойства первыми.
-    std::vector<const TypeInfo*> chain;
+    std::vector<const TypeInfo*> result;
     for (const TypeInfo* t = &type; t; t = t->baseName().empty() ? nullptr : find(t->baseName())) {
-        chain.push_back(t);
+        result.push_back(t);
     }
 
+    return result;
+}
+
+std::vector<const Property*> TypeRegistry::properties(const TypeInfo& type) const
+{
+    // Базовые свойства первыми.
     std::vector<const Property*> result;
-    for (const TypeInfo* t : chain | std::views::reverse) {
+    for (const TypeInfo* t : chain(type) | std::views::reverse) {
         for (const Property& property : t->ownProperties()) {
             result.push_back(&property);
         }
@@ -86,6 +91,7 @@ void registerEngineTypes(TypeRegistry& registry)
         .property("scale", &Transform3D::scale, &Transform3D::setScale);
 
     registry.registerComponent<MeshRenderer>()
+        .requiresNode<Node3D>()
         .property("mesh", &MeshRenderer::mesh, &MeshRenderer::setMesh, PropertyHint::Mesh)
         .property("color", &MeshRenderer::color, &MeshRenderer::setColor, PropertyHint::Color);
 }

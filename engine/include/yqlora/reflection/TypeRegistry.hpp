@@ -70,6 +70,27 @@ public:
         return m_properties;
     }
 
+    // Правила компонента, только свои, без базовых. Проверяют их функции
+    // из ComponentRules.hpp, они же учитывают правила базовых типов.
+
+    // Тип узла, на котором может жить компонент; пусто - на любом.
+    const std::string& requiredNode() const
+    {
+        return m_requiredNode;
+    }
+
+    // Компоненты, которые должны быть на том же узле.
+    std::span<const std::string> requiredComponents() const
+    {
+        return m_requiredComponents;
+    }
+
+    // Можно несколько компонентов этого типа на одном узле.
+    bool allowsMultiple() const
+    {
+        return m_allowMultiple;
+    }
+
     // nullptr, если это не узел (не компонент) или тип нельзя создать.
     std::unique_ptr<Node> createNode() const;
     std::unique_ptr<Component> createComponent() const;
@@ -86,6 +107,9 @@ private:
     std::function<std::unique_ptr<Node>()> m_createNode;
     std::function<std::unique_ptr<Component>()> m_createComponent;
     std::vector<Property> m_properties;
+    std::string m_requiredNode;
+    std::vector<std::string> m_requiredComponents;
+    bool m_allowMultiple = false;
 };
 
 // Добавляет свойства к только что зарегистрированному типу:
@@ -140,6 +164,37 @@ public:
         return *this;
     }
 
+    // Компонент живёт только на узлах типа NodeType и его наследников:
+    //   registry.registerComponent<MeshRenderer>().requiresNode<Node3D>();
+    template <std::derived_from<Node> NodeType>
+    TypeBuilder& requiresNode()
+        requires std::same_as<Root, Component>
+    {
+        m_info.m_requiredNode = std::string(typeNameOf<NodeType>());
+
+        return *this;
+    }
+
+    // На том же узле нужен компонент типа Required (или его наследника).
+    // Редактор добавляет его сам, а снять его нельзя, пока от него зависят.
+    template <std::derived_from<Component> Required>
+    TypeBuilder& requiresComponent()
+        requires std::same_as<Root, Component>
+    {
+        m_info.m_requiredComponents.emplace_back(typeNameOf<Required>());
+
+        return *this;
+    }
+
+    // Несколько компонентов этого типа на одном узле. По умолчанию один.
+    TypeBuilder& allowMultiple()
+        requires std::same_as<Root, Component>
+    {
+        m_info.m_allowMultiple = true;
+
+        return *this;
+    }
+
     // Свойство-поле, когда getter и setter не нужны: .property("radius", &SphereShape::radius);
     template <typename Value>
     TypeBuilder& property(std::string name, Value Class::* field, PropertyHint hint = PropertyHint::None)
@@ -155,6 +210,17 @@ public:
     }
 
 private:
+    template <typename T>
+    static constexpr std::string_view typeNameOf()
+    {
+        static_assert(
+            std::is_same_v<typename T::YqloraThisType, T>,
+            "Add YQLORA_TYPE(ClassName) to the public part of the class"
+        );
+
+        return T::staticTypeName();
+    }
+
     static const Class& cast(const void* object)
     {
         return static_cast<const Class&>(*static_cast<const Root*>(object));
@@ -251,6 +317,9 @@ public:
     {
         return m_types;
     }
+
+    // Тип и все его базовые, от самого типа к корню.
+    std::vector<const TypeInfo*> chain(const TypeInfo& type) const;
 
     // Свойства типа вместе с базовыми, от Node к наследнику.
     std::vector<const Property*> properties(const TypeInfo& type) const;
