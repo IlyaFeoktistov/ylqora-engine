@@ -67,7 +67,7 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: new scenes get free names and can be o
     EditorSession session(scene, serializer);
     REQUIRE(session.open(project));
     REQUIRE(session.openScene(*second));
-    CHECK(session.sceneId() == project.resources().id(*second));
+    CHECK(session.document().id() == project.resources().id(*second));
     CHECK(session.scenePath() == *second);
     CHECK(scene.empty());
 
@@ -97,7 +97,7 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: a renamed scene keeps its id, the sess
     Scene scene;
     EditorSession session(scene, serializer);
     REQUIRE(session.open(project));
-    const ResourceId id = session.sceneId();
+    const ResourceId id = session.document().id();
     REQUIRE(id != 0);
 
     // Сессия работает со своим экземпляром проекта: файлы меняем через него.
@@ -106,7 +106,7 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: a renamed scene keeps its id, the sess
     REQUIRE(folder);
     const auto moved = sessionFiles.rename("main.yscene", "level.yscene");
     REQUIRE(moved);
-    CHECK(session.sceneId() == id);
+    CHECK(session.document().id() == id);
     CHECK(session.scenePath() == "level.yscene");
     CHECK(session.project()->mainScenePath() == std::filesystem::path("level.yscene"));
     CHECK(std::filesystem::exists(project.directory() / "level.yscene.meta"));

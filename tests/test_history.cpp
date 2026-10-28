@@ -171,7 +171,7 @@ TEST_CASE_FIXTURE(Fixture, "Undo: a created node goes away and comes back with t
     session.createNode(type("Node3D"), root);
     Node* cube = session.createNode(type("Camera3D"), root);
     const NodeId cubeId = cube->id();
-    REQUIRE(session.modified());
+    REQUIRE(session.document().modified());
 
     REQUIRE(session.undo());
     CHECK(session.findNode(cubeId) == nullptr);
@@ -187,7 +187,7 @@ TEST_CASE_FIXTURE(Fixture, "Undo: a created node goes away and comes back with t
     while (session.undo()) {
     }
     CHECK(scene.empty());
-    CHECK_FALSE(session.modified());
+    CHECK_FALSE(session.document().modified());
 }
 
 TEST_CASE_FIXTURE(Fixture, "Undo: a deleted branch returns to its place with the active camera and selection")

@@ -149,7 +149,7 @@ void EditorApp::registerActions()
             }
         });
     m_actions.add(actions::kPause, "editor.play.pause").enabledWhen(playing).onRun([this] {
-        m_session.setPaused(!m_session.paused());
+        m_session.setPaused(!m_session.playMode().paused());
     });
     m_actions.add(actions::kStop, "editor.play.stop").enabledWhen(playing).onRun([this] {
         m_session.stop();
@@ -259,7 +259,7 @@ void EditorApp::updateTitle()
     std::string title;
     if (m_session.project()) {
         title = m_session.project()->name() + " - " + toUtf8(m_session.scenePath().filename());
-        if (m_session.modified()) {
+        if (m_session.document().modified()) {
             title += " *";
         }
     }
@@ -322,7 +322,7 @@ void EditorApp::drawPlayControls()
     );
 
     ImGui::BeginDisabled(!playing);
-    const bool paused = m_session.paused();
+    const bool paused = m_session.playMode().paused();
     if (paused) {
         ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(accent));
     }

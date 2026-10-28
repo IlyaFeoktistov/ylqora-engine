@@ -12,7 +12,7 @@ namespace yqlora::editor {
 
 void UnsavedChangesDialog::request(const EditorSession& session, std::function<void()> then)
 {
-    if (!session.modified()) {
+    if (!session.document().modified()) {
         then();
 
         return;

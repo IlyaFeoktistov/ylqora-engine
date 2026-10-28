@@ -23,6 +23,7 @@ add_executable(yqlora_tests
     test_component_rules.cpp
     test_node_tree.cpp
     test_file_format.cpp
+    test_play_document.cpp
 )
 target_link_libraries(yqlora_tests PRIVATE yqlora::internal yqlora::editor doctest::doctest)
 target_compile_definitions(yqlora_tests PRIVATE

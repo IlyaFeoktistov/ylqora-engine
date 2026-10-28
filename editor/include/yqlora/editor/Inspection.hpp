@@ -19,7 +19,7 @@ struct InspectedComponent {
     Component& component;
     // nullptr, если тип компонента не зарегистрирован.
     const TypeInfo* type = nullptr;
-    // См. EditorSession::canRemoveComponent.
+    // См. canDetach в ComponentRules.hpp.
     bool removable = false;
     // Кому компонент нужен; пока они есть, его не снять.
     std::vector<const Component*> requiredBy;
@@ -31,7 +31,7 @@ struct Inspection {
     Node& node;
     const TypeInfo& type;
     std::vector<InspectedComponent> components;
-    // См. EditorSession::addableComponents.
+    // См. attachableTypes в ComponentRules.hpp.
     std::vector<const TypeInfo*> addable;
 };
 

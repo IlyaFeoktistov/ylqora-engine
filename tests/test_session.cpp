@@ -42,7 +42,7 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: the first node becomes the root, the 
     REQUIRE(root);
     CHECK(scene.root() == root);
     CHECK(session.selection().selected() == root->id());
-    CHECK(session.modified());
+    CHECK(session.document().modified());
 
     Node* cube = session.createNode(type("Camera3D"), nullptr);
     Node* cube2 = session.createNode(type("Camera3D"), nullptr);
@@ -103,11 +103,11 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: Stop returns the scene as it was befo
     cube->transform().setPosition({1.0f, 0.0f, 0.0f});
     const NodeId cubeId = cube->id();
     session.selection().select(cubeId);
-    const bool modifiedBefore = session.modified();
+    const bool modifiedBefore = session.document().modified();
 
     session.play();
     CHECK(session.playing());
-    CHECK(session.running());
+    CHECK(session.playMode().running());
     // Игра идёт в копии: те же ID, но другие объекты.
     CHECK(&session.scene() != &scene);
     auto* playCube = dynamic_cast<Node3D*>(session.findNode(cubeId));
@@ -119,12 +119,12 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: Stop returns the scene as it was befo
     playCube->transform().setPosition({5.0f, 5.0f, 5.0f});
     session.createNode(type("Node3D"), session.findNode(root->id()));
     CHECK(cube->transform().position() == Vec3(1.0f, 0.0f, 0.0f));
-    CHECK(session.modified() == modifiedBefore);
+    CHECK(session.document().modified() == modifiedBefore);
     CHECK_FALSE(session.canUndo());
     CHECK_FALSE(session.saveScene());
 
     session.setPaused(true);
-    CHECK_FALSE(session.running());
+    CHECK_FALSE(session.playMode().running());
 
     session.stop();
     CHECK(&session.scene() == &scene);
@@ -135,5 +135,5 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: Stop returns the scene as it was befo
     REQUIRE(restored);
     CHECK(restored->transform().position() == Vec3(1.0f, 0.0f, 0.0f));
     CHECK(session.selection().selected() == cubeId);
-    CHECK(session.modified() == modifiedBefore);
+    CHECK(session.document().modified() == modifiedBefore);
 }

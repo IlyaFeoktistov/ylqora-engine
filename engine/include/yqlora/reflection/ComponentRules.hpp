@@ -41,4 +41,11 @@ YQLORA_API std::vector<const Component*> dependentsOf(
     const Component& component
 );
 
+// Компонент можно снять с узла: он не встроенный и не нужен другим (dependentsOf).
+YQLORA_API bool canDetach(const TypeRegistry& registry, const Node& node, const Component& component);
+
+// Типы компонентов, которые можно добавить к node вместе с недостающими
+// обязательными, в порядке регистрации.
+YQLORA_API std::vector<const TypeInfo*> attachableTypes(const TypeRegistry& registry, const Node& node);
+
 } // namespace yqlora

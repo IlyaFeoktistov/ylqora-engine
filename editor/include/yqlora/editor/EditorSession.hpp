@@ -1,19 +1,17 @@
 #pragma once
 
 #include "yqlora/editor/Command.hpp"
-#include "yqlora/editor/EditHistory.hpp"
+#include "yqlora/editor/PlayMode.hpp"
+#include "yqlora/editor/SceneDocument.hpp"
 #include "yqlora/editor/Selection.hpp"
 #include "yqlora/editor/TransformEdit.hpp"
 #include "yqlora/project/Project.hpp"
 #include "yqlora/reflection/Property.hpp"
-#include "yqlora/resource/ResourceId.hpp"
 
 #include <filesystem>
 #include <memory>
 #include <optional>
 #include <span>
-#include <string>
-#include <vector>
 
 namespace yqlora {
 
@@ -29,9 +27,11 @@ class TypeRegistry;
 
 namespace yqlora::editor {
 
-// Открытый в редакторе проект: его сцена, выделение и история правок.
+// Открытый в редакторе проект: его сцена, выделение и игра в редакторе.
 // Без интерфейса, панели только вызывают эти методы. Сцена меняется
-// только командами, поэтому любую правку можно отменить.
+// только командами, поэтому любую правку можно отменить. Сама сессия
+// согласует части между собой (выделение при Play и Stop, история при
+// открытии сцены); файл сцены и историю ведёт SceneDocument, игру - PlayMode.
 class EditorSession {
 public:
     EditorSession(Scene& scene, const SceneSerializer& serializer);
@@ -50,12 +50,22 @@ public:
     // иначе редактируемая.
     Scene& scene()
     {
-        return m_playScene ? *m_playScene : m_editScene;
+        return m_play.playing() ? *m_play.scene() : m_document.scene();
     }
 
     const Scene& scene() const
     {
-        return m_playScene ? *m_playScene : m_editScene;
+        return m_play.playing() ? *m_play.scene() : m_document.scene();
+    }
+
+    const SceneDocument& document() const
+    {
+        return m_document;
+    }
+
+    const PlayMode& playMode() const
+    {
+        return m_play;
     }
 
     Selection& selection()
@@ -63,25 +73,18 @@ public:
         return m_selection;
     }
 
-    // Типы, которые знает сессия: те же, что у её сериализатора.
-    const TypeRegistry& registry() const;
-
     const Selection& selection() const
     {
         return m_selection;
     }
 
+    // Типы, которые знает сессия: те же, что у её сериализатора.
+    const TypeRegistry& registry() const;
+
     // Открывает проект и его главную сцену. Если сцена не читается, проект
     // всё равно открывается с пустой сценой, а метод возвращает false.
     bool open(Project project);
     void close();
-
-    // Открытая сцена как ресурс проекта: путь к ней меняется при
-    // переименовании, а ID нет.
-    ResourceId sceneId() const
-    {
-        return m_sceneId;
-    }
 
     // Путь к открытой сцене от папки проекта. Пусто, если сцены нет.
     std::filesystem::path scenePath() const;
@@ -89,17 +92,11 @@ public:
     // Открывает другую сцену проекта. Если файл не читается, остаётся прежняя.
     bool openScene(const std::filesystem::path& path);
 
-    // Сохраняет сцену в её файл.
+    // Сохраняет сцену в её файл. Во время игры нельзя: в сцене состояние игры.
     bool saveScene();
 
     // Делает сцену главной: она откроется вместе с проектом.
     bool setMainScene(const std::filesystem::path& path);
-
-    // Сцену меняли после открытия или последнего сохранения.
-    bool modified() const
-    {
-        return !m_history.atSaved();
-    }
 
     // Во время игры правка в историю не попадает: по Stop сцена всё равно вернётся как была.
     bool execute(std::unique_ptr<Command> command);
@@ -108,18 +105,18 @@ public:
     // будет отдельным шагом истории.
     void finishEdit()
     {
-        m_history.finishEdit();
+        m_document.history().finishEdit();
     }
 
     // Во время игры истории нет.
     bool canUndo() const
     {
-        return !playing() && m_history.canUndo();
+        return !playing() && m_document.history().canUndo();
     }
 
     bool canRedo() const
     {
-        return !playing() && m_history.canRedo();
+        return !playing() && m_document.history().canRedo();
     }
 
     bool undo();
@@ -127,29 +124,25 @@ public:
 
     bool playing() const
     {
-        return m_playScene != nullptr;
+        return m_play.playing();
     }
 
-    bool paused() const
-    {
-        return m_paused;
-    }
-
-    // Сцене пора обновляться: игра идёт и не на паузе.
-    bool running() const
-    {
-        return playing() && !m_paused;
-    }
-
-    // Запускает игру в копии редактируемой сцены. Сама она во время игры не
-    // меняется, правки идут в копию и пропадают вместе с ней по Stop.
+    // Запускает игру в копии редактируемой сцены, см. PlayMode.
     void play();
-    void setPaused(bool paused);
+    void setPaused(bool paused)
+    {
+        m_play.setPaused(paused);
+    }
+
     // Выбрасывает копию для игры и возвращается к редактируемой сцене.
+    // Выделение остаётся на узлах, которые есть и в ней.
     void stop();
 
     // Кадр игры: обновляет копию сцены, пока игра идёт и не на паузе.
-    void update(float deltaSeconds);
+    void update(float deltaSeconds)
+    {
+        m_play.update(deltaSeconds);
+    }
 
     // nullptr, если такого узла в сцене нет.
     Node* findNode(NodeId id);
@@ -175,18 +168,8 @@ public:
     // (см. canAttach и missingRequirements в ComponentRules.hpp).
     Component* addComponent(Node& node, const TypeInfo& type);
 
-    // Снимает компонент, если canRemoveComponent.
+    // Снимает компонент, если его можно снять (canDetach в ComponentRules.hpp).
     bool removeComponent(Node& node, Component& component);
-
-    // Единственное правило, можно ли снять компонент: не встроенный
-    // и не нужен другим (см. componentDependents).
-    bool canRemoveComponent(const Node& node, const Component& component) const;
-
-    // Типы компонентов, которые addComponent сейчас добавит к узлу, в порядке регистрации.
-    std::vector<const TypeInfo*> addableComponents(const Node& node) const;
-
-    // Компоненты узла, которым нужен component; пока они есть, его не снять.
-    std::vector<const Component*> componentDependents(const Node& node, const Component& component) const;
 
     bool setProperty(Node& node, const Property& property, const PropertyValue& value);
     bool setProperty(Component& component, const Property& property, const PropertyValue& value);
@@ -194,15 +177,12 @@ public:
     bool setTransform(Node3D& node, const TransformValues& values);
 
 private:
-    Scene& m_editScene;
-    std::unique_ptr<Scene> m_playScene;
     const SceneSerializer& m_serializer;
     std::optional<Project> m_project;
-    ResourceId m_sceneId = 0;
+    SceneDocument m_document;
+    PlayMode m_play;
     Selection m_selection;
-    EditHistory m_history;
-
-    bool m_paused = false;
+    // Выделение до Play: к нему возвращаемся, если после игры выбранных узлов не осталось.
     Selection m_selectionBeforePlay;
 };
 

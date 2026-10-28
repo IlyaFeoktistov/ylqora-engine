@@ -1,0 +1,87 @@
+#include <doctest/doctest.h>
+
+#include <yqlora/editor/PlayMode.hpp>
+#include <yqlora/editor/ProjectSetup.hpp>
+#include <yqlora/editor/SceneDocument.hpp>
+#include <yqlora/project/Project.hpp>
+#include <yqlora/reflection/TypeRegistry.hpp>
+#include <yqlora/scene/Node3D.hpp>
+#include <yqlora/scene/Scene.hpp>
+#include <yqlora/scene/SceneSerializer.hpp>
+
+#include <filesystem>
+#include <fstream>
+
+using namespace yqlora;
+using namespace yqlora::editor;
+
+namespace {
+
+struct Fixture {
+    Fixture()
+    {
+        registerEngineTypes(registry);
+    }
+
+    TypeRegistry registry;
+    SceneSerializer serializer{registry};
+    Scene scene;
+};
+
+} // namespace
+
+TEST_CASE_FIXTURE(Fixture, "PlayMode: the game runs in a copy that is thrown away on stop")
+{
+    scene.createRoot<Node3D>("Root");
+    PlayMode play{serializer};
+    CHECK_FALSE(play.playing());
+
+    REQUIRE(play.start(scene));
+    CHECK_FALSE(play.start(scene));
+    REQUIRE(play.scene());
+    CHECK(play.scene() != &scene);
+    CHECK(play.scene()->root()->id() == scene.root()->id());
+
+    play.scene()->root()->setName("Changed");
+    CHECK(scene.root()->name() == "Root");
+
+    play.setPaused(true);
+    CHECK_FALSE(play.running());
+    play.stop();
+    CHECK_FALSE(play.playing());
+    CHECK_FALSE(play.paused());
+    CHECK(play.scene() == nullptr);
+
+    // Без игры пауза не включается.
+    play.setPaused(true);
+    CHECK_FALSE(play.paused());
+}
+
+TEST_CASE_FIXTURE(Fixture, "SceneDocument: a scene that cannot be read leaves the current one")
+{
+    const auto location = std::filesystem::temp_directory_path() / "yqlora_tests" / "document";
+    std::filesystem::remove_all(location);
+    std::filesystem::create_directories(location);
+    std::string error;
+    Project project = *createProject(location, "Game", serializer, error);
+
+    SceneDocument document{scene, serializer};
+    REQUIRE(document.load(project, project.mainScene()));
+    CHECK(document.id() == project.mainScene());
+    CHECK_FALSE(document.modified());
+    const NodeId root = scene.root()->id();
+
+    // Файл, который не читается: сцена и её ID остаются прежними.
+    const auto broken = project.directory() / "broken.yscene";
+    std::ofstream(broken) << "not json";
+    project.resources().scan(project.directory(), Project::fileName());
+    const ResourceId brokenId = project.resources().id("broken.yscene");
+    REQUIRE(brokenId != 0);
+    CHECK_FALSE(document.load(project, brokenId));
+    CHECK(document.id() == project.mainScene());
+    CHECK(scene.root()->id() == root);
+
+    document.reset(0);
+    CHECK(scene.empty());
+    CHECK(document.path(project).empty());
+}

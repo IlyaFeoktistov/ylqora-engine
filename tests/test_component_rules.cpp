@@ -173,7 +173,7 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: component rules")
     REQUIRE(node);
 
     const auto offers = [&](std::string_view name) {
-        return std::ranges::any_of(session.addableComponents(*node), [&](const TypeInfo* t) {
+        return std::ranges::any_of(attachableTypes(registry, *node), [&](const TypeInfo* t) {
             return t->name() == name;
         });
     };
@@ -192,7 +192,7 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: component rules")
 
         // Тело нужно коллайдеру: снять нельзя.
         Component& body = *node->components()[1];
-        CHECK(session.componentDependents(*node, body) == std::vector<const Component*>{collider});
+        CHECK(dependentsOf(registry, *node, body) == std::vector<const Component*>{collider});
         CHECK_FALSE(session.removeComponent(*node, body));
         CHECK(node->components().size() == 3);
 

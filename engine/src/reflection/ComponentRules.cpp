@@ -145,4 +145,21 @@ std::vector<const Component*> dependentsOf(const TypeRegistry& registry, const N
     return result;
 }
 
+bool canDetach(const TypeRegistry& registry, const Node& node, const Component& component)
+{
+    return node.canRemoveComponent(component) && dependentsOf(registry, node, component).empty();
+}
+
+std::vector<const TypeInfo*> attachableTypes(const TypeRegistry& registry, const Node& node)
+{
+    std::vector<const TypeInfo*> result;
+    for (const auto& type : registry.types()) {
+        if (type->creatable() && canAttach(registry, *type, node) && missingRequirements(registry, *type, node)) {
+            result.push_back(type.get());
+        }
+    }
+
+    return result;
+}
+
 } // namespace yqlora
