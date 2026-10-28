@@ -20,7 +20,7 @@ class Scene;
 // Базовый элемент дерева сцены. Родитель владеет детьми, ребёнок хранит
 // невладеющий указатель на родителя. Имена и типы всегда на английском.
 //
-// Сам Node не имеет положения, это делают Node2D и Node3D, у которых
+// Сам Node не имеет положения, это делают пространственные узлы (Node3D), у которых
 // Transform есть всегда. Остальные компоненты подключаются по необходимости.
 class YQLORA_API Node {
 public:
@@ -31,7 +31,9 @@ public:
     Node& operator=(const Node&) = delete;
 
     // Корень иерархии: свой typeName без override, поэтому без YQLORA_TYPE.
+    // Базы в реестре нет.
     using YqloraThisType = Node;
+    using YqloraBaseType = void;
 
     static constexpr std::string_view staticTypeName()
     {
@@ -154,7 +156,7 @@ public:
     }
 
 protected:
-    // Для Node2D/Node3D: подключает компонент, который нельзя снять.
+    // Для пространственных узлов (Node3D): подключает компонент, который нельзя снять.
     Component& addBuiltinComponent(std::unique_ptr<Component> component);
 
     // Жизненный цикл узла в игре, как у компонентов.

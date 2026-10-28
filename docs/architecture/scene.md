@@ -62,8 +62,6 @@ Node                     no position: a group, a root, a holder of scripts
   **No game logic in node classes**: per-frame work of engine nodes belongs to
   their system. `onStart` / `onUpdate` / `onStop` are for components only
   **[next]**.
-- The current `Node2D` / `Transform2D` are dead code (not registered anywhere)
-  and are removed **[next]**. 2D is written anew on top of the current core.
 
 ## Components
 
@@ -94,8 +92,8 @@ registry.registerComponent<AudioSource>()
 - Rules are inherited: the rules of a base component type apply to derived
   ones.
 - The base type comes from `YQLORA_TYPE(Class, Base)`, not from a second
-  template argument of the registration, so it cannot disagree with the C++
-  class **[next]**.
+  template argument of the registration, and registration does not compile
+  if the class does not derive from it **[done]**.
 
 `requires` is a C++20 keyword, hence `requiresNode` / `requiresComponent`.
 

@@ -50,7 +50,7 @@ struct AddCommand final : Command {
 };
 
 struct TestComponent final : Component {
-    YQLORA_TYPE(TestComponent)
+    YQLORA_TYPE(TestComponent, Component)
 };
 
 struct Fixture {

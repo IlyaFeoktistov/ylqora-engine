@@ -28,9 +28,7 @@ add_library(yqlora SHARED
     src/input/Input.cpp
     src/scene/Node.cpp
     src/scene/Component.cpp
-    src/scene/Transform2D.cpp
     src/scene/Transform3D.cpp
-    src/scene/Node2D.cpp
     src/scene/Node3D.cpp
     src/scene/Camera3D.cpp
     src/scene/Scene.cpp

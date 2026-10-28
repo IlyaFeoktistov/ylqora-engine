@@ -29,7 +29,7 @@ MVP: everything needed to build a small game prototype.
 
 After the MVP: Luau scripts, then 2D.
 
-Architecture: [scene, nodes and components](docs/architecture/scene.md).
+Architecture: [scene, nodes and components](docs/architecture/scene.md), [project settings](docs/architecture/project-settings.md).
 
 ## Building
 

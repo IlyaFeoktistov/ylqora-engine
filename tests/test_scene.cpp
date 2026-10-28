@@ -59,7 +59,7 @@ namespace {
 std::vector<std::string> g_events;
 
 struct Tracked final : Node3D {
-    YQLORA_TYPE(Tracked)
+    YQLORA_TYPE(Tracked, Node3D)
 
     using Node3D::Node3D;
 
@@ -75,7 +75,7 @@ struct Tracked final : Node3D {
 };
 
 struct Sensor final : Component {
-    YQLORA_TYPE(Sensor)
+    YQLORA_TYPE(Sensor, Component)
 
     void onEnterScene() override
     {

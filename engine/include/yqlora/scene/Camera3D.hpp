@@ -14,7 +14,7 @@ class YQLORA_API Camera3D : public Node3D {
 public:
     explicit Camera3D(std::string name = "Camera3D");
 
-    YQLORA_TYPE(Camera3D)
+    YQLORA_TYPE(Camera3D, Node3D)
 
     // вертикальный угол обзора
     float fovDegrees() const

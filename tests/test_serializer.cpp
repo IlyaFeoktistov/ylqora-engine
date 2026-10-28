@@ -14,7 +14,7 @@ namespace {
 
 // Компонент, которого нет в движке: так тесты проверяют типы, зарегистрированные снаружи.
 struct TestComponent final : Component {
-    YQLORA_TYPE(TestComponent)
+    YQLORA_TYPE(TestComponent, Component)
 
     int value = 100;
 };
@@ -142,7 +142,7 @@ enum class Mood {
 };
 
 struct Guard final : Node3D {
-    YQLORA_TYPE(Guard)
+    YQLORA_TYPE(Guard, Node3D)
 
     using Node3D::Node3D;
 
@@ -155,7 +155,7 @@ struct Guard final : Node3D {
 
 TEST_CASE_FIXTURE(Fixture, "SceneSerializer: enums by name, node and resource references")
 {
-    registry.registerNode<Guard, Node3D>()
+    registry.registerNode<Guard>()
         .property("mood", &Guard::mood)
         .enumNames({"Calm", "Angry"})
         .property("target", &Guard::target)

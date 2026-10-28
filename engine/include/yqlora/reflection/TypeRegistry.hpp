@@ -113,7 +113,7 @@ private:
 };
 
 // Добавляет свойства к только что зарегистрированному типу:
-//   registry.registerNode<Camera3D, Node3D>()
+//   registry.registerNode<Camera3D>()
 //       .property("fov", &Camera3D::fovDegrees, &Camera3D::setFovDegrees);
 template <typename Class, typename Root>
 class TypeBuilder {
@@ -210,17 +210,6 @@ public:
     }
 
 private:
-    template <typename T>
-    static constexpr std::string_view typeNameOf()
-    {
-        static_assert(
-            std::is_same_v<typename T::YqloraThisType, T>,
-            "Add YQLORA_TYPE(ClassName) to the public part of the class"
-        );
-
-        return T::staticTypeName();
-    }
-
     static const Class& cast(const void* object)
     {
         return static_cast<const Class&>(*static_cast<const Root*>(object));
@@ -247,7 +236,7 @@ public:
 
     // Пока объект жив, новые типы записываются на модуль module:
     //   TypeRegistry::ModuleScope scope(registry, "game");
-    //   registry.registerNode<Player, Node3D>();
+    //   registry.registerComponent<Player>();
     class ModuleScope {
     public:
         ModuleScope(TypeRegistry& registry, std::string module)
@@ -274,11 +263,11 @@ public:
     TypeRegistry(const TypeRegistry&) = delete;
     TypeRegistry& operator=(const TypeRegistry&) = delete;
 
-    // Имя типа берётся из YQLORA_TYPE в классе.
-    template <std::derived_from<Node> T, std::derived_from<Node> Base = Node>
+    // Имя типа и база берутся из YQLORA_TYPE в классе.
+    template <std::derived_from<Node> T>
     TypeBuilder<T, Node> registerNode()
     {
-        TypeInfo& info = add<T, Base>(TypeKind::Node);
+        TypeInfo& info = add<T>(TypeKind::Node);
         if constexpr (std::is_default_constructible_v<T>) {
             info.m_createNode = [] {
                 return std::unique_ptr<Node>(std::make_unique<T>());
@@ -288,10 +277,10 @@ public:
         return TypeBuilder<T, Node>(info);
     }
 
-    template <std::derived_from<Component> T, std::derived_from<Component> Base = Component>
+    template <std::derived_from<Component> T>
     TypeBuilder<T, Component> registerComponent()
     {
-        TypeInfo& info = add<T, Base>(TypeKind::Component);
+        TypeInfo& info = add<T>(TypeKind::Component);
         if constexpr (std::is_default_constructible_v<T>) {
             info.m_createComponent = [] {
                 return std::unique_ptr<Component>(std::make_unique<T>());
@@ -330,21 +319,21 @@ public:
     std::size_t removeModule(std::string_view module);
 
 private:
-    template <typename T, typename Base>
+    template <typename T>
     TypeInfo& add(TypeKind kind)
     {
-        static_assert(
-            std::is_same_v<typename T::YqloraThisType, T>,
-            "Add YQLORA_TYPE(ClassName) to the public part of the class"
-        );
-        assert(!find(T::staticTypeName()) && "TypeRegistry: type name is already registered");
+        const std::string_view name = typeNameOf<T>();
+        assert(!find(name) && "TypeRegistry: type name is already registered");
         assert(!find<T>() && "TypeRegistry: C++ type is already registered");
 
         auto info = std::make_unique<TypeInfo>();
-        info->m_name = std::string(T::staticTypeName());
+        info->m_name = std::string(name);
         info->m_module = m_module;
         info->m_kind = kind;
-        if constexpr (!std::is_same_v<T, Base> && !std::is_same_v<Base, Component>) {
+        // У Node и у компонентов прямо от Component базы в реестре нет.
+        using Base = typename T::YqloraBaseType;
+        if constexpr (!std::is_void_v<Base> && !std::is_same_v<Base, Component>) {
+            static_assert(std::derived_from<T, Base>, "YQLORA_TYPE: the base is not a base of the class");
             const TypeInfo* base = find<Base>();
             assert(base && "TypeRegistry: register the base type first");
             info->m_baseName = base->name();

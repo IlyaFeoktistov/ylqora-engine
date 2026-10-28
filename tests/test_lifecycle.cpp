@@ -17,7 +17,7 @@ struct Recorder final : Component {
     {
     }
 
-    YQLORA_TYPE(Recorder)
+    YQLORA_TYPE(Recorder, Component)
 
     void onStart() override
     {

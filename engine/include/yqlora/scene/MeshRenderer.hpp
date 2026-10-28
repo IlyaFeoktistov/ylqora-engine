@@ -11,7 +11,7 @@ namespace yqlora {
 // Рисует меш в положении узла. Живёт только на Node3D (requiresNode): положение берётся из его Transform.
 class YQLORA_API MeshRenderer final : public Component {
 public:
-    YQLORA_TYPE(MeshRenderer)
+    YQLORA_TYPE(MeshRenderer, Component)
 
     // Ресурс меша. Пока работают только встроенные (см. builtin::kCubeMesh),
     // с неизвестным мешем компонент ничего не рисует.

@@ -13,7 +13,7 @@ namespace {
 
 // Компонент, которого нет в движке: в движке пока нет создаваемых компонентов.
 struct TestComponent final : Component {
-    YQLORA_TYPE(TestComponent)
+    YQLORA_TYPE(TestComponent, Component)
 };
 
 struct Fixture {

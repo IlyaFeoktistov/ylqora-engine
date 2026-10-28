@@ -1,7 +1,6 @@
 #include <doctest/doctest.h>
 
 #include <yqlora/scene/Camera3D.hpp>
-#include <yqlora/scene/Node2D.hpp>
 #include <yqlora/scene/Node3D.hpp>
 
 using namespace yqlora;
@@ -72,45 +71,6 @@ TEST_CASE("Node3D: grandchild follows changes of the root")
 
     root.transform().setPosition({0.0f, 10.0f, 0.0f});
     CHECK(math::nearlyEqual(grandchild.worldPosition(), {0.0f, 10.0f, 1.0f}));
-}
-
-TEST_CASE("Transform2D: matrix applies scale, then rotation, then translation")
-{
-    Node2D node;
-    auto& t = node.transform();
-    t.setScale({2.0f, 2.0f});
-    t.setRotationDegrees(90.0f);
-    t.setPosition({0.0f, 1.0f});
-
-    // +X после масштаба 2 и поворота на 90 градусов против часовой смотрит в +Y.
-    const Vec2 p = Vec2(t.matrix() * Vec3(1.0f, 0.0f, 1.0f));
-    CHECK(math::nearlyEqual(p, {0.0f, 3.0f}));
-    CHECK(t.rotationDegrees() == doctest::Approx(90.0f));
-}
-
-TEST_CASE("Node2D: world position follows the parent")
-{
-    Node2D parent;
-    auto& child = parent.addChild<Node2D>();
-    child.transform().setPosition({1.0f, 0.0f});
-
-    parent.transform().setPosition({0.0f, 5.0f});
-    CHECK(math::nearlyEqual(child.worldPosition(), {1.0f, 5.0f}));
-
-    parent.transform().setRotationDegrees(90.0f);
-    CHECK(math::nearlyEqual(child.worldPosition(), {0.0f, 6.0f}));
-}
-
-TEST_CASE("Node2D: reparenting into a 3D branch makes the node a world root")
-{
-    Node2D parent;
-    parent.transform().setPosition({3.0f, 0.0f});
-    auto& child = parent.addChild<Node2D>();
-    CHECK(math::nearlyEqual(child.worldPosition(), {3.0f, 0.0f}));
-
-    Node3D other;
-    other.addChild(parent.removeChild(child));
-    CHECK(math::nearlyEqual(child.worldPosition(), {0.0f, 0.0f}));
 }
 
 TEST_CASE("Transform3D: values are read and written together")

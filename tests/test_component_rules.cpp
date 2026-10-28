@@ -16,46 +16,46 @@ using namespace yqlora::editor;
 namespace {
 
 struct Body : Component {
-    YQLORA_TYPE(Body)
+    YQLORA_TYPE(Body, Component)
 };
 
 // Тоже тело: закрывает требование Body.
 struct HeavyBody final : Body {
-    YQLORA_TYPE(HeavyBody)
+    YQLORA_TYPE(HeavyBody, Body)
 };
 
 struct Collider : Component {
-    YQLORA_TYPE(Collider)
+    YQLORA_TYPE(Collider, Component)
 };
 
 // Требования базового Collider действуют и на него.
 struct BoxCollider final : Collider {
-    YQLORA_TYPE(BoxCollider)
+    YQLORA_TYPE(BoxCollider, Collider)
 };
 
 struct Sound final : Component {
-    YQLORA_TYPE(Sound)
+    YQLORA_TYPE(Sound, Component)
 };
 
 // Цепочка и цикл требований.
 struct First final : Component {
-    YQLORA_TYPE(First)
+    YQLORA_TYPE(First, Component)
 };
 
 struct Second final : Component {
-    YQLORA_TYPE(Second)
+    YQLORA_TYPE(Second, Component)
 };
 
 struct Third final : Component {
-    YQLORA_TYPE(Third)
+    YQLORA_TYPE(Third, Component)
 };
 
 struct Unregistered final : Component {
-    YQLORA_TYPE(Unregistered)
+    YQLORA_TYPE(Unregistered, Component)
 };
 
 struct NeedsUnregistered final : Component {
-    YQLORA_TYPE(NeedsUnregistered)
+    YQLORA_TYPE(NeedsUnregistered, Component)
 };
 
 struct Fixture {
@@ -63,9 +63,9 @@ struct Fixture {
     {
         registerEngineTypes(registry);
         registry.registerComponent<Body>().requiresNode<Node3D>();
-        registry.registerComponent<HeavyBody, Body>();
+        registry.registerComponent<HeavyBody>();
         registry.registerComponent<Collider>().requiresComponent<Body>();
-        registry.registerComponent<BoxCollider, Collider>();
+        registry.registerComponent<BoxCollider>();
         registry.registerComponent<Sound>().allowMultiple();
         registry.registerComponent<First>().requiresComponent<Second>();
         registry.registerComponent<Second>().requiresComponent<Third>();

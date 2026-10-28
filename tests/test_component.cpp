@@ -1,7 +1,6 @@
 #include <doctest/doctest.h>
 
 #include <yqlora/scene/Camera3D.hpp>
-#include <yqlora/scene/Node2D.hpp>
 #include <yqlora/scene/Node3D.hpp>
 
 using namespace yqlora;
@@ -14,7 +13,7 @@ struct TestComponent final : Component {
         : value(initial)
     {
     }
-    YQLORA_TYPE(TestComponent)
+    YQLORA_TYPE(TestComponent, Component)
 
     int value;
 };
@@ -34,10 +33,6 @@ TEST_CASE("Component: Transform is the first component of every scene node")
     CHECK(node3D.components()[0].get() == &node3D.transform());
     CHECK(node3D.components()[0]->typeName() == "Transform3D");
     CHECK(node3D.transform().owner() == &node3D);
-
-    Node2D node2D;
-    REQUIRE(node2D.components().size() == 1);
-    CHECK(node2D.components()[0]->typeName() == "Transform2D");
 
     // Наследники получают тот же Transform от базового узла.
     Camera3D camera;

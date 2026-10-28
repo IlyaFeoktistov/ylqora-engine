@@ -18,7 +18,7 @@ class YQLORA_API Node3D : public Node {
 public:
     explicit Node3D(std::string name = "Node3D");
 
-    YQLORA_TYPE(Node3D)
+    YQLORA_TYPE(Node3D, Node)
 
     Transform3D& transform()
     {

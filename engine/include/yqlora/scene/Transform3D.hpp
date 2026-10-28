@@ -25,7 +25,7 @@ struct TransformValues {
 // Система координат правая: +X вправо, +Y вверх, взгляд вдоль -Z.
 class YQLORA_API Transform3D final : public Component {
 public:
-    YQLORA_TYPE(Transform3D)
+    YQLORA_TYPE(Transform3D, Component)
 
     const Vec3& position() const
     {

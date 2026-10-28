@@ -80,7 +80,7 @@ void registerEngineTypes(TypeRegistry& registry)
 
     registry.registerNode<Node3D>();
 
-    registry.registerNode<Camera3D, Node3D>()
+    registry.registerNode<Camera3D>()
         .property("fov", &Camera3D::fovDegrees, &Camera3D::setFovDegrees, PropertyHint::Angle)
         .property("near", &Camera3D::nearPlane, &Camera3D::setNearPlane)
         .property("far", &Camera3D::farPlane, &Camera3D::setFarPlane);

@@ -14,7 +14,7 @@ namespace {
 
 // Компонент, которого нет в движке: так тесты проверяют типы, зарегистрированные снаружи.
 struct TestComponent final : Component {
-    YQLORA_TYPE(TestComponent)
+    YQLORA_TYPE(TestComponent, Component)
 
     int value = 100;
 };
@@ -150,7 +150,7 @@ enum class Mood {
 
 // Узел из "игры": свой модуль, перечисление и ссылки.
 struct Guard final : Node3D {
-    YQLORA_TYPE(Guard)
+    YQLORA_TYPE(Guard, Node3D)
 
     using Node3D::Node3D;
 
@@ -165,7 +165,7 @@ TEST_CASE("TypeRegistry: the type name comes from YQLORA_TYPE")
 {
     TypeRegistry registry;
     registerEngineTypes(registry);
-    registry.registerNode<Guard, Node3D>();
+    registry.registerNode<Guard>();
 
     const TypeInfo* guard = registry.find("Guard");
     REQUIRE(guard);
@@ -181,7 +181,7 @@ TEST_CASE("TypeRegistry: types of a module go away together")
     const std::size_t engineTypes = registry.types().size();
     {
         TypeRegistry::ModuleScope scope(registry, "game");
-        registry.registerNode<Guard, Node3D>();
+        registry.registerNode<Guard>();
     }
     CHECK(registry.find("Guard")->module() == "game");
     CHECK(registry.find("Node3D")->module() == TypeRegistry::engineModule());
@@ -192,7 +192,7 @@ TEST_CASE("TypeRegistry: types of a module go away together")
     CHECK(registry.types().size() == engineTypes);
 
     // Модуль можно зарегистрировать снова, как после перезагрузки dll.
-    registry.registerNode<Guard, Node3D>();
+    registry.registerNode<Guard>();
     CHECK(registry.find("Guard"));
 }
 
@@ -200,7 +200,7 @@ TEST_CASE("Property: enums, node and resource references")
 {
     TypeRegistry registry;
     registerEngineTypes(registry);
-    registry.registerNode<Guard, Node3D>()
+    registry.registerNode<Guard>()
         .property("mood", &Guard::mood)
         .enumNames({"Calm", "Angry"})
         .property("target", &Guard::target)
