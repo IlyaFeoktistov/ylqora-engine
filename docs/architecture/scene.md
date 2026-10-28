@@ -264,6 +264,42 @@ calls it for the Play copy when not paused, tests call it directly. Today
 `advance` does the phases and the fixed step; systems and deferred changes
 come with their items below.
 
+## Frame pipeline
+
+The whole engine frame, not only the scene part. Each stage has one owner;
+the order lives in one frame loop class that knows only the order **[next]**.
+
+```
+1. Begin       FrameClock: frame length
+2. Input       window events -> raw input -> actions from the project settings
+3. Simulate    scene.advance: fixed steps (physics) -> update -> late update
+               -> deferred tree changes
+4. Transforms  world matrices of changed nodes, one pass with a dirty flag
+5. Extract     the render system takes a snapshot of the scene: views (cameras),
+               what to draw, lights. Nothing reads the scene after this.
+6. Render      prepare: culling by visibility and layer mask per view, sorting
+               (opaque front to back, transparent back to front)
+               graph: render passes (shadows, opaque, sky, transparent,
+               post-processing, HUD) through the RHI
+7. Interface   ImGui of the editor and tools
+8. Present
+```
+
+- **The snapshot from Extract** is all the renderer reads; it never touches
+  the scene. Later the renderer can move to its own thread (the game computes
+  frame N+1 while frame N is drawn) without changing game code. Today
+  `buildFrameData` is already an extract; it becomes part of the render system
+  together with the list of views, cameras, layers and masks **[next]**.
+- **World matrices** are updated in one pass over changed nodes, between
+  simulation and extract **[next]**.
+- **The render graph**: a pass declares what it reads and writes, the graph
+  orders the passes. A new effect is one more pass, not a change of the
+  renderer. The editor adds its own passes (grid, selection outline) to the
+  graph, which removes `FrameData::editor`. Culling and sorting come with it
+  **[planned, RHI]**.
+- **The render thread** comes when it is needed; the snapshot from Extract
+  already allows it **[planned, later]**.
+
 ## Lifecycle
 
 | Call | Where | What for |
