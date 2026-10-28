@@ -1,4 +1,6 @@
 #include "yqlora/scene/SceneSerializer.hpp"
+#include "yqlora/core/Utf8Path.hpp"
+#include "yqlora/scene/NodeTree.hpp"
 
 #include "core/JsonId.hpp"
 
@@ -254,20 +256,6 @@ Json nodeToJson(const TypeRegistry& registry, const Node& node)
     return result;
 }
 
-Node* findById(Node& node, NodeId id)
-{
-    if (node.id() == id) {
-        return &node;
-    }
-    for (const auto& child : node.children()) {
-        if (Node* found = findById(*child, id)) {
-            return found;
-        }
-    }
-
-    return nullptr;
-}
-
 } // namespace
 
 // Чтение и запись сцены. Вложен в SceneSerializer, чтобы вызывать закрытый assignId.
@@ -456,7 +444,7 @@ bool SceneSerializer::Format::readScene(Scene& scene, Json json) const
     }
     const auto camera = json.contains(kActiveCameraKey) ? idFromJson(json[kActiveCameraKey]) : std::nullopt;
     if (camera && scene.root()) {
-        Node* node = findById(*scene.root(), *camera);
+        Node* node = findNode(*scene.root(), *camera);
         scene.setActiveCamera(dynamic_cast<Camera3D*>(node));
     }
 
@@ -483,7 +471,7 @@ bool SceneSerializer::fromJson(Scene& scene, std::string_view text) const
 bool SceneSerializer::save(const Scene& scene, const std::filesystem::path& file) const
 {
     if (!writeJsonFile(file, Format{m_registry}.write(scene))) {
-        log::error("Scene: cannot write '{}'", file.string());
+        log::error("Scene: cannot write '{}'", toUtf8(file));
 
         return false;
     }
@@ -495,7 +483,7 @@ bool SceneSerializer::load(Scene& scene, const std::filesystem::path& file) cons
 {
     auto json = std::filesystem::exists(file) ? readJsonFile(file) : std::nullopt;
     if (!json) {
-        log::error("Scene: cannot open '{}'", file.string());
+        log::error("Scene: cannot open '{}'", toUtf8(file));
 
         return false;
     }

@@ -1,4 +1,5 @@
 #include "yqlora/project/Project.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/JsonFile.hpp"
 #include "yqlora/core/Log.hpp"
@@ -43,13 +44,6 @@ ProjectCompatibility compatibilityOf(int version)
     }
 
     return version >= kFirstFormatVersion ? ProjectCompatibility::Older : ProjectCompatibility::Unsupported;
-}
-
-std::string toUtf8(const std::filesystem::path& path)
-{
-    const std::u8string text = path.generic_u8string();
-
-    return {text.begin(), text.end()};
 }
 
 std::optional<Json> readFile(const std::filesystem::path& directory)

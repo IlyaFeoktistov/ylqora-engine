@@ -1,4 +1,5 @@
 #include "yqlora/platform/Platform.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/Log.hpp"
 
@@ -65,7 +66,7 @@ std::filesystem::path executableDir()
 {
     const char* base = SDL_GetBasePath();
 
-    return base ? std::filesystem::path(reinterpret_cast<const char8_t*>(base)) : std::filesystem::current_path();
+    return base ? fromUtf8(base) : std::filesystem::current_path();
 }
 
 std::filesystem::path userDataPath(std::string_view organization, std::string_view application)
@@ -76,7 +77,7 @@ std::filesystem::path userDataPath(std::string_view organization, std::string_vi
 
         return std::filesystem::current_path();
     }
-    std::filesystem::path result(reinterpret_cast<const char8_t*>(path));
+    std::filesystem::path result = fromUtf8(path);
     SDL_free(path);
 
     return result;
@@ -85,10 +86,10 @@ std::filesystem::path userDataPath(std::string_view organization, std::string_vi
 std::filesystem::path documentsPath()
 {
     if (const char* documents = SDL_GetUserFolder(SDL_FOLDER_DOCUMENTS)) {
-        return std::filesystem::path(reinterpret_cast<const char8_t*>(documents));
+        return fromUtf8(documents);
     }
     if (const char* home = SDL_GetUserFolder(SDL_FOLDER_HOME)) {
-        return std::filesystem::path(reinterpret_cast<const char8_t*>(home));
+        return fromUtf8(home);
     }
 
     return std::filesystem::current_path();

@@ -5,6 +5,7 @@
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/core/Version.hpp"
 #include "yqlora/editor/ProjectList.hpp"
 #include "yqlora/editor/ProjectSetup.hpp"
@@ -23,18 +24,6 @@ constexpr float kFieldWidth = 420.0f;
 constexpr int kColumnCount = 3;
 constexpr float kNameColumnWeight = 1.0f;
 constexpr float kPathColumnWeight = 2.0f;
-
-std::string toUtf8(const std::filesystem::path& path)
-{
-    const std::u8string text = path.u8string();
-
-    return {text.begin(), text.end()};
-}
-
-std::filesystem::path fromUtf8(const std::string& text)
-{
-    return std::filesystem::path(std::u8string(text.begin(), text.end()));
-}
 
 // Текст ошибки красным, если она есть.
 void drawError(const std::string& errorKey, const EditorColors& colors)

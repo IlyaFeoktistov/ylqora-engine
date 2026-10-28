@@ -10,6 +10,7 @@
 #include "style/Theme.hpp"
 
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/i18n/Localization.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/platform/Platform.hpp"
@@ -237,7 +238,7 @@ void EditorApp::closeProject()
 void EditorApp::saveScene()
 {
     if (m_session.saveScene()) {
-        log::info("Scene saved: {}", m_session.scenePath().generic_string());
+        log::info("Scene saved: {}", toUtf8(m_session.scenePath()));
     }
 }
 
@@ -248,7 +249,7 @@ void EditorApp::openScene(const std::filesystem::path& path)
     }
     m_unsaved.request(m_session, [this, path] {
         if (!m_session.openScene(path)) {
-            log::error("Cannot open scene '{}'", path.generic_string());
+            log::error("Cannot open scene '{}'", toUtf8(path));
         }
     });
 }
@@ -257,8 +258,7 @@ void EditorApp::updateTitle()
 {
     std::string title;
     if (m_session.project()) {
-        const std::u8string scene = m_session.scenePath().filename().u8string();
-        title = m_session.project()->name() + " - " + std::string(scene.begin(), scene.end());
+        title = m_session.project()->name() + " - " + toUtf8(m_session.scenePath().filename());
         if (m_session.modified()) {
             title += " *";
         }

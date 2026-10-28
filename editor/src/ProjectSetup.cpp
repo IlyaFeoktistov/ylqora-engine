@@ -1,4 +1,5 @@
 #include "yqlora/editor/ProjectSetup.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/Log.hpp"
 #include "yqlora/editor/ProjectFiles.hpp"
@@ -21,18 +22,6 @@ const Vec3 kStarterCameraPosition(0.0f, 2.0f, 5.0f);
 constexpr std::size_t kMaxFileNameLength = 64;
 // Запрещены в именах файлов на Windows, а "/" - везде.
 constexpr std::string_view kForbiddenFileNameChars = "/\\:*?\"<>|";
-
-std::string toUtf8(const std::filesystem::path& path)
-{
-    const std::u8string text = path.generic_u8string();
-
-    return {text.begin(), text.end()};
-}
-
-std::filesystem::path fromUtf8(const std::string& text)
-{
-    return std::filesystem::path(std::u8string(text.begin(), text.end()));
-}
 
 // Чтобы новый проект сразу что-то показывал: камера и куб на сетке.
 void buildStarterScene(Scene& scene)

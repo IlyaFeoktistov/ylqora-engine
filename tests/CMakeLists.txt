@@ -21,6 +21,7 @@ add_executable(yqlora_tests
     test_localization.cpp
     test_settings.cpp
     test_component_rules.cpp
+    test_node_tree.cpp
 )
 target_link_libraries(yqlora_tests PRIVATE yqlora::internal yqlora::editor doctest::doctest)
 target_compile_definitions(yqlora_tests PRIVATE

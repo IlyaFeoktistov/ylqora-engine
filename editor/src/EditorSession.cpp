@@ -6,6 +6,7 @@
 #include "yqlora/reflection/ComponentRules.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/Camera3D.hpp"
+#include "yqlora/scene/NodeTree.hpp"
 #include "yqlora/scene/Scene.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
 
@@ -16,32 +17,6 @@
 namespace yqlora::editor {
 
 namespace {
-
-Node* find(Node& node, NodeId id)
-{
-    if (node.id() == id) {
-        return &node;
-    }
-    for (const auto& child : node.children()) {
-        if (Node* found = find(*child, id)) {
-            return found;
-        }
-    }
-
-    return nullptr;
-}
-
-std::optional<std::size_t> componentIndex(const Node& node, const Component& component)
-{
-    const auto components = node.components();
-    for (std::size_t i = 0; i < components.size(); ++i) {
-        if (components[i].get() == &component) {
-            return i;
-        }
-    }
-
-    return std::nullopt;
-}
 
 } // namespace
 
@@ -210,7 +185,7 @@ Node* EditorSession::findNode(NodeId id)
 {
     Scene& current = scene();
 
-    return current.root() && id != 0 ? find(*current.root(), id) : nullptr;
+    return current.root() && id != 0 ? yqlora::findNode(*current.root(), id) : nullptr;
 }
 
 Node* EditorSession::selectedNode()

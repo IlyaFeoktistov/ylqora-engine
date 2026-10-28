@@ -3,6 +3,7 @@
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/LogSettings.hpp"
 #include "yqlora/core/Settings.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/i18n/Localization.hpp"
 #include "yqlora/platform/InputFeeder.hpp"
 #include "yqlora/platform/Platform.hpp"
@@ -96,7 +97,7 @@ void Application::initSettingsAndLanguage()
     const auto settingsFile = userDataDirectory() / kSettingsFile;
     m_settings = std::make_unique<Settings>(settingsFile);
     m_settings->load();
-    log::info("Settings: {}", settingsFile.string());
+    log::info("Settings: {}", toUtf8(settingsFile));
 
     m_localization = std::make_unique<Localization>(assetsDirectory() / kLocalesFolder);
     Localization::setActive(m_localization.get());
@@ -169,7 +170,7 @@ void Application::initUi()
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
 
     // Раскладку окон храним рядом с настройками, а не в текущей папке.
-    m_uiIniPath = (userDataDirectory() / kUiLayoutFile).string();
+    m_uiIniPath = toUtf8(userDataDirectory() / kUiLayoutFile);
     io.IniFilename = m_uiIniPath.c_str();
 
     // Шрифт и цвета задаёт само приложение (у редактора это файл темы),

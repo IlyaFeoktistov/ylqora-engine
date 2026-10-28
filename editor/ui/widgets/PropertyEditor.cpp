@@ -2,6 +2,7 @@
 
 #include "style/Theme.hpp"
 
+#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/render/MeshData.hpp"
@@ -115,9 +116,7 @@ std::string resourceLabel(ResourceRef value, const ResourceDatabase* resources)
         }
     }
     if (const auto path = resources ? resources->path(value.id) : std::nullopt) {
-        const std::u8string text = path->generic_u8string();
-
-        return {text.begin(), text.end()};
+        return toGenericUtf8(*path);
     }
 
     return tr("editor.inspector.missing");

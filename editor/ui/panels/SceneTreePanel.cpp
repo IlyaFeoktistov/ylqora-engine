@@ -4,6 +4,7 @@
 
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
+#include "yqlora/scene/NodeTree.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <imgui.h>
@@ -15,20 +16,6 @@
 namespace yqlora::editor {
 
 namespace {
-
-bool contains(const Node& node, NodeId id)
-{
-    if (node.id() == id) {
-        return true;
-    }
-    for (const auto& child : node.children()) {
-        if (contains(*child, id)) {
-            return true;
-        }
-    }
-
-    return false;
-}
 
 } // namespace
 
@@ -95,7 +82,7 @@ void SceneTreePanel::drawNode(const Node& node, Selection& selection)
         flags |= ImGuiTreeNodeFlags_Selected;
     }
     // Выбор пришёл из окна сцены: раскрываем путь до выбранного узла.
-    if (m_reveal && !selected && contains(node, selection.selected())) {
+    if (m_reveal && !selected && findNode(node, selection.selected())) {
         ImGui::SetNextItemOpen(true);
     }
 

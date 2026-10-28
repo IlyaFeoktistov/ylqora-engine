@@ -1,4 +1,5 @@
 #include "yqlora/editor/ProjectFiles.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/Log.hpp"
 #include "yqlora/editor/ProjectSetup.hpp"
@@ -19,18 +20,6 @@ constexpr const char* kNewSceneName = "New Scene";
 constexpr const char* kNewFolderName = "New Folder";
 // "New Scene 2", "New Scene 3"...: первая копия имени получает номер 2.
 constexpr int kFirstDuplicateNumber = 2;
-
-std::string toUtf8(const fs::path& path)
-{
-    const std::u8string text = path.u8string();
-
-    return {text.begin(), text.end()};
-}
-
-fs::path fromUtf8(const std::string& text)
-{
-    return fs::path(std::u8string(text.begin(), text.end()));
-}
 
 void scanDirectory(const fs::path& root, const fs::path& relative, ProjectFiles::Entry& out)
 {

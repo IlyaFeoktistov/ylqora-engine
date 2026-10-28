@@ -27,6 +27,7 @@ add_library(yqlora SHARED
     src/platform/MouseWrap.cpp
     src/input/Input.cpp
     src/scene/Node.cpp
+    src/scene/NodeTree.cpp
     src/scene/Component.cpp
     src/scene/Transform3D.cpp
     src/scene/Node3D.cpp

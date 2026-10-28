@@ -1,6 +1,7 @@
 #include "style/Theme.hpp"
 
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 
 #include <imgui.h>
 // ImGuizmo.h использует типы ImGui и должен идти после imgui.h.
@@ -143,7 +144,7 @@ void addFont(const Json& json, const std::filesystem::path& assetsDir, bool merg
     }
     const std::string file = json["file"].get<std::string>();
     const float size = json.contains("size") && json["size"].is_number() ? json["size"].get<float>() : kDefaultFontSize;
-    const auto path = assetsDir / std::filesystem::path(std::u8string(file.begin(), file.end()));
+    const auto path = assetsDir / fromUtf8(file);
 
     ImFontConfig config;
     config.MergeMode = merge;
@@ -151,8 +152,8 @@ void addFont(const Json& json, const std::filesystem::path& assetsDir, bool merg
         config.GlyphOffset.y = it->get<float>();
     }
     // Глифы подгружаются по мере надобности, кириллица в том числе.
-    if (!ImGui::GetIO().Fonts->AddFontFromFileTTF(path.string().c_str(), size, &config)) {
-        log::warn("Theme: font '{}' not found", path.string());
+    if (!ImGui::GetIO().Fonts->AddFontFromFileTTF(toUtf8(path).c_str(), size, &config)) {
+        log::warn("Theme: font '{}' not found", toUtf8(path));
     }
 }
 
@@ -204,7 +205,7 @@ bool Theme::load(const std::filesystem::path& file, const std::filesystem::path&
     std::ifstream in(file);
     const Json json = in ? Json::parse(in, nullptr, /*allow_exceptions=*/false) : Json();
     if (!json.is_object()) {
-        log::warn("Theme '{}' is not found or broken, using the default look", file.string());
+        log::warn("Theme '{}' is not found or broken, using the default look", toUtf8(file));
 
         return false;
     }

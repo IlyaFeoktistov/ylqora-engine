@@ -3,6 +3,7 @@
 #include "style/Icons.hpp"
 #include "style/Theme.hpp"
 
+#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
 
@@ -17,13 +18,6 @@ namespace yqlora::editor {
 namespace {
 
 constexpr float kNameFieldWidth = 360.0f;
-
-std::string toUtf8(const std::filesystem::path& path)
-{
-    const std::u8string text = path.u8string();
-
-    return {text.begin(), text.end()};
-}
 
 const char* iconFor(const ProjectFiles::Entry& entry, bool open)
 {

@@ -1,4 +1,5 @@
 #include "yqlora/editor/ProjectList.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/JsonFile.hpp"
 
@@ -54,7 +55,7 @@ void ProjectList::load()
         }
         const std::string path = item[kPathKey].get<std::string>();
         Entry entry;
-        entry.directory = normalized(std::filesystem::path(std::u8string(path.begin(), path.end())));
+        entry.directory = normalized(fromUtf8(path));
         if (const auto it = item.find(kLastOpenedKey); it != item.end() && it->is_number_integer()) {
             entry.lastOpened = it->get<std::int64_t>();
         }
@@ -67,8 +68,7 @@ bool ProjectList::save() const
 {
     Json json = Json::array();
     for (const Entry& entry : m_entries) {
-        const std::u8string path = entry.directory.generic_u8string();
-        json.push_back({{kPathKey, std::string(path.begin(), path.end())}, {kLastOpenedKey, entry.lastOpened}});
+        json.push_back({{kPathKey, toGenericUtf8(entry.directory)}, {kLastOpenedKey, entry.lastOpened}});
     }
 
     return writeJsonFile(m_file, json);

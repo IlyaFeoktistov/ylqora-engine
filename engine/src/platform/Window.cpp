@@ -1,4 +1,5 @@
 #include "yqlora/platform/Window.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/Log.hpp"
 #include "yqlora/platform/InputFeeder.hpp"
@@ -219,13 +220,13 @@ void Window::showFolderDialog(const std::filesystem::path& start, FolderCallback
         if (!files) {
             log::warn("Folder dialog is not available: {}", SDL_GetError());
         } else if (files[0]) {
-            folder = std::filesystem::path(reinterpret_cast<const char8_t*>(files[0]));
+            folder = fromUtf8(files[0]);
         }
         const std::lock_guard lock(dialog->mutex);
         dialog->folder = std::move(folder);
         dialog->answered = true;
     };
-    const std::string startUtf8 = reinterpret_cast<const char*>(start.u8string().c_str());
+    const std::string startUtf8 = toUtf8(start);
     SDL_ShowOpenFolderDialog(onAnswer, m_folderDialog.get(), m_window, startUtf8.c_str(), false);
 }
 

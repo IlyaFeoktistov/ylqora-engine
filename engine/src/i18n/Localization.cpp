@@ -1,4 +1,5 @@
 #include "yqlora/i18n/Localization.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/Log.hpp"
 
@@ -55,13 +56,13 @@ bool Localization::loadFile(std::string_view language, Strings& out) const
     const auto file = m_dir / (std::string(language) + ".json");
     std::ifstream in(file);
     if (!in) {
-        log::error("Locale file '{}' not found", file.string());
+        log::error("Locale file '{}' not found", toUtf8(file));
 
         return false;
     }
     const auto json = nlohmann::json::parse(in, nullptr, /*allow_exceptions=*/false);
     if (json.is_discarded() || !json.is_object()) {
-        log::error("Locale file '{}' is not a valid JSON object", file.string());
+        log::error("Locale file '{}' is not a valid JSON object", toUtf8(file));
 
         return false;
     }
@@ -118,7 +119,7 @@ std::vector<std::string> Localization::availableLanguages() const
     std::error_code ec;
     for (const auto& entry : std::filesystem::directory_iterator(m_dir, ec)) {
         if (entry.is_regular_file() && entry.path().extension() == ".json") {
-            result.push_back(entry.path().stem().string());
+            result.push_back(toUtf8(entry.path().stem()));
         }
     }
     std::ranges::sort(result);

@@ -4,6 +4,7 @@
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/Node3D.hpp"
+#include "yqlora/scene/NodeTree.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <algorithm>
@@ -16,20 +17,6 @@ namespace {
 
 // "Cube2", "Cube3"...: первая копия имени получает номер 2.
 constexpr int kFirstDuplicateNumber = 2;
-
-bool contains(const Node& node, const Node* target)
-{
-    if (&node == target) {
-        return true;
-    }
-    for (const auto& child : node.children()) {
-        if (contains(*child, target)) {
-            return true;
-        }
-    }
-
-    return false;
-}
 
 // "Cube", "Cube2", "Cube3"... - первое свободное среди детей parent.
 std::string uniqueChildName(const Node& parent, const std::string& base)
@@ -50,13 +37,14 @@ DetachedBranch detach(EditorSession& session, Node& node)
 {
     Scene& scene = session.scene();
     DetachedBranch branch;
-    if (contains(node, scene.activeCamera())) {
+    if (scene.activeCamera() && isInBranch(node, *scene.activeCamera())) {
         branch.activeCamera = scene.activeCamera();
         scene.setActiveCamera(nullptr);
     }
     const Selection selected = session.selection();
     for (const NodeId id : selected.nodes()) {
-        if (contains(node, session.findNode(id))) {
+        const Node* selectedNode = session.findNode(id);
+        if (selectedNode && isInBranch(node, *selectedNode)) {
             session.selection().deselect(id);
         }
     }
@@ -100,11 +88,6 @@ Node* attach(EditorSession& session, DetachedBranch& branch)
     }
 
     return node;
-}
-
-Component* componentAt(Node& node, std::size_t index)
-{
-    return index < node.components().size() ? node.components()[index].get() : nullptr;
 }
 
 bool getProperty(EditorSession& session, const PropertyTarget& target, const Property& property, PropertyValue& value)

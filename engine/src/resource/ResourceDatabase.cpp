@@ -1,4 +1,5 @@
 #include "yqlora/resource/ResourceDatabase.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/JsonFile.hpp"
 #include "yqlora/core/Log.hpp"
@@ -17,13 +18,6 @@ namespace fs = std::filesystem;
 using Json = nlohmann::json;
 
 constexpr const char* kIdKey = "id";
-
-std::string toUtf8(const fs::path& path)
-{
-    const std::u8string text = path.generic_u8string();
-
-    return {text.begin(), text.end()};
-}
 
 fs::path metaPath(const fs::path& file)
 {
