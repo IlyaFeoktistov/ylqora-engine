@@ -109,7 +109,7 @@ Node3D& addMesh(Node& parent, const char* name, ResourceId mesh = builtin::kCube
 
 TEST_CASE("Picking: the nearest mesh under the ray wins")
 {
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& root = scene.createRoot<Node>();
     auto& front = addMesh(root, "Front");
     front.transform().setPosition({0.0f, 0.0f, -3.0f});
@@ -134,7 +134,7 @@ TEST_CASE("Picking: the nearest mesh under the ray wins")
 
 TEST_CASE("Picking: scale and rotation of the node are taken into account")
 {
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& cube = scene.createRoot<Node3D>();
     cube.addComponent<MeshRenderer>();
     cube.transform().setPosition({0.0f, 0.0f, -5.0f});
@@ -142,7 +142,7 @@ TEST_CASE("Picking: scale and rotation of the node are taken into account")
 
     // Без масштаба куб шириной 1 сюда бы не дотянулся.
     CHECK(pickNode(scene, {Vec3(1.5f, 0.0f, 0.0f), {0.0f, 0.0f, -1.0f}}) == cube.id());
-    CHECK(pickNode(Scene{}, {Vec3(0.0f), {0.0f, 0.0f, -1.0f}}) == 0);
+    CHECK(pickNode(Scene{EngineServices::none()}, {Vec3(0.0f), {0.0f, 0.0f, -1.0f}}) == 0);
 }
 
 TEST_CASE("Selection: one node at a time, 0 means nothing")
@@ -160,7 +160,7 @@ TEST_CASE("Selection: one node at a time, 0 means nothing")
 
 TEST_CASE("Picking: a camera is picked by a sphere around it")
 {
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& root = scene.createRoot<Node>();
     auto& camera = root.addChild<Camera3D>();
     camera.transform().setPosition({0.0f, 0.0f, -5.0f});

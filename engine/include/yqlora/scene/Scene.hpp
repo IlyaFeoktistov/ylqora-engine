@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 #include "yqlora/scene/Node.hpp"
@@ -20,12 +21,18 @@ class Camera3D;
 // корня нет, пока его не создадут (любого типа: Node, Node3D, ...).
 class YQLORA_API Scene {
 public:
-    Scene() = default;
+    // Службы задаёт владелец сцены и они переживают её; см. EngineServices::none().
+    explicit Scene(const EngineServices& services);
     ~Scene();
 
     // Узлы сцены хранят указатель на неё, поэтому сцену не копируют и не перемещают.
     Scene(const Scene&) = delete;
     Scene& operator=(const Scene&) = delete;
+
+    const EngineServices& services() const
+    {
+        return m_services;
+    }
 
     bool empty() const
     {
@@ -106,6 +113,7 @@ private:
     void indexComponent(Component& component);
     void unindexComponent(Component& component);
 
+    const EngineServices& m_services;
     std::unique_ptr<Node> m_root;
     std::unordered_map<std::type_index, std::vector<Component*>> m_components;
     Camera3D* m_activeCamera = nullptr;

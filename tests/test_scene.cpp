@@ -14,7 +14,7 @@ using namespace yqlora;
 
 TEST_CASE("Scene: new scene is empty")
 {
-    Scene scene;
+    Scene scene{EngineServices::none()};
     CHECK(scene.empty());
     CHECK(scene.root() == nullptr);
 
@@ -26,7 +26,7 @@ TEST_CASE("Scene: new scene is empty")
 
 TEST_CASE("Scene: root can be of any node type")
 {
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& root = scene.createRoot<Node3D>("World");
     CHECK_FALSE(scene.empty());
     CHECK(scene.root() == &root);
@@ -35,7 +35,7 @@ TEST_CASE("Scene: root can be of any node type")
 
 TEST_CASE("Scene: replacing the root resets the active camera")
 {
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& camera = scene.createRoot<Camera3D>();
     scene.setActiveCamera(&camera);
 
@@ -45,7 +45,7 @@ TEST_CASE("Scene: replacing the root resets the active camera")
 
 TEST_CASE("Scene: takeRoot leaves the scene empty")
 {
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& root = scene.createRoot<Node>();
 
     auto owned = scene.takeRoot();
@@ -97,7 +97,7 @@ TEST_CASE("Scene: nodes know their scene, enter parent first and exit children f
     root->addChild<Tracked>("Child");
     CHECK(root->scene() == nullptr);
 
-    Scene scene;
+    Scene scene{EngineServices::none()};
     Node& rootRef = *root;
     scene.setRoot(std::move(root));
     CHECK(rootRef.scene() == &scene);
@@ -112,7 +112,7 @@ TEST_CASE("Scene: nodes know their scene, enter parent first and exit children f
 TEST_CASE("Scene: components are found by type while they are in the scene")
 {
     g_events.clear();
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& root = scene.createRoot<Node3D>("Root");
     auto& sensor = root.addComponent<Sensor>();
     CHECK(g_events == std::vector<std::string>{"sensor enter"});

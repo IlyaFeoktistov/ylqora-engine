@@ -34,7 +34,7 @@ struct Fixture {
 
 TEST_CASE_FIXTURE(Fixture, "SceneSerializer: scene survives save and load")
 {
-    Scene original;
+    Scene original{EngineServices::none()};
     auto& root = original.createRoot<Node>("Root");
     auto& player = root.addChild<Node3D>("Player");
     player.transform().setPosition({1.0f, 2.0f, 3.0f});
@@ -46,7 +46,7 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: scene survives save and load")
     original.setActiveCamera(&camera);
     original.setClearColor({0.1f, 0.2f, 0.3f, 1.0f});
 
-    Scene loaded;
+    Scene loaded{EngineServices::none()};
     REQUIRE(serializer.fromJson(loaded, serializer.toJson(original)));
 
     REQUIRE(loaded.root());
@@ -74,8 +74,8 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: scene survives save and load")
 
 TEST_CASE_FIXTURE(Fixture, "SceneSerializer: empty scene stays empty")
 {
-    Scene original;
-    Scene loaded;
+    Scene original{EngineServices::none()};
+    Scene loaded{EngineServices::none()};
     loaded.createRoot<Node>();
 
     REQUIRE(serializer.fromJson(loaded, serializer.toJson(original)));
@@ -84,7 +84,7 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: empty scene stays empty")
 
 TEST_CASE_FIXTURE(Fixture, "SceneSerializer: broken file leaves the scene untouched")
 {
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& root = scene.createRoot<Node>("Keep");
 
     CHECK_FALSE(serializer.fromJson(scene, "not json"));
@@ -95,7 +95,7 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: broken file leaves the scene untouc
 
 TEST_CASE_FIXTURE(Fixture, "SceneSerializer: unknown component and property are skipped")
 {
-    Scene scene;
+    Scene scene{EngineServices::none()};
     const char* json = R"({
         "version": 1,
         "root": {
@@ -122,11 +122,11 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: save and load a file")
     const auto file = std::filesystem::temp_directory_path() / "yqlora_tests" / "level.yscene";
     std::filesystem::create_directories(file.parent_path());
 
-    Scene original;
+    Scene original{EngineServices::none()};
     original.createRoot<Node3D>("Level");
     REQUIRE(serializer.save(original, file));
 
-    Scene loaded;
+    Scene loaded{EngineServices::none()};
     REQUIRE(serializer.load(loaded, file));
     REQUIRE(loaded.root());
     CHECK(loaded.root()->name() == "Level");
@@ -161,7 +161,7 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: enums by name, node and resource re
         .property("target", &Guard::target)
         .property("weapon", &Guard::weapon);
 
-    Scene original;
+    Scene original{EngineServices::none()};
     auto& root = original.createRoot<Node3D>("Root");
     auto& guard = root.addChild<Guard>("Guard");
     guard.mood = Mood::Angry;
@@ -171,7 +171,7 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: enums by name, node and resource re
     const std::string json = serializer.toJson(original);
     CHECK(json.find("\"Angry\"") != std::string::npos);
 
-    Scene loaded;
+    Scene loaded{EngineServices::none()};
     REQUIRE(serializer.fromJson(loaded, json));
     auto* loadedGuard = dynamic_cast<Guard*>(loaded.root()->children()[0].get());
     REQUIRE(loadedGuard);

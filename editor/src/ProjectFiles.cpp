@@ -1,5 +1,6 @@
 #include "yqlora/editor/ProjectFiles.hpp"
 
+#include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/editor/ProjectSetup.hpp"
@@ -104,7 +105,7 @@ std::optional<fs::path> ProjectFiles::createScene(const fs::path& folder, const 
         kNewSceneName,
         std::string(SceneSerializer::fileExtension())
     );
-    if (!serializer.save(Scene{}, file)) {
+    if (!serializer.save(Scene(EngineServices::none()), file)) {
         return std::nullopt;
     }
     const fs::path relative = fs::relative(file, m_project.directory());

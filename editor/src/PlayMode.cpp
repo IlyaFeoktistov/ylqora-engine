@@ -19,7 +19,7 @@ bool PlayMode::start(const Scene& source)
         return false;
     }
     // Копия через формат файла: в ней те же ID узлов, и выделение остаётся на месте.
-    auto copy = std::make_unique<Scene>();
+    auto copy = std::make_unique<Scene>(source.services());
     if (!m_serializer.fromJson(*copy, m_serializer.toJson(source))) {
         log::error("Cannot copy the scene for Play");
 

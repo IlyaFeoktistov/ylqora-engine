@@ -1,5 +1,8 @@
 #include "yqlora/scene/Node.hpp"
 
+#include "yqlora/core/Log.hpp"
+#include "yqlora/reflection/ComponentRules.hpp"
+#include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <algorithm>
@@ -83,7 +86,31 @@ std::unique_ptr<Node> Node::removeChild(Node& child)
 
 Component& Node::addComponent(std::unique_ptr<Component> component)
 {
+    if (m_scene) {
+        addRequiredComponents(*component);
+    }
+
     return insertComponent(m_components.size(), std::move(component));
+}
+
+void Node::addRequiredComponents(const Component& component)
+{
+    const TypeRegistry& registry = m_scene->services().registry();
+    const TypeInfo* type = registry.find(component.typeName());
+    if (!type) {
+        // Тип не зарегистрирован: его правил никто не знает.
+        return;
+    }
+    const auto missing = canAttach(registry, *type, *this) ? missingRequirements(registry, *type, *this) : std::nullopt;
+    if (!missing) {
+        log::error("Component '{}' does not fit node '{}' of type '{}'", type->name(), name(), typeName());
+        assert(false && "addComponent: the component rules are broken, see ComponentRules.hpp");
+
+        return;
+    }
+    for (const TypeInfo* required : *missing) {
+        insertComponent(m_components.size(), required->createComponent());
+    }
 }
 
 Component& Node::insertComponent(std::size_t index, std::unique_ptr<Component> component)

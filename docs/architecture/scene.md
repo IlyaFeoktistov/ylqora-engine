@@ -106,8 +106,9 @@ The checks themselves are free functions in `ComponentRules.hpp` (`canAttach`,
 - The scene loader: a component on a node it does not fit is skipped with an
   error in the log; a missing required component is added with a warning
   **[done]**.
-- `Node::addComponent` itself, once the scene has the engine context (see
-  below), so game code cannot bypass them either **[next]**.
+- `Node::addComponent` itself, for a node in a scene: it adds missing required
+  components first, like `AddComponent` in Unity, and a broken rule is an error
+  of the program, so game code cannot bypass them either **[done]**.
 
 ### Built-in components
 
@@ -178,7 +179,7 @@ Owner (game / editor / test)
              └─ Component → owner()->scene() → services(), time(), system<T>()
 ```
 
-### Engine services [next]
+### Engine services [done]
 
 ```cpp
 class EngineServices {

@@ -25,7 +25,7 @@ struct Fixture {
 
     TypeRegistry registry;
     SceneSerializer serializer{registry};
-    Scene scene;
+    Scene scene{EngineServices::none()};
 };
 
 } // namespace

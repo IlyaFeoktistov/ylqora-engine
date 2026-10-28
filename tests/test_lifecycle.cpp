@@ -42,7 +42,7 @@ struct Recorder final : Component {
 TEST_CASE("Lifecycle: start before the first update, stop when the game stops")
 {
     std::vector<std::string> events;
-    Scene scene;
+    Scene scene{EngineServices::none()};
     scene.createRoot<Node3D>().addComponent<Recorder>(events);
 
     scene.update(0.016f);
@@ -59,7 +59,7 @@ TEST_CASE("Lifecycle: start before the first update, stop when the game stops")
 TEST_CASE("Lifecycle: a component added during the game starts on its first update")
 {
     std::vector<std::string> events;
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& root = scene.createRoot<Node3D>();
     scene.update(0.016f);
 
@@ -71,7 +71,7 @@ TEST_CASE("Lifecycle: a component added during the game starts on its first upda
 TEST_CASE("Lifecycle: removing a started component or node stops it")
 {
     std::vector<std::string> events;
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& root = scene.createRoot<Node3D>();
     auto& child = root.addChild<Node3D>();
     auto& recorder = child.addComponent<Recorder>(events);
@@ -91,7 +91,7 @@ TEST_CASE("Lifecycle: removing a started component or node stops it")
 TEST_CASE("Lifecycle: taking the tree out of the scene stops it")
 {
     std::vector<std::string> events;
-    Scene scene;
+    Scene scene{EngineServices::none()};
     scene.createRoot<Node3D>().addComponent<Recorder>(events);
     scene.update(0.016f);
 
@@ -103,7 +103,7 @@ TEST_CASE("Lifecycle: taking the tree out of the scene stops it")
 TEST_CASE("Lifecycle: nothing happens without updates")
 {
     std::vector<std::string> events;
-    Scene scene;
+    Scene scene{EngineServices::none()};
     scene.createRoot<Node3D>().addComponent<Recorder>(events);
     scene.stop();
     CHECK(events.empty());

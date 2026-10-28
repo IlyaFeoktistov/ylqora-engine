@@ -1,8 +1,10 @@
 #pragma once
 
+#include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/Export.hpp"
 #include "yqlora/input/Input.hpp"
 #include "yqlora/platform/Window.hpp"
+#include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/render/FrameData.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 #include "yqlora/scene/Scene.hpp"
@@ -55,6 +57,23 @@ public:
     Scene& scene()
     {
         return m_scene;
+    }
+
+    // Типы узлов и компонентов: движка (регистрируются сразу) и игры.
+    TypeRegistry& registry()
+    {
+        return m_registry;
+    }
+
+    const TypeRegistry& registry() const
+    {
+        return m_registry;
+    }
+
+    // Службы для сцен приложения: ввод, реестр, открытый проект.
+    EngineServices& services()
+    {
+        return m_services;
     }
 
     Settings& settings()
@@ -157,8 +176,10 @@ private:
     void mainLoop();
 
     ApplicationConfig m_config;
-    Scene m_scene;
+    TypeRegistry m_registry;
     Input m_input;
+    EngineServices m_services{m_input, m_registry};
+    Scene m_scene{m_services};
     std::unique_ptr<Settings> m_settings;
     std::unique_ptr<Localization> m_localization;
     std::unique_ptr<Window> m_window;

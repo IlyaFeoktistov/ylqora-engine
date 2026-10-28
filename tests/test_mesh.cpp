@@ -48,7 +48,7 @@ TEST_CASE("MeshData: builtin meshes are valid and face outwards")
 
 TEST_CASE("FrameBuilder: every Node3D with a MeshRenderer and a known mesh becomes a draw item")
 {
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& root = scene.createRoot<Node3D>("Root");
     root.transform().setPosition({0.0f, 1.0f, 0.0f});
 
@@ -75,13 +75,13 @@ TEST_CASE("MeshRenderer: mesh and color are saved with the scene")
     registerEngineTypes(registry);
     const SceneSerializer serializer(registry);
 
-    Scene original;
+    Scene original{EngineServices::none()};
     auto& ball = original.createRoot<Node3D>("Ball");
     auto& renderer = ball.addComponent<MeshRenderer>();
     renderer.setMesh(ResourceRef{builtin::kSphereMesh});
     renderer.setColor({0.2f, 0.4f, 0.6f, 1.0f});
 
-    Scene loaded;
+    Scene loaded{EngineServices::none()};
     REQUIRE(serializer.fromJson(loaded, serializer.toJson(original)));
     const auto* loadedRenderer = loaded.root()->getComponent<MeshRenderer>();
     REQUIRE(loadedRenderer);
@@ -95,7 +95,7 @@ TEST_CASE("SceneSerializer: a scene from a newer engine is not opened")
     registerEngineTypes(registry);
     const SceneSerializer serializer(registry);
 
-    Scene scene;
+    Scene scene{EngineServices::none()};
     CHECK_FALSE(serializer.fromJson(scene, R"({"version": 99, "root": null})"));
     CHECK_FALSE(serializer.fromJson(scene, R"({"root": null})"));
 }

@@ -35,7 +35,7 @@ TEST_CASE("Camera3D: projection depth range depends on the API")
 
 TEST_CASE("Scene: frame data comes from the active camera")
 {
-    Scene scene;
+    Scene scene{EngineServices::none()};
     auto& camera = scene.createRoot<Node>("Root").addChild<Camera3D>("MainCamera");
     camera.transform().setPosition({1.0f, 2.0f, 3.0f});
     scene.setActiveCamera(&camera);

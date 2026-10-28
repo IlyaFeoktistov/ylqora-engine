@@ -42,8 +42,7 @@ private:
     void updateTitle();
 
     Theme m_theme;
-    TypeRegistry m_registry;
-    SceneSerializer m_serializer{m_registry};
+    SceneSerializer m_serializer{registry()};
     std::unique_ptr<ProjectManager> m_projects;
     std::unique_ptr<ProjectManagerPanel> m_projectManager;
     EditorSession m_session{scene(), m_serializer};

@@ -1,5 +1,6 @@
 #include "yqlora/project/Project.hpp"
 
+#include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/FileFormat.hpp"
 #include "yqlora/core/JsonFile.hpp"
 #include "yqlora/core/JsonId.hpp"
@@ -124,7 +125,7 @@ bool Project::upgrade(const std::filesystem::path& directory, const SceneSeriali
          !ec && it != std::filesystem::recursive_directory_iterator();
          it.increment(ec)) {
         if (it->is_regular_file(ec) && it->path().extension() == SceneSerializer::fileExtension()) {
-            Scene& scene = *scenes.emplace_back(it->path(), std::make_unique<Scene>()).second;
+            Scene& scene = *scenes.emplace_back(it->path(), std::make_unique<Scene>(EngineServices::none())).second;
             if (!serializer.load(scene, it->path())) {
                 log::error("Project upgrade: scene '{}' is not read, nothing is changed", toUtf8(it->path()));
 

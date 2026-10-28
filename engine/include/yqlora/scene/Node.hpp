@@ -117,6 +117,9 @@ public:
         return ref;
     }
 
+    // В сцене проверяет правила компонентов (ComponentRules.hpp): недостающие
+    // обязательные компоненты добавляет перед ним сам, а нарушение правил
+    // (не тот узел, второй такой же) - ошибка программы.
     Component& addComponent(std::unique_ptr<Component> component);
 
     // Вставляет компонент на место index в списке (не больше его длины).
@@ -179,6 +182,8 @@ private:
     // Игра остановлена: onStop у компонентов узла и детей, которые успели
     // запуститься. Следующий update снова начнёт с onStart.
     void stop();
+
+    void addRequiredComponents(const Component& component);
 
     NodeId m_id;
     std::string m_name;

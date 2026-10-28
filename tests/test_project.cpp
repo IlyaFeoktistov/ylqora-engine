@@ -48,7 +48,7 @@ TEST_CASE("Project: create makes a folder with the project file and a starter sc
     CHECK(loaded->mainScene() == project->mainScene());
     REQUIRE(loaded->mainScenePath());
 
-    Scene scene;
+    Scene scene{EngineServices::none()};
     REQUIRE(serializer.load(scene, loaded->directory() / *loaded->mainScenePath()));
     REQUIRE(scene.root());
     CHECK(scene.root()->children().size() == 2);
@@ -119,7 +119,7 @@ TEST_CASE("EditorSession: open, change, save and reopen a project")
     const auto project = createProject(freshDirectory("session"), "Game", serializer, error);
     REQUIRE(project);
 
-    Scene scene;
+    Scene scene{EngineServices::none()};
     EditorSession session(scene, serializer);
     CHECK_FALSE(session.saveScene()); // проект ещё не открыт
 
@@ -148,7 +148,7 @@ TEST_CASE("EditorSession: a project with a broken scene opens with an empty scen
     REQUIRE(project);
     std::filesystem::remove(project->directory() / *project->mainScenePath());
 
-    Scene scene;
+    Scene scene{EngineServices::none()};
     scene.createRoot<Node>("FromBefore");
     EditorSession session(scene, serializer);
     CHECK_FALSE(session.open(*project));

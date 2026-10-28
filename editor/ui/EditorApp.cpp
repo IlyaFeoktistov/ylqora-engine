@@ -45,8 +45,6 @@ EditorApp::EditorApp()
           .ui = true,
       })
 {
-    registerEngineTypes(m_registry);
-
     m_panels.push_back(std::make_unique<SceneTreePanel>());
     m_panels.push_back(std::make_unique<InspectorPanel>());
     m_panels.push_back(std::make_unique<FileSystemPanel>());
@@ -58,7 +56,7 @@ EditorContext EditorApp::context()
     return {
         .app = *this,
         .session = m_session,
-        .registry = m_registry,
+        .registry = registry(),
         .serializer = m_serializer,
         .actions = m_actions,
         .theme = m_theme,
@@ -172,6 +170,7 @@ void EditorApp::openProject(Project project)
 {
     const std::filesystem::path directory = project.directory();
     m_session.open(std::move(project));
+    services().setProject(&*m_session.project());
     EditorContext frame = context();
     for (const auto& panel : m_panels) {
         panel->onProjectOpened(frame);
@@ -183,6 +182,7 @@ void EditorApp::openProject(Project project)
 
 void EditorApp::closeProject()
 {
+    services().setProject(nullptr);
     m_session.close();
     m_mouseWrapping = false;
     setMouseWrapping(false);

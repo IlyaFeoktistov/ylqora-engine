@@ -2,6 +2,7 @@
 
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/Inspection.hpp>
+#include <yqlora/input/Input.hpp>
 #include <yqlora/reflection/ComponentRules.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Camera3D.hpp>
@@ -167,7 +168,7 @@ TEST_CASE_FIXTURE(Fixture, "ComponentRules: dependents of a component")
 TEST_CASE_FIXTURE(Fixture, "EditorSession: component rules")
 {
     SceneSerializer serializer{registry};
-    Scene scene;
+    Scene scene{EngineServices::none()};
     EditorSession session{scene, serializer};
     Node* node = session.createNode(type("Node3D"), nullptr);
     REQUIRE(node);
@@ -219,12 +220,12 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: component rules on load")
 {
     const SceneSerializer serializer{registry};
 
-    Scene source;
+    Scene source{EngineServices::none()};
     auto& root = source.createRoot<Node3D>("Root");
     root.addComponent<BoxCollider>();                          // тела нет: файл как будто правили руками
     root.addChild<Node>("Plain").addComponent<MeshRenderer>(); // не тот узел
 
-    Scene loaded;
+    Scene loaded{EngineServices::none()};
     REQUIRE(serializer.fromJson(loaded, serializer.toJson(source)));
     const Node* loadedRoot = loaded.root();
     REQUIRE(loadedRoot);
@@ -242,7 +243,7 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: component rules on load")
 TEST_CASE_FIXTURE(Fixture, "Inspection: what the inspector shows for the selected node")
 {
     SceneSerializer serializer{registry};
-    Scene scene;
+    Scene scene{EngineServices::none()};
     EditorSession session{scene, serializer};
     CHECK_FALSE(inspect(session));
 
@@ -270,4 +271,22 @@ TEST_CASE_FIXTURE(Fixture, "Inspection: what the inspector shows for the selecte
     CHECK(std::ranges::none_of(inspection->addable, [&](const TypeInfo* t) {
         return t->name() == "Body";
     }));
+}
+
+TEST_CASE_FIXTURE(Fixture, "Node: addComponent in a scene adds the required components first")
+{
+    const Input input;
+    const EngineServices services(input, registry);
+    Scene scene{services};
+    auto& root = scene.createRoot<Node3D>();
+
+    auto& collider = root.addComponent<BoxCollider>();
+    REQUIRE(root.components().size() == 3);
+    CHECK(root.components()[1]->typeName() == "Body");
+    CHECK(root.components()[2].get() == &collider);
+
+    // Вне сцены правила не проверяются: узел ещё собирают.
+    Node3D detached;
+    detached.addComponent<BoxCollider>();
+    CHECK(detached.components().size() == 2);
 }

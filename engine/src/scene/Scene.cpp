@@ -4,6 +4,11 @@
 
 namespace yqlora {
 
+Scene::Scene(const EngineServices& services)
+    : m_services(services)
+{
+}
+
 Scene::~Scene()
 {
     setRoot(nullptr);

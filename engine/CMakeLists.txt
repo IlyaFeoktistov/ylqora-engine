@@ -17,6 +17,7 @@ target_compile_definitions(yqlora_engine_code INTERFACE
 
 add_library(yqlora SHARED
     src/core/Application.cpp
+    src/core/EngineServices.cpp
     src/core/FileFormat.cpp
     src/core/FrameClock.cpp
     src/core/Log.cpp

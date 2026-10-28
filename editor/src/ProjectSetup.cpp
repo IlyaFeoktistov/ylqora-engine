@@ -1,5 +1,6 @@
 #include "yqlora/editor/ProjectSetup.hpp"
 
+#include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/editor/ProjectFiles.hpp"
@@ -65,7 +66,7 @@ std::optional<Project> createProject(
     }
 
     const std::filesystem::path mainScene = std::string(kMainSceneName) + std::string(SceneSerializer::fileExtension());
-    Scene scene;
+    Scene scene(EngineServices::none());
     buildStarterScene(scene);
     auto project = Project::create(directory, name);
     if (!project || !serializer.save(scene, directory / mainScene)) {

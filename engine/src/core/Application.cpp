@@ -46,6 +46,7 @@ constexpr double kMaxFrameSeconds = 0.1;
 Application::Application(ApplicationConfig config)
     : m_config(std::move(config))
 {
+    registerEngineTypes(m_registry);
 }
 
 Application::~Application() = default;
