@@ -18,8 +18,10 @@ target_compile_definitions(yqlora_engine_code INTERFACE
 add_library(yqlora SHARED
     src/core/Application.cpp
     src/core/FileFormat.cpp
+    src/core/FrameClock.cpp
     src/core/Log.cpp
     src/core/Settings.cpp
+    src/core/UiLayer.cpp
     src/core/Version.cpp
     src/i18n/Localization.cpp
     src/platform/Platform.cpp

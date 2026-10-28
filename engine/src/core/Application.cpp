@@ -1,8 +1,10 @@
 #include "yqlora/core/Application.hpp"
 
+#include "yqlora/core/FrameClock.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/LogSettings.hpp"
 #include "yqlora/core/Settings.hpp"
+#include "yqlora/core/UiLayer.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/i18n/Localization.hpp"
 #include "yqlora/platform/InputFeeder.hpp"
@@ -10,8 +12,6 @@
 #include "yqlora/platform/Window.hpp"
 #include "yqlora/render/FrameBuilder.hpp"
 #include "yqlora/render/Renderer.hpp"
-
-#include <imgui.h>
 
 #include <algorithm>
 #include <exception>
@@ -70,7 +70,7 @@ int Application::run()
         });
         m_renderer = createRenderer(m_config.api, *m_window);
         if (m_config.ui) {
-            initUi();
+            m_ui = std::make_unique<UiLayer>(*m_renderer, userDataDirectory() / kUiLayoutFile);
         }
 
         onStart();
@@ -81,7 +81,7 @@ int Application::run()
         exitCode = 1;
     }
 
-    shutdownUi();
+    m_ui.reset();
 
     // Рендерер держит контекст окна, поэтому уничтожаем строго в обратном порядке.
     m_renderer.reset();
@@ -162,31 +162,6 @@ void Application::showFolderDialog(
     m_window->showFolderDialog(start, std::move(callback));
 }
 
-void Application::initUi()
-{
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
-
-    // Раскладку окон храним рядом с настройками, а не в текущей папке.
-    m_uiIniPath = toUtf8(userDataDirectory() / kUiLayoutFile);
-    io.IniFilename = m_uiIniPath.c_str();
-
-    // Шрифт и цвета задаёт само приложение (у редактора это файл темы),
-    // движок свой внешний вид не навязывает.
-    m_uiRenderer = m_renderer->createUiRenderer();
-}
-
-void Application::shutdownUi()
-{
-    if (!ImGui::GetCurrentContext()) {
-        return;
-    }
-    m_uiRenderer.reset();
-    ImGui::DestroyContext();
-}
-
 void Application::setMouseWrapping(bool wrapping)
 {
     m_window->setMouseWrapping(wrapping);
@@ -222,22 +197,16 @@ void Application::mainLoop()
 
     InputFeeder input(m_input);
     m_running = true;
-    double previousTime = platform::timeSeconds();
+    FrameClock clock(kMaxFrameSeconds);
+    clock.reset(platform::timeSeconds());
 
     while (m_running) {
-        const double now = platform::timeSeconds();
-        const auto deltaSeconds = static_cast<float>(std::min(now - previousTime, kMaxFrameSeconds));
-        previousTime = now;
+        const float deltaSeconds = clock.tick(platform::timeSeconds());
 
         input.beginFrame();
         m_window->pollEvents(events, input);
-        if (m_config.ui && m_window->mouseWrapping()) {
-            // ImGui сам считает смещение мыши по положению курсора, и перенос
-            // курсора к другому краю выглядел бы для него рывком через всё окно.
-            // Подставляем прошлое положение так, чтобы смещение совпало с нашим,
-            // уже очищенным от переносов.
-            const Vec2 previous = m_input.mousePosition() - m_input.mouseDelta();
-            ImGui::GetIO().MousePosPrev = ImVec2(previous.x, previous.y);
+        if (m_ui && m_window->mouseWrapping()) {
+            m_ui->setMouseDelta(m_input.mousePosition(), m_input.mouseDelta());
         }
         if (!m_running) {
             break;
@@ -248,13 +217,11 @@ void Application::mainLoop()
         }
         onUpdate(deltaSeconds);
 
-        if (m_config.ui) {
-            m_uiRenderer->beginFrame();
-            ImGui::NewFrame();
+        if (m_ui) {
+            m_ui->beginFrame();
             onGui();
-            ImGui::Render();
             m_renderer->clearWindow(kWindowClearColor);
-            m_uiRenderer->render();
+            m_ui->endFrame();
         } else {
             FrameData frame = buildFrameData(m_scene, aspectRatio(), depthRange());
             onPrepareFrame(frame);
