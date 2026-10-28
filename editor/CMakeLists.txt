@@ -29,6 +29,8 @@ yqlora_set_warnings(yqlora_editor)
 add_library(yqlora_editor_ui STATIC
     ui/EditorApp.cpp
     ui/core/Actions.cpp
+    ui/core/DefaultLayout.cpp
+    ui/core/EditorActions.cpp
     ui/dialogs/AddNodeDialog.cpp
     ui/dialogs/UnsavedChangesDialog.cpp
     ui/gizmos/AxisGizmo.cpp
@@ -37,6 +39,7 @@ add_library(yqlora_editor_ui STATIC
     ui/gizmos/GridGizmo.cpp
     ui/gizmos/ManipulatorGizmo.cpp
     ui/gizmos/SelectionGizmo.cpp
+    ui/menu/MainMenu.cpp
     ui/panels/FileSystemPanel.cpp
     ui/panels/InspectorPanel.cpp
     ui/panels/ProjectManagerPanel.cpp

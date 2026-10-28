@@ -10,6 +10,12 @@
 
 #include <memory>
 
+namespace yqlora {
+
+class Application;
+
+} // namespace yqlora
+
 namespace yqlora::editor {
 
 struct EditorColors;
@@ -40,6 +46,16 @@ public:
     void onProjectOpened(EditorContext& context) override;
 
 private:
+    // Где на экране кадр сцены и наведена ли на него мышь.
+    struct ViewArea {
+        ImVec2 origin;
+        bool hovered = false;
+    };
+
+    // Подгоняет текстуру под окно и показывает её.
+    ViewArea drawSceneImage(Application& app, const ImVec2& size);
+    // Рисует кадр в текстуру: через камеру игры или редактора, с гизмо.
+    void renderScene(EditorContext& context, float aspect, bool throughGameCamera, const GizmoContext& gizmoContext);
     void setFlying(bool flying);
     // Рамка вокруг окна, пока идёт игра, и подсказка, если в сцене нет активной камеры.
     void drawPlayModeFrame(const ImVec2& origin, const ImVec2& size, bool hasCamera, const EditorColors& colors);

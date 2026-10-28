@@ -169,7 +169,7 @@ sandbox and a language server.
 | constructor | anywhere | defaults; no scene yet |
 | `onEnterScene` / `onExitScene` | editor and game | register in scene systems (physics, audio, lights) |
 | `onStart` | game only | before the first frame of the component |
-| `onFixedUpdate(dt)` | game only | physics, fixed time step **[next]** |
+| `onFixedUpdate(dt)` | game only | physics, fixed time step of game time **[next]** |
 | `onUpdate(dt)` | game only | per-frame logic |
 | `onStop` | game only | release what `onStart` took |
 
@@ -194,6 +194,14 @@ sandbox and a language server.
 - **The active camera is state of the render system**, not of `Scene`, and it
   resets itself when the camera leaves the scene **[next]**. Today
   `Scene::activeCamera()` is a raw `Camera3D*` reset by hand in several places.
+- **Game time** is a service of every scene **[next]**: time since the game
+  started, the frame step, a time scale (slow motion, speed-up, 0 stops the
+  game), the fixed step for physics and a frame counter. The Play copy starts
+  at zero; pause stops it. Unscaled real time stays available for things that
+  must not slow down with the game (the editor, HUD animations). The real
+  frame length comes from `FrameClock`; game time is derived from it. Defaults
+  (fixed step, longest frame) come from the Time section of the
+  [project settings](project-settings.md).
 - **Engine services** (input, time, loading and switching scenes) reach the
   scene through an explicit context given by its owner: the application, the
   editor or a test **[next]**. There is no `Application::instance()`. Log and

@@ -50,9 +50,7 @@ void ViewportPanel::onProjectOpened(EditorContext& /*context*/)
 
 void ViewportPanel::draw(EditorContext& context)
 {
-    Application& app = context.app;
     EditorSession& session = context.session;
-    Scene& scene = session.scene();
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     const bool visible = ImGui::Begin(title().c_str());
@@ -66,6 +64,37 @@ void ViewportPanel::draw(EditorContext& context)
         return;
     }
 
+    const ViewArea area = drawSceneImage(context.app, size);
+    // Игра показывается через свою камеру, и инструменты редактора ей не нужны.
+    const bool playing = session.playing();
+    const Camera3D* gameCamera = playing ? session.scene().activeCamera() : nullptr;
+    m_gizmos.setEnabled(!playing);
+
+    m_camera.update(context.app.input(), context.deltaSeconds, area.hovered && !gameCamera && !m_mouseOverGizmo);
+    setFlying(m_camera.flying());
+    context.mouseWrapping = context.mouseWrapping || m_camera.flying();
+
+    const float aspect = size.x / size.y;
+    GizmoContext gizmoContext{
+        .session = session,
+        .camera = m_camera,
+        .theme = context.theme,
+        .view = m_camera.cameraData(aspect, context.app.depthRange()),
+        .origin = area.origin,
+        .size = size,
+        .mouseFree = area.hovered && !m_camera.flying(),
+    };
+    m_mouseOverGizmo = m_gizmos.draw(gizmoContext);
+    if (playing) {
+        drawPlayModeFrame(area.origin, size, gameCamera != nullptr, context.theme.colors());
+    }
+
+    renderScene(context, aspect, gameCamera != nullptr, gizmoContext);
+    ImGui::End();
+}
+
+ViewportPanel::ViewArea ViewportPanel::drawSceneImage(Application& app, const ImVec2& size)
+{
     // Окно в точках, текстура в пикселях: на экранах с масштабом их больше.
     const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
     const int width = static_cast<int>(size.x * scale.x);
@@ -86,40 +115,25 @@ void ViewportPanel::draw(EditorContext& context)
     const bool hovered = ImGui::IsWindowHovered()
                          && ImGui::IsMouseHoveringRect(origin, ImVec2(origin.x + size.x, origin.y + size.y));
 
-    // Игра показывается через свою камеру, и инструменты редактора ей не нужны.
-    const bool playing = session.playing();
-    const Camera3D* gameCamera = playing ? scene.activeCamera() : nullptr;
-    m_gizmos.setEnabled(!playing);
+    return {.origin = origin, .hovered = hovered};
+}
 
-    m_camera.update(app.input(), context.deltaSeconds, hovered && !gameCamera && !m_mouseOverGizmo);
-    setFlying(m_camera.flying());
-    context.mouseWrapping = context.mouseWrapping || m_camera.flying();
-
-    const float aspect = size.x / size.y;
-    GizmoContext gizmoContext{
-        .session = session,
-        .camera = m_camera,
-        .theme = context.theme,
-        .view = m_camera.cameraData(aspect, app.depthRange()),
-        .origin = origin,
-        .size = size,
-        .mouseFree = hovered && !m_camera.flying(),
-    };
-    m_mouseOverGizmo = m_gizmos.draw(gizmoContext);
-    if (playing) {
-        drawPlayModeFrame(origin, size, gameCamera != nullptr, context.theme.colors());
-    }
-
+void ViewportPanel::renderScene(
+    EditorContext& context,
+    float aspect,
+    bool throughGameCamera,
+    const GizmoContext& gizmoContext
+)
+{
+    Application& app = context.app;
     // Текстура уже стоит в списке отрисовки интерфейса, а нарисуется он позже,
     // так что кадр сцены успевает попасть в неё в этом же кадре.
-    FrameData frame = buildFrameData(scene, aspect, app.depthRange());
-    if (!gameCamera) {
+    FrameData frame = buildFrameData(context.session.scene(), aspect, app.depthRange());
+    if (!throughGameCamera) {
         frame.camera = m_camera.cameraData(aspect, app.depthRange());
     }
     m_gizmos.prepareFrame(frame, gizmoContext);
     app.renderer().render(frame, *m_target);
-
-    ImGui::End();
 }
 
 void ViewportPanel::drawPlayModeFrame(

@@ -41,16 +41,6 @@ private:
     void saveScene();
     void updateTitle();
 
-    void registerActions();
-    void drawMenuBar();
-    // Play, Pause и Stop по центру главного меню.
-    void drawPlayControls();
-    void drawViewMenu();
-    void drawLanguageMenu();
-    // При первом запуске раскладывает окна: дерево слева, инспектор справа,
-    // файлы снизу, сцена в центре. Дальше раскладку помнит imgui.ini.
-    void buildDefaultLayout(unsigned int dockspace);
-
     Theme m_theme;
     TypeRegistry m_registry;
     SceneSerializer m_serializer{m_registry};
