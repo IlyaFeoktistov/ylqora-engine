@@ -17,6 +17,7 @@ target_compile_definitions(yqlora_engine_code INTERFACE
 
 add_library(yqlora SHARED
     src/core/Application.cpp
+    src/core/FileFormat.cpp
     src/core/Log.cpp
     src/core/Settings.cpp
     src/core/Version.cpp
@@ -37,6 +38,7 @@ add_library(yqlora SHARED
     src/project/Project.cpp
     src/reflection/ComponentRules.cpp
     src/reflection/Property.cpp
+    src/reflection/PropertyJson.cpp
     src/reflection/TypeRegistry.cpp
     src/render/FrameBuilder.cpp
     src/render/MeshData.cpp
@@ -70,4 +72,5 @@ yqlora_set_warnings(yqlora)
 add_library(yqlora_internal INTERFACE)
 add_library(yqlora::internal ALIAS yqlora_internal)
 target_include_directories(yqlora_internal INTERFACE internal)
-target_link_libraries(yqlora_internal INTERFACE yqlora::yqlora)
+# Внутренние заголовки построены на nlohmann/json (только заголовки).
+target_link_libraries(yqlora_internal INTERFACE yqlora::yqlora nlohmann_json::nlohmann_json)

@@ -1,7 +1,7 @@
 #include "yqlora/editor/ProjectSetup.hpp"
-#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/editor/ProjectFiles.hpp"
 #include "yqlora/resource/BuiltinResources.hpp"
 #include "yqlora/scene/Camera3D.hpp"

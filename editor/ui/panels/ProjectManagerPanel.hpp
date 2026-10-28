@@ -37,7 +37,7 @@ private:
         std::string name;
         // Версия движка, который сохранил проект.
         std::string engineVersion;
-        ProjectCompatibility compatibility = ProjectCompatibility::Unsupported;
+        FormatCompatibility compatibility = FormatCompatibility::Unsupported;
         bool missing = false;
     };
 

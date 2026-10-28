@@ -1,13 +1,13 @@
 #include "yqlora/project/Project.hpp"
-#include "yqlora/core/Utf8Path.hpp"
 
+#include "yqlora/core/FileFormat.hpp"
 #include "yqlora/core/JsonFile.hpp"
+#include "yqlora/core/JsonId.hpp"
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/core/Version.hpp"
 #include "yqlora/scene/Scene.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
-
-#include "core/JsonId.hpp"
 
 #include <array>
 #include <memory>
@@ -20,31 +20,16 @@ namespace {
 
 using Json = nlohmann::json;
 
+// Переводы файла проекта со старых версий. Сцены переводит их собственный
+// формат в SceneSerializer. Пока формат один, переводов нет.
 constexpr int kFirstFormatVersion = 1;
-constexpr int kFormatVersion = 1;
-
-// kMigrations[i] переводит файл проекта версии i + 1 в i + 2. Сцены переводит
-// их собственная цепочка в SceneSerializer. Пока формат один, переводов нет.
-using Migration = void (*)(nlohmann::json& project);
-constexpr std::array<Migration, kFormatVersion - kFirstFormatVersion> kMigrations{};
+constexpr std::array<Migration, 0> kMigrations{};
+constexpr FileFormat kFormat{"Project", kFirstFormatVersion, kMigrations};
 
 // Ключи файла проекта.
-constexpr const char* kVersionKey = "version";
 constexpr const char* kNameKey = "name";
 constexpr const char* kMainSceneKey = "mainScene";
 constexpr const char* kEngineVersionKey = "engine";
-
-ProjectCompatibility compatibilityOf(int version)
-{
-    if (version == kFormatVersion) {
-        return ProjectCompatibility::Current;
-    }
-    if (version > kFormatVersion) {
-        return ProjectCompatibility::Newer;
-    }
-
-    return version >= kFirstFormatVersion ? ProjectCompatibility::Older : ProjectCompatibility::Unsupported;
-}
 
 std::optional<Json> readFile(const std::filesystem::path& directory)
 {
@@ -66,7 +51,7 @@ std::optional<Json> readFile(const std::filesystem::path& directory)
 
 int Project::formatVersion()
 {
-    return kFormatVersion;
+    return kFormat.current();
 }
 
 std::optional<Project> Project::open(const std::filesystem::path& directory)
@@ -75,7 +60,7 @@ std::optional<Project> Project::open(const std::filesystem::path& directory)
     if (!json) {
         return std::nullopt;
     }
-    if (compatibilityOf(json->value(kVersionKey, 0)) != ProjectCompatibility::Current) {
+    if (kFormat.compatibility(FileFormat::versionOf(*json)) != FormatCompatibility::Current) {
         log::warn("Project in '{}' is not in the current format, upgrade it first", toUtf8(directory));
 
         return std::nullopt;
@@ -113,9 +98,9 @@ std::optional<ProjectInfo> Project::readInfo(const std::filesystem::path& direct
     }
     ProjectInfo info;
     info.name = (*json)[kNameKey].get<std::string>();
-    info.formatVersion = json->value(kVersionKey, 0);
+    info.formatVersion = FileFormat::versionOf(*json);
     info.engineVersion = json->value(kEngineVersionKey, "");
-    info.compatibility = compatibilityOf(info.formatVersion);
+    info.compatibility = kFormat.compatibility(info.formatVersion);
 
     return info;
 }
@@ -126,9 +111,8 @@ bool Project::upgrade(const std::filesystem::path& directory, const SceneSeriali
     if (!json) {
         return false;
     }
-    const int version = json->value(kVersionKey, 0);
-    const ProjectCompatibility compatibility = compatibilityOf(version);
-    if (compatibility != ProjectCompatibility::Older && compatibility != ProjectCompatibility::Current) {
+    const FormatCompatibility compatibility = kFormat.compatibility(FileFormat::versionOf(*json));
+    if (compatibility != FormatCompatibility::Older && compatibility != FormatCompatibility::Current) {
         return false;
     }
 
@@ -156,10 +140,9 @@ bool Project::upgrade(const std::filesystem::path& directory, const SceneSeriali
         }
     }
 
-    for (int from = version; from < kFormatVersion; ++from) {
-        kMigrations[static_cast<std::size_t>(from - kFirstFormatVersion)](*json);
+    if (!kFormat.migrate(*json)) {
+        return false;
     }
-    (*json)[kVersionKey] = kFormatVersion;
     (*json)[kEngineVersionKey] = engineVersion();
 
     return writeJsonFile(directory / fileName(), *json);
@@ -168,7 +151,7 @@ bool Project::upgrade(const std::filesystem::path& directory, const SceneSeriali
 bool Project::save() const
 {
     Json json;
-    json[kVersionKey] = kFormatVersion;
+    kFormat.stamp(json);
     json[kNameKey] = m_name;
     json[kMainSceneKey] = idToJson(m_mainScene);
     json[kEngineVersionKey] = engineVersion();

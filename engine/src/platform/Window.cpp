@@ -1,7 +1,7 @@
 #include "yqlora/platform/Window.hpp"
-#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/platform/InputFeeder.hpp"
 
 #include <SDL3/SDL.h>

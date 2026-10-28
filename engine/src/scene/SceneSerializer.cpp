@@ -1,14 +1,15 @@
 #include "yqlora/scene/SceneSerializer.hpp"
-#include "yqlora/core/Utf8Path.hpp"
-#include "yqlora/scene/NodeTree.hpp"
 
-#include "core/JsonId.hpp"
-
+#include "yqlora/core/FileFormat.hpp"
 #include "yqlora/core/JsonFile.hpp"
+#include "yqlora/core/JsonId.hpp"
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/reflection/ComponentRules.hpp"
+#include "yqlora/reflection/PropertyJson.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/Camera3D.hpp"
+#include "yqlora/scene/NodeTree.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <nlohmann/json.hpp>
@@ -23,15 +24,12 @@ namespace {
 
 using Json = nlohmann::json;
 
-// Версия формата файла сцены. Когда формат меняется, версия растёт, а в
-// kMigrations добавляется перевод с предыдущей версии: старые сцены открываются.
-// Ключи старой версии миграция объявляет у себя, а не берёт ключи ниже: если
-// текущий формат что-то переименует, перевод со старой версии не изменится.
+// Переводы файла сцены со старых версий, см. FileFormat. Пока формат один, переводов нет.
 constexpr int kFirstFormatVersion = 1;
-constexpr int kFormatVersion = 1;
+constexpr std::array<Migration, 0> kMigrations{};
+constexpr FileFormat kFormat{"Scene", kFirstFormatVersion, kMigrations};
 
 // Ключи текущего формата.
-constexpr const char* kVersionKey = "version";
 constexpr const char* kRootKey = "root";
 constexpr const char* kClearColorKey = "clearColor";
 constexpr const char* kActiveCameraKey = "activeCamera";
@@ -40,181 +38,6 @@ constexpr const char* kIdKey = "id";
 constexpr const char* kPropertiesKey = "properties";
 constexpr const char* kComponentsKey = "components";
 constexpr const char* kChildrenKey = "children";
-
-template <typename Vec>
-Json vectorToJson(const Vec& vec)
-{
-    Json result = Json::array();
-    for (glm::length_t i = 0; i < Vec::length(); ++i) {
-        result.push_back(vec[i]);
-    }
-
-    return result;
-}
-
-template <typename Vec>
-std::optional<Vec> vectorFromJson(const Json& json)
-{
-    if (!json.is_array() || json.size() != static_cast<std::size_t>(Vec::length())) {
-        return std::nullopt;
-    }
-    Vec result;
-    for (glm::length_t i = 0; i < Vec::length(); ++i) {
-        const Json& item = json[static_cast<std::size_t>(i)];
-        if (!item.is_number()) {
-            return std::nullopt;
-        }
-        result[i] = item.get<float>();
-    }
-
-    return result;
-}
-
-Json valueToJson(const Property& property, const PropertyValue& value)
-{
-    return std::visit(
-        [&](const auto& v) -> Json {
-            using T = std::decay_t<decltype(v)>;
-            if constexpr (std::is_same_v<T, Vec2> || std::is_same_v<T, Vec3> || std::is_same_v<T, Vec4>) {
-                return vectorToJson(v);
-            } else if constexpr (std::is_same_v<T, EnumValue>) {
-                // Именем, чтобы порядок значений в C++ можно было менять. Без имени - числом.
-                const auto& names = property.enumNames();
-                const auto index = static_cast<std::size_t>(v.value);
-                if (v.value >= 0 && index < names.size()) {
-                    return names[index];
-                }
-
-                return v.value;
-            } else if constexpr (std::is_same_v<T, NodeRef> || std::is_same_v<T, ResourceRef>) {
-                return idToJson(v.id);
-            } else {
-                return Json(v);
-            }
-        },
-        value
-    );
-}
-
-std::optional<PropertyValue> enumFromJson(const Json& json, const Property& property)
-{
-    if (json.is_number_integer()) {
-        return EnumValue{json.get<int>()};
-    }
-    if (!json.is_string()) {
-        return std::nullopt;
-    }
-    const auto& names = property.enumNames();
-    const auto it = std::ranges::find(names, json.get<std::string>());
-    if (it == names.end()) {
-        return std::nullopt;
-    }
-
-    return EnumValue{static_cast<int>(it - names.begin())};
-}
-
-std::optional<PropertyValue> valueFromJson(const Json& json, const Property& property)
-{
-    switch (property.type()) {
-    case PropertyType::Bool:
-        if (json.is_boolean()) {
-            return json.get<bool>();
-        }
-        break;
-    case PropertyType::Int:
-        if (json.is_number_integer()) {
-            return json.get<int>();
-        }
-        break;
-    case PropertyType::Float:
-        if (json.is_number()) {
-            return json.get<float>();
-        }
-        break;
-    case PropertyType::String:
-        if (json.is_string()) {
-            return json.get<std::string>();
-        }
-        break;
-    case PropertyType::Vector2: return vectorFromJson<Vec2>(json);
-    case PropertyType::Vector3: return vectorFromJson<Vec3>(json);
-    case PropertyType::Vector4: return vectorFromJson<Vec4>(json);
-    case PropertyType::Enum: return enumFromJson(json, property);
-    case PropertyType::Node:
-        if (const auto id = idFromJson(json)) {
-            return NodeRef{*id};
-        }
-        break;
-    case PropertyType::Resource:
-        if (const auto id = idFromJson(json)) {
-            return ResourceRef{*id};
-        }
-        break;
-    }
-
-    return std::nullopt;
-}
-
-using Migration = void (*)(Json& scene);
-
-// kMigrations[i] переводит версию i + 1 в i + 2. Пока формат один, переводов нет.
-constexpr std::array<Migration, kFormatVersion - kFirstFormatVersion> kMigrations{};
-
-// Приводит файл к текущей версии. false, если версия неизвестна.
-bool migrate(Json& scene)
-{
-    const auto it = scene.find(kVersionKey);
-    if (it == scene.end() || !it->is_number_integer()) {
-        log::error("Scene: no format version");
-
-        return false;
-    }
-    const int version = it->get<int>();
-    if (version < kFirstFormatVersion || version > kFormatVersion) {
-        log::error("Scene: format version {} is not supported, this engine reads up to {}", version, kFormatVersion);
-
-        return false;
-    }
-    for (int from = version; from < kFormatVersion; ++from) {
-        kMigrations[from - kFirstFormatVersion](scene);
-    }
-    scene[kVersionKey] = kFormatVersion;
-
-    return true;
-}
-
-template <typename Object>
-Json propertiesToJson(const TypeRegistry& registry, const TypeInfo& type, const Object& object)
-{
-    Json result = Json::object();
-    for (const Property* property : registry.properties(type)) {
-        result[property->name()] = valueToJson(*property, property->get(object));
-    }
-
-    return result;
-}
-
-// Отсутствующие свойства остаются значениями по умолчанию, лишние игнорируются:
-// когда в коде игры добавляют или убирают поле, уже сохранённые сцены открываются.
-template <typename Object>
-void propertiesFromJson(const TypeRegistry& registry, const TypeInfo& type, Object& object, const Json& json)
-{
-    if (!json.is_object()) {
-        return;
-    }
-    for (const Property* property : registry.properties(type)) {
-        const auto it = json.find(property->name());
-        if (it == json.end()) {
-            continue;
-        }
-        const auto value = valueFromJson(*it, *property);
-        if (!value) {
-            log::warn("Scene: property '{}.{}' has a wrong value, skipped", type.name(), property->name());
-            continue;
-        }
-        property->set(object, *value);
-    }
-}
 
 Json nodeToJson(const TypeRegistry& registry, const Node& node)
 {
@@ -408,7 +231,7 @@ void SceneSerializer::assignId(Node& node, NodeId id)
 Json SceneSerializer::Format::write(const Scene& scene) const
 {
     Json json;
-    json[kVersionKey] = kFormatVersion;
+    kFormat.stamp(json);
     json[kClearColorKey] = vectorToJson(scene.clearColor());
     json[kActiveCameraKey] = idToJson(scene.activeCamera() ? scene.activeCamera()->id() : NodeId{0});
     json[kRootKey] = scene.root() ? nodeToJson(registry, *scene.root()) : Json(nullptr);
@@ -423,7 +246,7 @@ bool SceneSerializer::Format::readScene(Scene& scene, Json json) const
 
         return false;
     }
-    if (!migrate(json)) {
+    if (!kFormat.migrate(json)) {
         return false;
     }
 

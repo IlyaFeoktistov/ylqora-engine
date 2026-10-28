@@ -1,7 +1,7 @@
 #include "yqlora/i18n/Localization.hpp"
-#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 
 #include <nlohmann/json.hpp>
 

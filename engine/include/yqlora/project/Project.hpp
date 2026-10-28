@@ -1,6 +1,7 @@
 #pragma once
 
 #include "yqlora/core/Export.hpp"
+#include "yqlora/core/FormatCompatibility.hpp"
 #include "yqlora/resource/ResourceDatabase.hpp"
 #include "yqlora/resource/ResourceId.hpp"
 
@@ -13,23 +14,14 @@ namespace yqlora {
 
 class SceneSerializer;
 
-enum class ProjectCompatibility {
-    Current,
-    // Старый формат, который можно перевести на текущий (см. Project::upgrade).
-    Older,
-    // Сохранён более новой версией движка.
-    Newer,
-    // Без версии или с версией, перевода с которой нет.
-    Unsupported,
-};
-
 // Что известно о проекте без его открытия: для списка проектов.
 struct ProjectInfo {
     std::string name;
     int formatVersion = 0;
     // Версия движка, который сохранил проект последним. Пусто, если неизвестно.
     std::string engineVersion;
-    ProjectCompatibility compatibility = ProjectCompatibility::Unsupported;
+    // Старый формат переводится на текущий через Project::upgrade.
+    FormatCompatibility compatibility = FormatCompatibility::Unsupported;
 };
 
 // Проект - папка с файлом project.yqlora, сценами и ресурсами игры. Нужен и

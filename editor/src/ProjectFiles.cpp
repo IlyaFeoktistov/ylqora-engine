@@ -1,7 +1,7 @@
 #include "yqlora/editor/ProjectFiles.hpp"
-#include "yqlora/core/Utf8Path.hpp"
 
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/editor/ProjectSetup.hpp"
 #include "yqlora/project/Project.hpp"
 #include "yqlora/resource/ResourceDatabase.hpp"

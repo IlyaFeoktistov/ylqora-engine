@@ -361,7 +361,7 @@ void ProjectManagerPanel::drawCannotOpenDialog()
     if (!ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         return;
     }
-    const bool newer = m_problemRow.compatibility == ProjectCompatibility::Newer;
+    const bool newer = m_problemRow.compatibility == FormatCompatibility::Newer;
     ImGui::TextUnformatted(m_problemRow.name.c_str());
     ImGui::Text("%s %s", tr("projects.upgrade.from").c_str(), versionLabel(m_problemRow.engineVersion).c_str());
     ImGui::Text("%s %s", tr("projects.engineVersion").c_str(), std::string(engineVersion()).c_str());
@@ -377,10 +377,10 @@ void ProjectManagerPanel::drawCannotOpenDialog()
 
 void ProjectManagerPanel::open(const Row& row)
 {
-    if (row.compatibility != ProjectCompatibility::Current) {
+    if (row.compatibility != FormatCompatibility::Current) {
         m_problemRow = row;
         m_error.clear();
-        (row.compatibility == ProjectCompatibility::Older ? m_openUpgrade : m_openCannotOpen) = true;
+        (row.compatibility == FormatCompatibility::Older ? m_openUpgrade : m_openCannotOpen) = true;
 
         return;
     }

@@ -190,20 +190,20 @@ TEST_CASE("Project: the version tells whether a project opens, needs an upgrade 
     CHECK(info->name == "Game");
     CHECK(info->formatVersion == Project::formatVersion());
     CHECK(info->engineVersion == engineVersion());
-    CHECK(info->compatibility == ProjectCompatibility::Current);
+    CHECK(info->compatibility == FormatCompatibility::Current);
 
     const auto rewrite = [&](const char* text) {
         std::ofstream(project->projectFile()) << text;
     };
     rewrite(R"({"name": "Game", "version": 99, "engine": "9.9.9"})");
-    CHECK(Project::readInfo(project->directory())->compatibility == ProjectCompatibility::Newer);
+    CHECK(Project::readInfo(project->directory())->compatibility == FormatCompatibility::Newer);
     CHECK(Project::readInfo(project->directory())->engineVersion == "9.9.9");
     CHECK_FALSE(Project::open(project->directory()));
     CHECK_FALSE(Project::upgrade(project->directory(), serializer));
 
     // Без версии - файл не этого формата, переводить не с чего.
     rewrite(R"({"name": "Game"})");
-    CHECK(Project::readInfo(project->directory())->compatibility == ProjectCompatibility::Unsupported);
+    CHECK(Project::readInfo(project->directory())->compatibility == FormatCompatibility::Unsupported);
     CHECK_FALSE(Project::open(project->directory()));
 }
 
