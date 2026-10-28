@@ -81,10 +81,8 @@ void EditorApp::onStart()
         m_languages.emplace_back(code, localization().displayName(code));
     }
 
-    m_projects = std::make_unique<ProjectList>(userDataDirectory() / kProjectListFile);
-    m_projects->load();
-    m_projectManager = std::make_unique<ProjectManagerPanel>(*m_projects, m_serializer, m_theme);
-    m_projectManager->refresh();
+    m_projects = std::make_unique<ProjectManager>(userDataDirectory() / kProjectListFile, m_serializer);
+    m_projectManager = std::make_unique<ProjectManagerPanel>(*m_projects, m_theme);
 
     registerActions();
     // Своя сцена приложения у редактора не обновляется: игра идёт в копии, см. EditorSession::play.
@@ -221,9 +219,6 @@ void EditorApp::openProject(Project project)
     updateTitle();
 
     m_projects->markOpened(directory);
-    if (!m_projects->save()) {
-        log::error("Cannot save the project list");
-    }
 }
 
 void EditorApp::closeProject()
@@ -232,7 +227,7 @@ void EditorApp::closeProject()
     m_mouseWrapping = false;
     setMouseWrapping(false);
     updateTitle();
-    m_projectManager->refresh();
+    m_projects->refresh();
 }
 
 void EditorApp::saveScene()

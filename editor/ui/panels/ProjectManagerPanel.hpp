@@ -1,46 +1,32 @@
 #pragma once
 
+#include "yqlora/editor/ProjectManager.hpp"
 #include "yqlora/project/Project.hpp"
 
-#include <filesystem>
 #include <optional>
 #include <string>
-#include <vector>
 
 namespace yqlora {
 
 class Application;
-class SceneSerializer;
 
 } // namespace yqlora
 
 namespace yqlora::editor {
 
-class ProjectList;
 class Theme;
 
 // Экран при запуске: список проектов, создание, добавление существующего,
-// удаление. Занимает всё окно, пока проект не открыт.
+// удаление. Занимает всё окно, пока проект не открыт. Только окна и поля
+// ввода, сами действия - в ProjectManager.
 class ProjectManagerPanel {
 public:
-    ProjectManagerPanel(ProjectList& projects, const SceneSerializer& serializer, const Theme& theme);
+    ProjectManagerPanel(ProjectManager& manager, const Theme& theme);
 
     // Возвращает проект, если в этом кадре его решили открыть.
     std::optional<Project> draw(Application& app);
 
-    // Перечитывает имена проектов из их папок.
-    void refresh();
-
 private:
-    struct Row {
-        std::filesystem::path directory;
-        std::string name;
-        // Версия движка, который сохранил проект.
-        std::string engineVersion;
-        FormatCompatibility compatibility = FormatCompatibility::Unsupported;
-        bool missing = false;
-    };
-
     void drawList();
     void drawCreateDialog(Application& app);
     void drawImportDialog(Application& app);
@@ -49,17 +35,12 @@ private:
     void drawUpgradeDialog();
     // Проект нельзя открыть: объяснить почему.
     void drawCannotOpenDialog();
-    void open(const Row& row);
-    // Сохраняет список и перечитывает строки.
-    void commit();
+    void open(std::size_t row);
 
-    ProjectList& m_projects;
-    const SceneSerializer& m_serializer;
+    ProjectManager& m_manager;
     const Theme& m_theme;
-    std::vector<Row> m_rows;
     int m_selected = -1;
     std::optional<Project> m_toOpen;
-    bool m_refreshRequested = false;
 
     // Диалоги. Флаг открывает окно в следующем кадре: ImGui требует открывать
     // всплывающее окно на том же уровне стека, где оно рисуется.
@@ -69,7 +50,7 @@ private:
     bool m_openUpgrade = false;
     bool m_openCannotOpen = false;
     // Проект, о котором спрашивает окно перевода или окно "нельзя открыть".
-    Row m_problemRow;
+    ProjectManager::Row m_problemRow;
     std::string m_newName;
     std::string m_location;
     std::string m_importPath;

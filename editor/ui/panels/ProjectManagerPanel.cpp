@@ -4,11 +4,8 @@
 #include "style/Theme.hpp"
 
 #include "yqlora/core/Application.hpp"
-#include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/core/Version.hpp"
-#include "yqlora/editor/ProjectList.hpp"
-#include "yqlora/editor/ProjectSetup.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/platform/Platform.hpp"
 
@@ -41,9 +38,8 @@ std::string versionLabel(const std::string& version)
 
 } // namespace
 
-ProjectManagerPanel::ProjectManagerPanel(ProjectList& projects, const SceneSerializer& serializer, const Theme& theme)
-    : m_projects(projects)
-    , m_serializer(serializer)
+ProjectManagerPanel::ProjectManagerPanel(ProjectManager& manager, const Theme& theme)
+    : m_manager(manager)
     , m_theme(theme)
 {
 }
@@ -51,9 +47,9 @@ ProjectManagerPanel::ProjectManagerPanel(ProjectList& projects, const SceneSeria
 std::optional<Project> ProjectManagerPanel::draw(Application& app)
 {
     m_toOpen.reset();
-    if (m_refreshRequested) {
-        m_refreshRequested = false;
-        refresh();
+    const auto rows = m_manager.rows();
+    if (m_selected >= static_cast<int>(rows.size())) {
+        m_selected = -1;
     }
 
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -80,11 +76,11 @@ std::optional<Project> ProjectManagerPanel::draw(Application& app)
             m_openImport = true;
         }
         ImGui::SameLine();
-        const bool hasSelection = m_selected >= 0 && m_selected < static_cast<int>(m_rows.size());
-        const bool canOpen = hasSelection && !m_rows[static_cast<std::size_t>(m_selected)].missing;
+        const bool hasSelection = m_selected >= 0;
+        const bool canOpen = hasSelection && !rows[static_cast<std::size_t>(m_selected)].missing;
         ImGui::BeginDisabled(!canOpen);
         if (ImGui::Button((std::string(icons::kFolderOpen) + "  " + tr("projects.open")).c_str())) {
-            open(m_rows[static_cast<std::size_t>(m_selected)]);
+            open(static_cast<std::size_t>(m_selected));
         }
         ImGui::EndDisabled();
         ImGui::SameLine();
@@ -111,30 +107,10 @@ std::optional<Project> ProjectManagerPanel::draw(Application& app)
     return m_toOpen;
 }
 
-void ProjectManagerPanel::refresh()
-{
-    m_rows.clear();
-    for (const ProjectList::Entry& entry : m_projects.entries()) {
-        Row row;
-        row.directory = entry.directory;
-        if (auto info = Project::readInfo(entry.directory)) {
-            row.name = std::move(info->name);
-            row.engineVersion = std::move(info->engineVersion);
-            row.compatibility = info->compatibility;
-        } else {
-            row.name = toUtf8(entry.directory.filename());
-            row.missing = true;
-        }
-        m_rows.push_back(std::move(row));
-    }
-    if (m_selected >= static_cast<int>(m_rows.size())) {
-        m_selected = -1;
-    }
-}
-
 void ProjectManagerPanel::drawList()
 {
-    if (m_rows.empty()) {
+    const auto rows = m_manager.rows();
+    if (rows.empty()) {
         ImGui::TextDisabled("%s", tr("projects.empty").c_str());
 
         return;
@@ -150,8 +126,8 @@ void ProjectManagerPanel::drawList()
     ImGui::TableSetupColumn(tr("projects.column.path").c_str(), ImGuiTableColumnFlags_WidthStretch, kPathColumnWeight);
     ImGui::TableHeadersRow();
 
-    for (std::size_t i = 0; i < m_rows.size(); ++i) {
-        const Row& row = m_rows[i];
+    for (std::size_t i = 0; i < rows.size(); ++i) {
+        const ProjectManager::Row& row = rows[i];
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
         ImGui::PushID(static_cast<int>(i));
@@ -165,7 +141,7 @@ void ProjectManagerPanel::drawList()
         if (ImGui::Selectable(row.name.c_str(), selected, selectableFlags)) {
             m_selected = static_cast<int>(i);
             if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && !row.missing) {
-                open(row);
+                open(i);
             }
         }
         ImGui::TableNextColumn();
@@ -216,9 +192,7 @@ void ProjectManagerPanel::drawCreateDialog(Application& app)
 
     ImGui::Separator();
     if (ImGui::Button(tr("projects.create").c_str())) {
-        if (auto project = createProject(fromUtf8(m_location), m_newName, m_serializer, m_error)) {
-            m_projects.add(project->directory());
-            commit();
+        if (auto project = m_manager.create(fromUtf8(m_location), m_newName, m_error)) {
             m_toOpen = std::move(project);
             ImGui::CloseCurrentPopup();
         }
@@ -255,13 +229,8 @@ void ProjectManagerPanel::drawImportDialog(Application& app)
 
     ImGui::Separator();
     if (ImGui::Button(tr("projects.add").c_str())) {
-        const std::filesystem::path directory = fromUtf8(m_importPath);
-        if (Project::readInfo(directory)) {
-            m_projects.add(directory);
-            commit();
+        if (m_manager.import(fromUtf8(m_importPath), m_error)) {
             ImGui::CloseCurrentPopup();
-        } else {
-            m_error = "projects.error.notProject";
         }
     }
     ImGui::SameLine();
@@ -281,13 +250,13 @@ void ProjectManagerPanel::drawRemoveDialog()
     if (!ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         return;
     }
-    if (m_selected < 0 || m_selected >= static_cast<int>(m_rows.size())) {
+    if (m_selected < 0 || m_selected >= static_cast<int>(m_manager.rows().size())) {
         ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
 
         return;
     }
-    const Row& row = m_rows[static_cast<std::size_t>(m_selected)];
+    const ProjectManager::Row& row = m_manager.rows()[static_cast<std::size_t>(m_selected)];
 
     ImGui::TextUnformatted(tr("projects.removeQuestion").c_str());
     ImGui::TextDisabled("%s", toUtf8(row.directory).c_str());
@@ -301,11 +270,8 @@ void ProjectManagerPanel::drawRemoveDialog()
 
     ImGui::Separator();
     if (ImGui::Button(tr("projects.remove").c_str())) {
-        const bool removed = !m_deleteFolder || row.missing || deleteProjectFolder(row.directory, m_error);
-        if (removed) {
-            m_projects.remove(row.directory);
+        if (m_manager.remove(static_cast<std::size_t>(m_selected), m_deleteFolder, m_error)) {
             m_selected = -1;
-            commit();
             ImGui::CloseCurrentPopup();
         }
     }
@@ -336,12 +302,9 @@ void ProjectManagerPanel::drawUpgradeDialog()
 
     ImGui::Separator();
     if (ImGui::Button(tr("projects.upgrade.confirm").c_str())) {
-        if (Project::upgrade(m_problemRow.directory, m_serializer)) {
-            m_toOpen = Project::open(m_problemRow.directory);
-            m_refreshRequested = true;
+        if (auto project = m_manager.upgrade(m_problemRow.directory, m_error)) {
+            m_toOpen = std::move(project);
             ImGui::CloseCurrentPopup();
-        } else {
-            m_error = "projects.error.upgradeFailed";
         }
     }
     ImGui::SameLine();
@@ -375,30 +338,22 @@ void ProjectManagerPanel::drawCannotOpenDialog()
     ImGui::EndPopup();
 }
 
-void ProjectManagerPanel::open(const Row& row)
+void ProjectManagerPanel::open(std::size_t row)
 {
-    if (row.compatibility != FormatCompatibility::Current) {
-        m_problemRow = row;
-        m_error.clear();
-        (row.compatibility == FormatCompatibility::Older ? m_openUpgrade : m_openCannotOpen) = true;
-
-        return;
+    m_error.clear();
+    auto result = m_manager.open(row);
+    switch (result.status) {
+    case ProjectManager::OpenStatus::Opened: m_toOpen = std::move(result.project); break;
+    case ProjectManager::OpenStatus::NeedsUpgrade:
+        m_problemRow = m_manager.rows()[row];
+        m_openUpgrade = true;
+        break;
+    case ProjectManager::OpenStatus::CannotOpen:
+        m_problemRow = m_manager.rows()[row];
+        m_openCannotOpen = true;
+        break;
+    case ProjectManager::OpenStatus::Missing: break;
     }
-    if (auto project = Project::open(row.directory)) {
-        m_toOpen = std::move(project);
-    } else {
-        // Папку убрали, пока менеджер был открыт. Перечитываем список
-        // в следующем кадре: сейчас по нему, возможно, идёт цикл.
-        m_refreshRequested = true;
-    }
-}
-
-void ProjectManagerPanel::commit()
-{
-    if (!m_projects.save()) {
-        log::error("Cannot save the project list");
-    }
-    refresh();
 }
 
 } // namespace yqlora::editor

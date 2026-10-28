@@ -10,6 +10,7 @@ add_library(yqlora_editor STATIC
     src/ProjectSetup.cpp
     src/ProjectFiles.cpp
     src/ProjectList.cpp
+    src/ProjectManager.cpp
     src/SceneCommands.cpp
     src/TransformEdit.cpp
     src/EditHistory.cpp

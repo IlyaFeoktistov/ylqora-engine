@@ -8,7 +8,7 @@
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/editor/EditorSession.hpp"
-#include "yqlora/editor/ProjectList.hpp"
+#include "yqlora/editor/ProjectManager.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
 
@@ -54,7 +54,7 @@ private:
     Theme m_theme;
     TypeRegistry m_registry;
     SceneSerializer m_serializer{m_registry};
-    std::unique_ptr<ProjectList> m_projects;
+    std::unique_ptr<ProjectManager> m_projects;
     std::unique_ptr<ProjectManagerPanel> m_projectManager;
     EditorSession m_session{scene(), m_serializer};
     ActionRegistry m_actions;
