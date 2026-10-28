@@ -162,50 +162,173 @@ sandbox and a language server.
   exception.
 - Luau scripts are their own type module (`luau`), reloaded like `game.dll`.
 
+## Engine context
+
+Three levels: what the process shares, what every scene owns, what a component
+sees.
+
+```
+Owner (game / editor / test)
+ └─ EngineServices     shared by the process: input, project, type registry, scene requests
+     └─ Scene          owned by every scene
+         ├─ GameTime        game time, time scale, fixed step
+         ├─ systems         render, physics, audio... (pluggable)
+         ├─ phase lists     components to call in fixedUpdate / update / lateUpdate
+         └─ node tree
+             └─ Component → owner()->scene() → services(), time(), system<T>()
+```
+
+### Engine services [next]
+
+```cpp
+class EngineServices {
+public:
+    const Input& input() const;          // raw state + actions from the project settings
+    const Project* project() const;      // settings and resources; nullptr when there is none
+    const TypeRegistry& registry() const;
+    SceneRequests& scenes();             // "load a level": done between frames  [planned, step 9]
+};
+```
+
+- A scene gets its services when it is created: `Scene(const EngineServices&)`.
+  Tests and empty scenes get services with nothing pressed and an empty
+  project, so no code checks for `nullptr`.
+- No `Application::instance()`. Log and translation stay global by design.
+- The registry in the services is what lets `Node::addComponent` check the
+  component rules itself and what tells the scene the lifecycle phases of a
+  type.
+- In the editor the Play copy sees input only while the viewport is focused,
+  so keys typed in the inspector do not move the player.
+
+### Game time [next]
+
+```cpp
+class GameTime {
+public:
+    double elapsed() const;          // since the game started, scaled
+    float delta() const;             // this frame, scaled
+    float unscaledDelta() const;     // real step: editor, HUD animations
+    float fixedStep() const;         // from the Time section of the project settings
+    float scale() const;
+    void setScale(float scale);      // 0 stops the game, 0.5 is slow motion
+    std::uint64_t frame() const;
+};
+```
+
+Every scene has its own; the Play copy starts at zero and pause stops it. The
+real frame length comes from `FrameClock`, game time is derived from it.
+
+### Scene systems [next]
+
+The main extension point: a module adds a system and its components; `Scene`,
+the frame loop and the application do not change.
+
+```cpp
+class SceneSystem {
+public:
+    virtual ~SceneSystem() = default;
+    virtual void fixedUpdate(float step) {}    // physics steps here
+    virtual void update(float delta) {}
+    virtual void lateUpdate(float delta) {}    // after scripts: render list, audio
+};
+
+// A module registers a factory once; every new scene gets an instance:
+systems.add<PhysicsWorld>([](Scene& scene) { return std::make_unique<PhysicsWorld>(scene); });
+scene.system<PhysicsWorld>()                    // a component registers its body in onEnterScene
+```
+
+The edited scene in the editor has its systems too (bodies exist, colliders
+can be drawn), but only the Play copy is stepped.
+
+### One frame [next]
+
+The order lives in one place, `Scene::advance`:
+
+```
+scene.advance(realDelta):
+    time.advance(realDelta)                       scale, fixed-step accumulator
+    while a fixed step is accumulated:
+        systems.fixedUpdate, then components.onFixedUpdate
+    components.onUpdate
+    systems.update
+    components.onLateUpdate
+    systems.lateUpdate
+    apply deferred tree changes                   destroy, change of parent
+```
+
+The game calls `advance` every frame, the editor's `PlayMode` calls it for the
+Play copy when not paused, tests call it directly. `Application` no longer
+updates a scene itself.
+
 ## Lifecycle
 
 | Call | Where | What for |
 |---|---|---|
 | constructor | anywhere | defaults; no scene yet |
 | `onEnterScene` / `onExitScene` | editor and game | register in scene systems (physics, audio, lights) |
-| `onStart` | game only | before the first frame of the component |
-| `onFixedUpdate(dt)` | game only | physics, fixed time step of game time **[next]** |
-| `onUpdate(dt)` | game only | per-frame logic |
+| `onEnable` / `onDisable` | game only | the component starts or stops taking part: enabled and its node active in hierarchy **[next]** |
+| `onStart` | game only | once, before the first phase call of the component |
+| `onFixedUpdate(step)` | game only | physics, fixed step of game time **[next]** |
+| `onUpdate(delta)` | game only | per-frame logic |
+| `onLateUpdate(delta)` | game only | after all updates: follow cameras **[next]** |
 | `onStop` | game only | release what `onStart` took |
 
-- Order: the tree from the top down; on each node its components in list order.
-  On scene entry a node goes before its children, on exit after them.
-- A component added during the game gets `onStart` before its first update.
-- **Changes of the tree during a frame are deferred [next]**: destroying a node
-  and changing its parent are applied at the end of the frame, so the
-  traversal never sees a half-changed tree. Nodes created during a frame start
-  on the next one.
-- A component has an `enabled` flag **[next]**: a disabled component gets no
-  update calls. Disabling after an error uses the same flag.
+### Phase lists instead of a tree walk [next]
 
-## Scene systems and the engine context
+- A scene keeps one list per phase (fixed update, update, late update) and
+  calls only the components in it. A component gets into a list only if its
+  type overrides that phase; the registry finds this out when the type is
+  registered (`YQLORA_TYPE` compares the declaring class of `onUpdate` and the
+  others). No tree walk, no empty virtual calls.
+- Order inside a phase: the **execution order** of the type (default 0, lower
+  first), then the order in which components entered the list. A type sets its
+  default in code (`.executionOrder(-100)`); the project settings can override
+  it per type, like Script Execution Order in Unity (see
+  [project settings](project-settings.md)). One rule: the setting if present,
+  else the default from code.
+- A component added during a phase is called from the next phase on; a removed
+  one is skipped at once and dropped from the list after the phase, so the
+  lists never change under an iteration.
 
-- **Scene systems** (render list, physics world, audio world) belong to a
-  `Scene`; every scene has its own. The Play copy gets its own physics world;
-  in the editor the world exists but is not stepped. Systems are attached to
-  the scene through one generic mechanism, not as fixed fields, so 2D physics
-  can be added next to 3D physics later **[next]**.
-- A component finds its system through its scene in `onEnterScene`.
-- **The active camera is state of the render system**, not of `Scene`, and it
-  resets itself when the camera leaves the scene **[next]**. Today
-  `Scene::activeCamera()` is a raw `Camera3D*` reset by hand in several places.
-- **Game time** is a service of every scene **[next]**: time since the game
-  started, the frame step, a time scale (slow motion, speed-up, 0 stops the
-  game), the fixed step for physics and a frame counter. The Play copy starts
-  at zero; pause stops it. Unscaled real time stays available for things that
-  must not slow down with the game (the editor, HUD animations). The real
-  frame length comes from `FrameClock`; game time is derived from it. Defaults
-  (fixed step, longest frame) come from the Time section of the
-  [project settings](project-settings.md).
-- **Engine services** (input, time, loading and switching scenes) reach the
-  scene through an explicit context given by its owner: the application, the
-  editor or a test **[next]**. There is no `Application::instance()`. Log and
-  translation stay global services by design.
+### Active and enabled [next]
+
+As in Unity:
+
+- A node has `active` (its own flag) and `activeInHierarchy()` (it and all its
+  parents are active). An inactive node switches off its whole branch:
+  components get `onDisable`, leave the phase lists, renderers are not drawn,
+  bodies leave the physics world.
+- A component has `enabled`. It takes part in the game only while enabled and
+  its node is active in hierarchy; `onEnable` / `onDisable` mark the change.
+- There is no separate `visible` flag: hiding a mesh is disabling its
+  `MeshRenderer`, like `Renderer.enabled` in Unity.
+- A node has a **layer** (one of 32, names in the project settings). Camera
+  masks and physics collisions filter by layers.
+- An exception from a lifecycle call is caught: the component is disabled, the
+  error goes to the log, the game goes on.
+
+### Deferred tree changes [next]
+
+Destroying a node and changing its parent during a frame are applied at the
+end of the frame, so no phase sees a half-changed tree. Nodes created during a
+frame take part from the next one.
+
+## Cameras and rendering [next]
+
+Prepared for several cameras (for example the player's arms drawn by a second
+camera over the world, so they never go into walls); the arms themselves are
+not part of this.
+
+- `Camera3D` has an **order** (lower is drawn first), a **culling mask** of
+  layers and a **clear mode**: colour and depth, depth only, nothing.
+- The render system collects the enabled cameras of the scene, sorted by
+  order. The frame data carries a list of views instead of one camera; the
+  backend draws them in turn, each with its own clear and only the items whose
+  layer is in its mask.
+- The **main camera** (the first view, the one the game is seen through) is
+  state of the render system, not of `Scene`; a camera that leaves the scene
+  drops out of the list by itself. Today `Scene::activeCamera()` is a raw
+  `Camera3D*` reset by hand in several places.
 - A scene switch requested by a script happens between frames, never in the
   middle of an update **[planned, step 9]**.
 
