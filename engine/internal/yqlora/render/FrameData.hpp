@@ -2,6 +2,8 @@
 
 #include "yqlora/math/DepthRange.hpp"
 #include "yqlora/math/Math.hpp"
+#include "yqlora/scene/Camera3D.hpp"
+#include "yqlora/scene/Layers.hpp"
 #include "yqlora/scene/Node.hpp"
 
 #include <vector>
@@ -16,15 +18,25 @@ struct CameraData {
     Vec3 position{0.0f};
 };
 
+// Один вид кадра: камера, чем стереть перед ней и какие слои она рисует.
+struct ViewData {
+    CameraData camera;
+    CameraClear clear = CameraClear::ColorAndDepth;
+    Vec4 background{0.0f, 0.0f, 0.0f, 1.0f};
+    LayerMask mask = kAllLayers;
+};
+
 // Один меш в кадре.
 struct DrawItem {
     const MeshData* mesh = nullptr;
     Mat4 world{1.0f};
     Vec4 color{1.0f};
+    int layer = 0;
     NodeId node = 0; // чей это меш: по нему рендерер узнаёт выбранный объект
 };
 
-// Вспомогательная графика редактора, которой нет в игре.
+// Вспомогательная графика редактора, которой нет в игре. Рисуется поверх
+// последнего вида кадра.
 struct EditorOverlay {
     bool grid = false;
     // Выбранные узлы обводятся контуром.
@@ -32,11 +44,11 @@ struct EditorOverlay {
     Vec4 outlineColor{1.0f, 0.6f, 0.1f, 1.0f};
 };
 
-// Всё, что рендереру нужно знать о кадре. Данные собирает buildFrameData,
-// рендерер их рисует. Дерево узлов до бэкенда не доходит.
+// Всё, что рендереру нужно знать о кадре. Данные собирает extractFrame,
+// рендерер их рисует: виды по очереди, у каждого свои очистка и маска.
+// Дерево узлов до бэкенда не доходит.
 struct FrameData {
-    CameraData camera;
-    Vec4 clearColor{0.0f, 0.0f, 0.0f, 1.0f};
+    std::vector<ViewData> views;
     std::vector<DrawItem> drawItems;
     EditorOverlay editor;
 };

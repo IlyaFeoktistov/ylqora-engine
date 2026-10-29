@@ -56,7 +56,7 @@ public:
 
     Scene& scene()
     {
-        return m_scene;
+        return *m_scene;
     }
 
     // Типы узлов и компонентов: движка (регистрируются сразу) и игры.
@@ -179,7 +179,8 @@ private:
     TypeRegistry m_registry;
     Input m_input;
     EngineServices m_services{m_input, m_registry};
-    Scene m_scene{m_services};
+    // Создаётся после регистрации типов: системы сцены берутся из реестра.
+    std::unique_ptr<Scene> m_scene;
     std::unique_ptr<Settings> m_settings;
     std::unique_ptr<Localization> m_localization;
     std::unique_ptr<Window> m_window;

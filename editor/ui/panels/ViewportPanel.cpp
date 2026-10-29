@@ -13,6 +13,7 @@
 #include "yqlora/render/FrameBuilder.hpp"
 #include "yqlora/render/Renderer.hpp"
 #include "yqlora/scene/Camera3D.hpp"
+#include "yqlora/scene/RenderSystem.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <imgui.h>
@@ -67,7 +68,8 @@ void ViewportPanel::draw(EditorContext& context)
     const ViewArea area = drawSceneImage(context.app, size);
     // Игра показывается через свою камеру, и инструменты редактора ей не нужны.
     const bool playing = session.playing();
-    const Camera3D* gameCamera = playing ? session.scene().activeCamera() : nullptr;
+    const RenderSystem* render = session.scene().system<RenderSystem>();
+    const Camera3D* gameCamera = playing && render ? render->mainCamera() : nullptr;
     m_gizmos.setEnabled(!playing);
 
     m_camera.update(context.app.input(), context.deltaSeconds, area.hovered && !gameCamera && !m_mouseOverGizmo);
@@ -128,9 +130,12 @@ void ViewportPanel::renderScene(
     Application& app = context.app;
     // Текстура уже стоит в списке отрисовки интерфейса, а нарисуется он позже,
     // так что кадр сцены успевает попасть в неё в этом же кадре.
-    FrameData frame = buildFrameData(context.session.scene(), aspect, app.depthRange());
+    FrameData frame = extractFrame(context.session.scene(), aspect, app.depthRange());
     if (!throughGameCamera) {
-        frame.camera = m_camera.cameraData(aspect, app.depthRange());
+        frame.views = {{
+            .camera = m_camera.cameraData(aspect, app.depthRange()),
+            .background = context.theme.colors().viewportBackground,
+        }};
     }
     m_gizmos.prepareFrame(frame, gizmoContext);
     app.renderer().render(frame, *m_target);
@@ -153,7 +158,7 @@ void ViewportPanel::drawPlayModeFrame(
         kPlayFrameThickness
     );
     if (!hasCamera) {
-        // Без активной камеры игре не через что показываться: смотрим через камеру редактора.
+        // Без камеры игре не через что показываться: смотрим через камеру редактора.
         const std::string text = tr("editor.play.noCamera");
         list.AddText(
             ImVec2(origin.x + kHintMargin.x, origin.y + size.y - ImGui::GetTextLineHeight() - kHintMargin.y),

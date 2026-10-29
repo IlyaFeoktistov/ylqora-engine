@@ -1,5 +1,8 @@
 #include "yqlora/scene/Camera3D.hpp"
 
+#include "yqlora/scene/RenderSystem.hpp"
+#include "yqlora/scene/Scene.hpp"
+
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <algorithm>
@@ -21,6 +24,22 @@ constexpr float kMinPlaneGap = 0.001f;
 Camera3D::Camera3D(std::string name)
     : Node3D(std::move(name))
 {
+}
+
+void Camera3D::onEnterScene()
+{
+    Node3D::onEnterScene();
+    if (RenderSystem* render = scene()->system<RenderSystem>()) {
+        render->addCamera(*this);
+    }
+}
+
+void Camera3D::onExitScene()
+{
+    if (RenderSystem* render = scene()->system<RenderSystem>()) {
+        render->removeCamera(*this);
+    }
+    Node3D::onExitScene();
 }
 
 void Camera3D::setFovDegrees(float fov)

@@ -3,6 +3,7 @@
 #include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/MeshRenderer.hpp"
 #include "yqlora/scene/Node3D.hpp"
+#include "yqlora/scene/RenderSystem.hpp"
 #include "yqlora/scene/Transform3D.hpp"
 #include "yqlora/scene/TransformSystem3D.hpp"
 
@@ -87,7 +88,8 @@ void registerEngineTypes(TypeRegistry& registry)
 {
     registry.registerNode<Node>()
         .property("name", &Node::name, &Node::setName)
-        .property("active", &Node::active, &Node::setActive);
+        .property("active", &Node::active, &Node::setActive)
+        .property("layer", &Node::layer, &Node::setLayer, PropertyHint::Layer);
 
     registry.registerComponent<Component>().property("enabled", &Component::enabled, &Component::setEnabled);
 
@@ -96,7 +98,12 @@ void registerEngineTypes(TypeRegistry& registry)
     registry.registerNode<Camera3D>()
         .property("fov", &Camera3D::fovDegrees, &Camera3D::setFovDegrees, PropertyHint::Angle)
         .property("near", &Camera3D::nearPlane, &Camera3D::setNearPlane)
-        .property("far", &Camera3D::farPlane, &Camera3D::setFarPlane);
+        .property("far", &Camera3D::farPlane, &Camera3D::setFarPlane)
+        .property("order", &Camera3D::order, &Camera3D::setOrder)
+        .property("cullingMask", &Camera3D::cullingMask, &Camera3D::setCullingMask, PropertyHint::LayerMask)
+        .property("clear", &Camera3D::clear, &Camera3D::setClear)
+        .enumNames({"ColorAndDepth", "DepthOnly", "Nothing"})
+        .property("background", &Camera3D::background, &Camera3D::setBackground, PropertyHint::Color);
 
     registry.registerComponent<Transform3D>()
         .property("position", &Transform3D::position, &Transform3D::setPosition)
@@ -110,6 +117,7 @@ void registerEngineTypes(TypeRegistry& registry)
 
     registry.registerSystem<SceneSystem>();
     registry.registerSystem<TransformSystem3D>();
+    registry.registerSystem<RenderSystem>();
 }
 
 } // namespace yqlora

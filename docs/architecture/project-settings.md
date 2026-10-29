@@ -92,6 +92,20 @@ is that the file name, the type name and the fields are written once.
 - `Input` keeps the raw state (keys, mouse) as today; actions are a layer over
   it, read by scripts and the HUD.
 
+## Layers
+
+As Tags and Layers in Unity:
+
+- 32 layers. Layer 0 is `Default`, always there and not renamed; the others
+  are named by the project. A layer without a name is unused and does not
+  appear in the lists.
+- A node and a camera mask store layer numbers, so renaming a layer changes
+  nothing in scenes. Clearing the name of a layer still in use asks first and
+  leaves the nodes on it.
+- The layer list in the inspector and the culling mask show the names and end
+  with "Edit layers...", which opens this section.
+- Physics (step 6) takes the same layers for its collision matrix.
+
 ## What the registry needs
 
 - List properties (actions, bindings, layers): today a property holds one

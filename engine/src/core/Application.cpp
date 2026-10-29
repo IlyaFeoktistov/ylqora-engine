@@ -47,6 +47,7 @@ Application::Application(ApplicationConfig config)
     : m_config(std::move(config))
 {
     registerEngineTypes(m_registry);
+    m_scene = std::make_unique<Scene>(m_services);
 }
 
 Application::~Application() = default;
@@ -214,11 +215,11 @@ void Application::mainLoop()
         }
 
         if (m_sceneRunning) {
-            m_scene.advance(deltaSeconds);
+            m_scene->advance(deltaSeconds);
         }
         onUpdate(deltaSeconds);
         // Сцену меняют и без игры: редактор правит её между кадрами.
-        m_scene.updateTransforms();
+        m_scene->updateTransforms();
 
         if (m_ui) {
             m_ui->beginFrame();
@@ -226,7 +227,7 @@ void Application::mainLoop()
             m_renderer->clearWindow(kWindowClearColor);
             m_ui->endFrame();
         } else {
-            FrameData frame = buildFrameData(m_scene, aspectRatio(), depthRange());
+            FrameData frame = extractFrame(*m_scene, aspectRatio(), depthRange());
             onPrepareFrame(frame);
             m_renderer->render(frame);
         }

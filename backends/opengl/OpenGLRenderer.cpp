@@ -23,6 +23,20 @@ namespace {
 constexpr int kDepthBits = 24;
 // Трафарет нужен контуру выделения.
 constexpr int kStencilBits = 8;
+// Кадр без единого вида (в сцене нет активной камеры).
+const Vec4 kNoViewColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+void clearView(CameraClear clear, const Vec4& background)
+{
+    switch (clear) {
+    case CameraClear::ColorAndDepth:
+        glClearColor(background.r, background.g, background.b, background.a);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        break;
+    case CameraClear::DepthOnly: glClear(GL_DEPTH_BUFFER_BIT); break;
+    case CameraClear::Nothing: break;
+    }
+}
 
 } // namespace
 
@@ -124,16 +138,23 @@ void OpenGLRenderer::drawScene(const FrameData& frame, int width, int height)
     glEnable(GL_DEPTH_TEST);
 
     glViewport(0, 0, width, height);
-    glClearColor(frame.clearColor.r, frame.clearColor.g, frame.clearColor.b, frame.clearColor.a);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (frame.views.empty()) {
+        clearView(CameraClear::ColorAndDepth, kNoViewColor);
 
-    m_meshPass->draw(frame);
+        return;
+    }
+    // Виды по очереди: следующая камера рисует поверх предыдущей.
+    for (const ViewData& view : frame.views) {
+        clearView(view.clear, view.background);
+        m_meshPass->draw(frame, view);
+    }
 
     // Сетка полупрозрачная, поэтому рисуется после объектов сцены.
+    const CameraData& top = frame.views.back().camera;
     if (frame.editor.grid) {
-        m_grid->draw(frame.camera);
+        m_grid->draw(top);
     }
-    m_outline->draw(frame, width, height);
+    m_outline->draw(frame, top, width, height);
 }
 
 void OpenGLRenderer::present()

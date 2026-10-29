@@ -237,6 +237,11 @@ void Node::moveTo(Node& parent, KeepWorld keepWorld)
     }
 }
 
+void Node::setLayer(int layer)
+{
+    m_layer = std::clamp(layer, 0, kLayerCount - 1);
+}
+
 void Node::setActive(bool active)
 {
     m_active = active;

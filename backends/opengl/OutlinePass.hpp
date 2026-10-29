@@ -21,7 +21,7 @@ public:
     OutlinePass& operator=(const OutlinePass&) = delete;
 
     // Рисует в текущий framebuffer размером width x height.
-    void draw(const FrameData& frame, int width, int height);
+    void draw(const FrameData& frame, const CameraData& camera, int width, int height);
 
 private:
     void resizeMask(int width, int height);

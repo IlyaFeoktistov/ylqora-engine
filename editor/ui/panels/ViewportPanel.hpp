@@ -21,7 +21,7 @@ namespace yqlora::editor {
 struct EditorColors;
 
 // Окно сцены: кадр рисуется в текстуру и показывается внутри окна интерфейса.
-// Камера - редактора или, во время игры, активная камера сцены. Всё остальное
+// Камера - редактора или, во время игры, главная камера сцены (см. RenderSystem). Всё остальное
 // поверх сцены (сетка, выделение, манипуляторы) делают гизмо, и в игре их нет.
 class ViewportPanel final : public EditorPanel {
 public:
@@ -57,7 +57,7 @@ private:
     // Рисует кадр в текстуру: через камеру игры или редактора, с гизмо.
     void renderScene(EditorContext& context, float aspect, bool throughGameCamera, const GizmoContext& gizmoContext);
     void setFlying(bool flying);
-    // Рамка вокруг окна, пока идёт игра, и подсказка, если в сцене нет активной камеры.
+    // Рамка вокруг окна, пока идёт игра, и подсказка, если в сцене нет камеры.
     void drawPlayModeFrame(const ImVec2& origin, const ImVec2& size, bool hasCamera, const EditorColors& colors);
 
     EditorCamera m_camera;

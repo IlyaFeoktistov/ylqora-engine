@@ -45,8 +45,11 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: scene survives save and load")
     player.setActive(false);
     auto& camera = player.addChild<Camera3D>("Eyes");
     camera.setFovDegrees(75.0f);
-    original.setActiveCamera(&camera);
-    original.setClearColor({0.1f, 0.2f, 0.3f, 1.0f});
+    camera.setOrder(2);
+    camera.setClear(CameraClear::DepthOnly);
+    camera.setCullingMask(~LayerMask{0} << 4);
+    camera.setBackground({0.1f, 0.2f, 0.3f, 1.0f});
+    camera.setLayer(31);
 
     Scene loaded{EngineServices::none()};
     REQUIRE(serializer.fromJson(loaded, serializer.toJson(original)));
@@ -73,8 +76,12 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: scene survives save and load")
     auto* loadedCamera = dynamic_cast<Camera3D*>(loadedPlayer->findChild("Eyes"));
     REQUIRE(loadedCamera);
     CHECK(loadedCamera->fovDegrees() == doctest::Approx(75.0f));
-    CHECK(loaded.activeCamera() == loadedCamera);
-    CHECK(loaded.clearColor() == Vec4(0.1f, 0.2f, 0.3f, 1.0f));
+    CHECK(loadedCamera->order() == 2);
+    CHECK(loadedCamera->clear() == CameraClear::DepthOnly);
+    // Старший бит маски тоже сохраняется: в файле она - int с теми же битами.
+    CHECK(loadedCamera->cullingMask() == ~LayerMask{0} << 4);
+    CHECK(loadedCamera->background() == Vec4(0.1f, 0.2f, 0.3f, 1.0f));
+    CHECK(loadedCamera->layer() == 31);
 }
 
 TEST_CASE_FIXTURE(Fixture, "SceneSerializer: empty scene stays empty")

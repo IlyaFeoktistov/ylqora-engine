@@ -13,7 +13,7 @@
             "description": "Empty object in 3D space: an anchor point for child nodes."
         },
         "Camera3D": {
-            "description": "Perspective camera. The scene is shown through the active camera."
+            "description": "Perspective camera. Cameras draw in order, the first one is the main."
         },
         "Component": {
             "description": "Base of all components. A disabled component takes no part in the game."
@@ -23,6 +23,9 @@
         },
         "TransformSystem3D": {
             "description": "Keeps world matrices of 3D nodes up to date in one pass over the changed ones."
+        },
+        "RenderSystem": {
+            "description": "Keeps the cameras of the scene and their order of drawing; the first one is the main camera."
         },
         "MeshRenderer": {
             "description": "Draws a mesh at the position of its Node3D."
@@ -60,6 +63,10 @@
             "none": "None",
             "missing": "Missing",
             "requiredBy": "Cannot be removed, required by:"
+        },
+        "layers": {
+            "everything": "Everything",
+            "nothing": "Nothing"
         },
         "tree": {
             "addNode": "Add node",
@@ -108,7 +115,7 @@
             "play": "Play",
             "pause": "Pause",
             "stop": "Stop",
-            "noCamera": "The scene has no active camera: showing it through the editor camera"
+            "noCamera": "The scene has no camera: showing it through the editor camera"
         }
     },
     "projects": {
@@ -123,6 +130,11 @@
             "name": "Name",
         "active": "Active",
         "enabled": "Enabled",
+        "layer": "Layer",
+        "order": "Order",
+        "cullingMask": "Culling mask",
+        "clear": "Clear",
+        "background": "Background",
             "path": "Folder",
             "version": "Version"
         },

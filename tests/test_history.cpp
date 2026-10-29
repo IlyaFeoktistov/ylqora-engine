@@ -190,24 +190,21 @@ TEST_CASE_FIXTURE(Fixture, "Undo: a created node goes away and comes back with t
     CHECK_FALSE(session.document().modified());
 }
 
-TEST_CASE_FIXTURE(Fixture, "Undo: a deleted branch returns to its place with the active camera and selection")
+TEST_CASE_FIXTURE(Fixture, "Undo: a deleted branch returns to its place with the selection")
 {
     Node* root = session.createNode(type("Node3D"), nullptr);
     Node* first = session.createNode(type("Node3D"), root);
     session.createNode(type("Node3D"), root);
     auto* camera = static_cast<Camera3D*>(session.createNode(type("Camera3D"), first));
-    scene.setActiveCamera(camera);
     session.selection().select(camera->id());
     const NodeId firstId = first->id();
 
     REQUIRE(session.deleteNode(firstId));
-    CHECK(scene.activeCamera() == nullptr);
     CHECK(session.selection().selected() == 0);
 
     REQUIRE(session.undo());
     REQUIRE(session.findNode(firstId));
     CHECK(root->children()[0]->id() == firstId);
-    CHECK(scene.activeCamera() == camera);
     CHECK(session.selection().selected() == camera->id());
 }
 

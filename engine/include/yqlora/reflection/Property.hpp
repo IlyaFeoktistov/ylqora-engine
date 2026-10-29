@@ -5,7 +5,9 @@
 #include "yqlora/resource/ResourceId.hpp"
 #include "yqlora/scene/NodeId.hpp"
 
+#include <bit>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -90,6 +92,22 @@ struct PropertyStorage<T> {
     }
 };
 
+// 32 бита без знака (маска слоёв) - как int с теми же битами.
+template <>
+struct PropertyStorage<std::uint32_t> {
+    using Type = int;
+
+    static int store(std::uint32_t value)
+    {
+        return std::bit_cast<int>(value);
+    }
+
+    static std::uint32_t load(int value)
+    {
+        return std::bit_cast<std::uint32_t>(value);
+    }
+};
+
 namespace detail {
 
 template <typename T, typename Variant>
@@ -128,9 +146,11 @@ constexpr PropertyType propertyTypeOf()
 // Как показывать свойство в инспекторе, если обычного поля для его типа мало.
 enum class PropertyHint {
     None,
-    Color, // Vec4 как цвет RGBA с палитрой
-    Mesh,  // ссылка на ресурс меша: выбор из доступных мешей
-    Angle, // градусы: при перетаскивании значение меняется медленнее
+    Color,     // Vec4 как цвет RGBA с палитрой
+    Mesh,      // ссылка на ресурс меша: выбор из доступных мешей
+    Angle,     // градусы: при перетаскивании значение меняется медленнее
+    Layer,     // int: один слой узла из списка
+    LayerMask, // int: набор слоёв, флажок на каждый
 };
 
 // Свойство узла или компонента: имя, тип и доступ к значению. Создаётся

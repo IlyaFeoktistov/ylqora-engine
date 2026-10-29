@@ -2,6 +2,7 @@
 
 #include "yqlora/core/Export.hpp"
 #include "yqlora/scene/Component.hpp"
+#include "yqlora/scene/Layers.hpp"
 #include "yqlora/scene/NodeId.hpp"
 
 #include <concepts>
@@ -90,6 +91,14 @@ public:
     {
         return m_activeInHierarchy;
     }
+
+    // Слой узла от 0 до kLayerCount - 1: по нему фильтруют маски камер и физика.
+    int layer() const
+    {
+        return m_layer;
+    }
+
+    void setLayer(int layer);
 
     // Сцена, в дереве которой узел. nullptr, пока узел вне сцены.
     Scene* scene() const
@@ -228,6 +237,7 @@ private:
     Scene* m_scene = nullptr;
     bool m_active = true;
     bool m_activeInHierarchy = true;
+    int m_layer = 0;
     std::vector<std::unique_ptr<Component>> m_components;
     std::vector<std::unique_ptr<Node>> m_children;
 };

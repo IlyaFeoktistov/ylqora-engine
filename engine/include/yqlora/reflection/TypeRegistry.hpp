@@ -408,7 +408,7 @@ private:
 };
 
 // Типы движка: Node, Node3D, Camera3D, Component, Transform3D, MeshRenderer,
-// SceneSystem, TransformSystem3D.
+// SceneSystem, TransformSystem3D, RenderSystem.
 YQLORA_API void registerEngineTypes(TypeRegistry& registry);
 
 } // namespace yqlora

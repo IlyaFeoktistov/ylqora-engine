@@ -2,7 +2,6 @@
 
 #include "yqlora/core/Log.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
-#include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/ExecutionOrder.hpp"
 #include "yqlora/scene/NodeTree.hpp"
 
@@ -80,8 +79,6 @@ void Scene::setRoot(std::unique_ptr<Node> root)
 {
     assert((!root || !root->parent()) && "setRoot: node already has a parent");
     assert(!m_inFrame && "setRoot: during a frame use Scene::destroy");
-    // Камера могла жить в старом дереве, указатель на неё сейчас станет висячим.
-    m_activeCamera = nullptr;
     if (m_root) {
         m_root->stop();
         m_root->exitScene();
@@ -95,7 +92,6 @@ void Scene::setRoot(std::unique_ptr<Node> root)
 std::unique_ptr<Node> Scene::takeRoot()
 {
     assert(!m_inFrame && "takeRoot: during a frame use Scene::destroy");
-    m_activeCamera = nullptr;
     if (m_root) {
         m_root->stop();
         m_root->exitScene();
@@ -160,9 +156,6 @@ void Scene::destroyNow(Node& node)
         setRoot(nullptr);
 
         return;
-    }
-    if (m_activeCamera && isInBranch(node, *m_activeCamera)) {
-        m_activeCamera = nullptr;
     }
     node.parent()->removeChild(node);
 }

@@ -1,7 +1,14 @@
+#include "EngineRegistry.hpp"
+
 #include <doctest/doctest.h>
 
+#include <yqlora/input/Input.hpp>
+#include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/render/FrameBuilder.hpp>
+#include <yqlora/render/MeshData.hpp>
 #include <yqlora/scene/Camera3D.hpp>
+#include <yqlora/scene/MeshRenderer.hpp>
+#include <yqlora/scene/RenderSystem.hpp>
 #include <yqlora/scene/Scene.hpp>
 
 using namespace yqlora;
@@ -33,16 +40,71 @@ TEST_CASE("Camera3D: projection depth range depends on the API")
     CHECK(ndcDepth(DepthRange::ZeroToOne, -100.0f) == doctest::Approx(1.0f));
 }
 
-TEST_CASE("Scene: frame data comes from the active camera")
-{
-    Scene scene{EngineServices::none()};
-    auto& camera = scene.createRoot<Node>("Root").addChild<Camera3D>("MainCamera");
-    camera.transform().setPosition({1.0f, 2.0f, 3.0f});
-    scene.setActiveCamera(&camera);
-    scene.setClearColor({0.1f, 0.2f, 0.3f, 1.0f});
+namespace {
 
-    const FrameData frame = buildFrameData(scene, 16.0f / 9.0f, DepthRange::MinusOneToOne);
-    CHECK(frame.camera.position.x == doctest::Approx(1.0f));
-    CHECK(frame.camera.position.z == doctest::Approx(3.0f));
-    CHECK(frame.clearColor.g == doctest::Approx(0.2f));
+struct Fixture {
+    test::EngineRegistry registry;
+    Input input;
+    EngineServices services{input, registry};
+    Scene scene{services};
+};
+
+} // namespace
+
+TEST_CASE_FIXTURE(Fixture, "RenderSystem: active cameras by order, the first one is the main")
+{
+    auto& root = scene.createRoot<Node3D>();
+    auto& arms = root.addChild<Camera3D>("Arms");
+    arms.setOrder(1);
+    auto& world = root.addChild<Camera3D>("World");
+    auto& spare = root.addChild<Camera3D>("Spare");
+    spare.setOrder(-1);
+    spare.setActive(false);
+
+    const RenderSystem& render = *scene.system<RenderSystem>();
+    CHECK(render.cameras() == std::vector<const Camera3D*>{&world, &arms});
+    CHECK(render.mainCamera() == &world);
+
+    // Ушедшая из сцены камера выпадает из списка сама.
+    auto removed = root.removeChild(world);
+    CHECK(render.mainCamera() == &arms);
+    scene.setRoot(nullptr);
+    CHECK(render.mainCamera() == nullptr);
+}
+
+TEST_CASE_FIXTURE(Fixture, "Extract: one view per camera with its clear, background and mask")
+{
+    auto& root = scene.createRoot<Node3D>();
+    auto& world = root.addChild<Camera3D>("World");
+    world.transform().setPosition({1.0f, 2.0f, 3.0f});
+    world.setBackground({0.1f, 0.2f, 0.3f, 1.0f});
+    auto& arms = root.addChild<Camera3D>("Arms");
+    arms.setOrder(1);
+    arms.setClear(CameraClear::DepthOnly);
+    arms.setCullingMask(LayerMask{1} << 5);
+
+    auto& weapon = root.addChild<Node3D>("Weapon");
+    weapon.setLayer(5);
+    weapon.addComponent<MeshRenderer>().setMesh(ResourceRef{builtin::kCubeMesh});
+
+    const FrameData frame = extractFrame(scene, 16.0f / 9.0f, DepthRange::MinusOneToOne);
+    REQUIRE(frame.views.size() == 2);
+    CHECK(frame.views[0].camera.position == Vec3(1.0f, 2.0f, 3.0f));
+    CHECK(frame.views[0].clear == CameraClear::ColorAndDepth);
+    CHECK(frame.views[0].background == Vec4(0.1f, 0.2f, 0.3f, 1.0f));
+    CHECK(frame.views[1].clear == CameraClear::DepthOnly);
+    REQUIRE(frame.drawItems.size() == 1);
+    CHECK(frame.drawItems[0].layer == 5);
+    CHECK(inMask(frame.views[0].mask, 5));
+    CHECK(inMask(frame.views[1].mask, 5));
+    CHECK_FALSE(inMask(frame.views[1].mask, 0));
+}
+
+TEST_CASE("Node: layer stays inside the layer range")
+{
+    Node node;
+    node.setLayer(kLayerCount);
+    CHECK(node.layer() == kLayerCount - 1);
+    node.setLayer(-1);
+    CHECK(node.layer() == 0);
 }

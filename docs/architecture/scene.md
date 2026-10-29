@@ -320,9 +320,9 @@ the order lives in one frame loop class that knows only the order **[next]**.
 
 - **The snapshot from Extract** is all the renderer reads; it never touches
   the scene. Later the renderer can move to its own thread (the game computes
-  frame N+1 while frame N is drawn) without changing game code. Today
-  `buildFrameData` is already an extract; it becomes part of the render system
-  together with the list of views, cameras, layers and masks **[next]**.
+  frame N+1 while frame N is drawn) without changing game code. Extract is
+  `extractFrame(scene, ...)`: the views of the render system's cameras and
+  what to draw, with layers **[done]**.
 - **World matrices** are cached with a dirty flag: a change of a transform
   marks the node and its branch, a read recomputes only what is stale
   **[done]**. `TransformSystem3D` queues the top changed node of every branch
@@ -380,8 +380,8 @@ As in Unity:
 - There is no separate `visible` flag: hiding a mesh is disabling its
   `MeshRenderer`, like `Renderer.enabled` in Unity.
 - A node has a **layer** (one of 32, names in the project settings). Camera
-  masks and physics collisions filter by layers **[next]**, together with
-  the cameras below.
+  masks and physics collisions filter by layers **[done]**; until the layer
+  names come, the inspector shows numbers.
 - An exception from a lifecycle call is caught: the component is disabled, the
   error goes to the log, the game goes on.
 - `active` and `enabled` are ordinary registry properties (of `Node` and of
@@ -441,22 +441,27 @@ the hand; a wagon hooked to a train must not move in the world.
 - Nodes without a transform (`Node`) and parents that are not `Node3D` have
   nothing to recompute: the flag changes nothing there.
 
-## Cameras and rendering [next]
+## Cameras and rendering [done]
 
 Prepared for several cameras (for example the player's arms drawn by a second
 camera over the world, so they never go into walls); the arms themselves are
 not part of this.
 
 - `Camera3D` has an **order** (lower is drawn first), a **culling mask** of
-  layers and a **clear mode**: colour and depth, depth only, nothing.
-- The render system collects the enabled cameras of the scene, sorted by
-  order. The frame data carries a list of views instead of one camera; the
+  layers, a **clear mode** (colour and depth, depth only, nothing) and a
+  **background** colour for the first mode. The background is the camera's,
+  not the scene's: a second camera clearing colour and depth uses its own.
+- `RenderSystem` keeps the cameras of the scene (a camera adds itself when
+  it enters the scene) and gives those with an active node, sorted by order. The frame data carries a list of views instead of one camera; the
   backend draws them in turn, each with its own clear and only the items whose
   layer is in its mask.
-- The **main camera** (the first view, the one the game is seen through) is
-  state of the render system, not of `Scene`; a camera that leaves the scene
-  drops out of the list by itself. Today `Scene::activeCamera()` is a raw
-  `Camera3D*` reset by hand in several places.
+- The **main camera** is the first one in that order, the one the game is
+  seen through: `scene.system<RenderSystem>()->mainCamera()`. It is not
+  stored anywhere, neither in `Scene` nor in the scene file; to change it,
+  change the order or deactivate a camera. A camera that leaves the scene
+  drops out of the list by itself.
+- The editor's own camera (no game camera, or not playing) is drawn as one
+  view with the background from the editor theme.
 - **Camera preview** in the editor, as in Unity: while a camera is selected, a
   small window in the corner of the viewport shows the picture through it, so
   the camera can be placed by eye. A button on the viewport toggles it, the

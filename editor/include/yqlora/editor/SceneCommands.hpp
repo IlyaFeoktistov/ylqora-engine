@@ -13,7 +13,6 @@
 
 namespace yqlora {
 
-class Camera3D;
 class TypeInfo;
 
 } // namespace yqlora
@@ -36,8 +35,6 @@ struct DetachedBranch {
     // 0 - ветка была корнем сцены.
     NodeId parent = 0;
     std::size_t index = 0;
-    // Активная камера, если она была внутри ветки.
-    Camera3D* activeCamera = nullptr;
 };
 
 // Новый узел типа type ребёнком parent (0 - ребёнком корня, а в пустой
@@ -65,8 +62,8 @@ private:
     DetachedBranch m_branch;
 };
 
-// Удаление узла со всеми детьми. Активная камера и выделение внутри
-// ветки при отмене возвращаются.
+// Удаление узла со всеми детьми. Выделение внутри ветки при отмене
+// возвращается.
 class DeleteNodeCommand final : public Command {
 public:
     explicit DeleteNodeCommand(NodeId node);

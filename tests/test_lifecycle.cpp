@@ -1,3 +1,5 @@
+#include "EngineRegistry.hpp"
+
 #include <doctest/doctest.h>
 
 #include <yqlora/core/EngineServices.hpp>
@@ -5,6 +7,7 @@
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Camera3D.hpp>
 #include <yqlora/scene/Node3D.hpp>
+#include <yqlora/scene/RenderSystem.hpp>
 #include <yqlora/scene/Scene.hpp>
 
 #include <functional>
@@ -123,7 +126,6 @@ constexpr float kNoFixedStep = 0.1f * kDefaultFixedStep;
 struct Fixture {
     Fixture()
     {
-        registerEngineTypes(registry);
         registry.registerComponent<Recorder>().allowMultiple();
         registry.registerComponent<UpdateOnly>();
         registry.registerComponent<Early>().executionOrder(-1);
@@ -134,7 +136,7 @@ struct Fixture {
 
     // Журнал раньше сцены: сцена при уничтожении останавливает дерево и пишет в него.
     Events events;
-    TypeRegistry registry;
+    test::EngineRegistry registry;
     Input input;
     EngineServices services{input, registry};
     Scene scene{services};
@@ -397,7 +399,6 @@ TEST_CASE_FIXTURE(Fixture, "Tree changes: destroyed twice, or with the branch, i
     auto& root = scene.createRoot<Node3D>();
     auto& parent = root.addChild<Node3D>();
     auto& child = parent.addChild<Camera3D>();
-    scene.setActiveCamera(&child);
     auto& action = root.addComponent<Action>();
     action.call = [&] {
         scene.destroy(child);
@@ -407,8 +408,8 @@ TEST_CASE_FIXTURE(Fixture, "Tree changes: destroyed twice, or with the branch, i
     };
     scene.advance(kNoFixedStep);
     CHECK(root.children().empty());
-    // Камера ушла вместе с веткой: висячего указателя не остаётся.
-    CHECK(scene.activeCamera() == nullptr);
+    // Камера ушла вместе с веткой и выпала из списка камер.
+    CHECK(scene.system<RenderSystem>()->mainCamera() == nullptr);
 }
 
 TEST_CASE_FIXTURE(Fixture, "Tree changes: outside a frame the root is destroyed at once")

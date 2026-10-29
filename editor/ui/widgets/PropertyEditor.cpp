@@ -8,12 +8,14 @@
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/render/MeshData.hpp"
 #include "yqlora/resource/ResourceDatabase.hpp"
+#include "yqlora/scene/Layers.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
 #include <algorithm>
+#include <bit>
 #include <cctype>
 #include <string_view>
 #include <utility>
@@ -142,6 +144,79 @@ bool meshCombo(ResourceRef& value, const ResourceDatabase* resources)
     return changed;
 }
 
+// Подпись слоя. Пока номер: имена слоёв придут с настройками проекта.
+std::string layerLabel(int layer)
+{
+    return std::to_string(layer);
+}
+
+bool layerCombo(int& layer)
+{
+    bool changed = false;
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (ImGui::BeginCombo("##value", layerLabel(layer).c_str())) {
+        for (int i = 0; i < kLayerCount; ++i) {
+            if (ImGui::Selectable(layerLabel(i).c_str(), i == layer)) {
+                layer = i;
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    return changed;
+}
+
+std::string maskPreview(LayerMask mask)
+{
+    if (mask == kAllLayers) {
+        return tr("editor.layers.everything");
+    }
+    if (mask == 0) {
+        return tr("editor.layers.nothing");
+    }
+    std::string result;
+    for (int i = 0; i < kLayerCount; ++i) {
+        if (inMask(mask, i)) {
+            result += (result.empty() ? "" : ", ") + layerLabel(i);
+        }
+    }
+
+    return result;
+}
+
+// Маска хранится в int с теми же битами, см. PropertyStorage<std::uint32_t>.
+bool layerMaskCombo(int& stored, float checkboxPadding)
+{
+    auto mask = std::bit_cast<LayerMask>(stored);
+    bool changed = false;
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (ImGui::BeginCombo("##value", maskPreview(mask).c_str())) {
+        if (ImGui::Selectable(tr("editor.layers.everything").c_str(), mask == kAllLayers)) {
+            mask = kAllLayers;
+            changed = true;
+        }
+        if (ImGui::Selectable(tr("editor.layers.nothing").c_str(), mask == 0)) {
+            mask = 0;
+            changed = true;
+        }
+        ImGui::Separator();
+        for (int i = 0; i < kLayerCount; ++i) {
+            bool on = inMask(mask, i);
+            ImGui::PushID(i);
+            if (checkbox(layerLabel(i).c_str(), &on, checkboxPadding)) {
+                mask ^= LayerMask{1} << i;
+                changed = true;
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndCombo();
+    }
+    stored = std::bit_cast<int>(mask);
+
+    return changed;
+}
+
 bool enumCombo(const Property& property, EnumValue& value)
 {
     const auto& names = property.enumNames();
@@ -239,8 +314,14 @@ void valueField(
         result.changed = checkbox("##value", &std::get<bool>(value), context.metrics.checkboxPadding) || result.changed;
         break;
     case PropertyType::Int:
-        ImGui::SetNextItemWidth(-FLT_MIN);
-        result.changed = ImGui::DragInt("##value", &std::get<int>(value)) || result.changed;
+        if (property.hint() == PropertyHint::Layer) {
+            result.changed = layerCombo(std::get<int>(value)) || result.changed;
+        } else if (property.hint() == PropertyHint::LayerMask) {
+            result.changed = layerMaskCombo(std::get<int>(value), context.metrics.checkboxPadding) || result.changed;
+        } else {
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            result.changed = ImGui::DragInt("##value", &std::get<int>(value)) || result.changed;
+        }
         break;
     case PropertyType::Float: floatField("##value", std::get<float>(value), -FLT_MIN, "%.3f", result); break;
     case PropertyType::String:

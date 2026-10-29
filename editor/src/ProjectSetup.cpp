@@ -31,7 +31,6 @@ void buildStarterScene(Scene& scene)
     auto& camera = root.addChild<Camera3D>("Camera");
     camera.transform().setPosition(kStarterCameraPosition);
     camera.transform().lookAt(kStarterCubePosition);
-    scene.setActiveCamera(&camera);
 
     auto& cube = root.addChild<Node3D>("Cube");
     cube.transform().setPosition(kStarterCubePosition);

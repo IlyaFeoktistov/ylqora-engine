@@ -75,7 +75,11 @@ TEST_CASE("TypeRegistry: properties include base types, base first")
     registerEngineTypes(registry);
 
     const auto properties = registry.properties(*registry.find("Camera3D"));
-    CHECK(names(properties) == std::vector<std::string>{"name", "active", "fov", "near", "far"});
+    CHECK(
+        names(properties)
+        == std::vector<
+            std::string>{"name", "active", "layer", "fov", "near", "far", "order", "cullingMask", "clear", "background"}
+    );
     // У компонентов корень - Component.
     CHECK(
         names(registry.properties(*registry.find("MeshRenderer")))
@@ -97,7 +101,7 @@ TEST_CASE("Property: reads and writes values through getters and setters")
     Camera3D camera("Main");
     const auto properties = registry.properties(*registry.find("Camera3D"));
     const Property& name = *properties[0];
-    const Property& fov = *properties[2];
+    const Property& fov = *properties[3];
 
     CHECK(std::get<std::string>(name.get(camera)) == "Main");
     CHECK(fov.type() == PropertyType::Float);

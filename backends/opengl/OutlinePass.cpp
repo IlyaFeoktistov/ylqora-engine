@@ -39,7 +39,7 @@ OutlinePass::~OutlinePass()
     glDeleteFramebuffers(1, &m_maskFramebuffer);
 }
 
-void OutlinePass::draw(const FrameData& frame, int width, int height)
+void OutlinePass::draw(const FrameData& frame, const CameraData& camera, int width, int height)
 {
     const auto isSelected = [&](const DrawItem& item) {
         return std::ranges::find(frame.editor.selected, item.node) != frame.editor.selected.end();
@@ -60,7 +60,7 @@ void OutlinePass::draw(const FrameData& frame, int width, int height)
     glClear(GL_COLOR_BUFFER_BIT);
     glDisable(GL_DEPTH_TEST);
 
-    const Mat4 viewProjection = frame.camera.projection * frame.camera.view;
+    const Mat4 viewProjection = camera.projection * camera.view;
     m_maskShader.use();
     for (const DrawItem& item : frame.drawItems) {
         if (!isSelected(item)) {

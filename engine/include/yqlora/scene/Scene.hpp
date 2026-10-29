@@ -20,8 +20,6 @@
 
 namespace yqlora {
 
-class Camera3D;
-
 // Дерево узлов с одним корнем. Новая сцена пуста:
 // корня нет, пока его не создадут (любого типа: Node, Node3D, ...).
 class YQLORA_API Scene {
@@ -68,7 +66,7 @@ public:
     }
 
     // Делает узел корнем (у него не должно быть родителя). Прежний корень
-    // уничтожается; nullptr очищает сцену. Активная камера сбрасывается.
+    // уничтожается; nullptr очищает сцену.
     void setRoot(std::unique_ptr<Node> root);
 
     // Забирает дерево из сцены, сцена становится пустой. Запущенное в игре останавливается.
@@ -90,28 +88,6 @@ public:
     bool inFrame() const
     {
         return m_inFrame;
-    }
-
-    // Камера, через которую смотрим. Должна принадлежать этой сцене;
-    // при удалении камеры из дерева сбросьте её через setActiveCamera(nullptr).
-    void setActiveCamera(Camera3D* camera)
-    {
-        m_activeCamera = camera;
-    }
-
-    Camera3D* activeCamera() const
-    {
-        return m_activeCamera;
-    }
-
-    void setClearColor(const Vec4& color)
-    {
-        m_clearColor = color;
-    }
-
-    const Vec4& clearColor() const
-    {
-        return m_clearColor;
     }
 
     // Компоненты в дереве сцены ровно этого типа (без наследников), в порядке
@@ -209,8 +185,6 @@ private:
     bool m_inFrame = false;
     std::unique_ptr<Node> m_root;
     std::unordered_map<std::type_index, std::vector<Component*>> m_components;
-    Camera3D* m_activeCamera = nullptr;
-    Vec4 m_clearColor{0.08f, 0.09f, 0.12f, 1.0f};
 };
 
 } // namespace yqlora

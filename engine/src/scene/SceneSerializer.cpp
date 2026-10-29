@@ -31,8 +31,6 @@ constexpr FileFormat kFormat{"Scene", kFirstFormatVersion, kMigrations};
 
 // Ключи текущего формата.
 constexpr const char* kRootKey = "root";
-constexpr const char* kClearColorKey = "clearColor";
-constexpr const char* kActiveCameraKey = "activeCamera";
 constexpr const char* kTypeKey = "type";
 constexpr const char* kIdKey = "id";
 constexpr const char* kPropertiesKey = "properties";
@@ -232,8 +230,6 @@ Json SceneSerializer::Format::write(const Scene& scene) const
 {
     Json json;
     kFormat.stamp(json);
-    json[kClearColorKey] = vectorToJson(scene.clearColor());
-    json[kActiveCameraKey] = idToJson(scene.activeCamera() ? scene.activeCamera()->id() : NodeId{0});
     json[kRootKey] = scene.root() ? nodeToJson(registry, *scene.root()) : Json(nullptr);
 
     return json;
@@ -260,16 +256,6 @@ bool SceneSerializer::Format::readScene(Scene& scene, Json json) const
     }
 
     scene.setRoot(std::move(root));
-    if (const auto it = json.find(kClearColorKey); it != json.end()) {
-        if (const auto color = vectorFromJson<Vec4>(*it)) {
-            scene.setClearColor(*color);
-        }
-    }
-    const auto camera = json.contains(kActiveCameraKey) ? idFromJson(json[kActiveCameraKey]) : std::nullopt;
-    if (camera && scene.root()) {
-        Node* node = findNode(*scene.root(), *camera);
-        scene.setActiveCamera(dynamic_cast<Camera3D*>(node));
-    }
 
     return true;
 }

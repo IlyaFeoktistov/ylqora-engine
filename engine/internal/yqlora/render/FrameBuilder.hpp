@@ -5,9 +5,15 @@
 
 namespace yqlora {
 
+class Camera3D;
 class Scene;
 
-// Снимок сцены для рендерера на текущий кадр.
-YQLORA_API FrameData buildFrameData(const Scene& scene, float aspect, DepthRange depthRange);
+// Extract: снимок сцены для рендерера на текущий кадр. Виды всех активных
+// камер в порядке отрисовки (см. RenderSystem) и всё, что рисовать. После
+// него рендерер сцену не читает.
+YQLORA_API FrameData extractFrame(const Scene& scene, float aspect, DepthRange depthRange);
+
+// Вид через одну камеру, например для превью камеры в редакторе.
+YQLORA_API ViewData cameraView(const Camera3D& camera, float aspect, DepthRange depthRange);
 
 } // namespace yqlora

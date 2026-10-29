@@ -2,7 +2,6 @@
 
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
-#include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/Node3D.hpp"
 #include "yqlora/scene/NodeTree.hpp"
 #include "yqlora/scene/Scene.hpp"
@@ -32,15 +31,11 @@ std::string uniqueChildName(const Node& parent, const std::string& base)
     }
 }
 
-// Активная камера и выделение внутри ветки сбрасываются, чтобы не остались висячими.
+// Выделение внутри ветки сбрасывается, чтобы не осталось висячим.
 DetachedBranch detach(EditorSession& session, Node& node)
 {
     Scene& scene = session.scene();
     DetachedBranch branch;
-    if (scene.activeCamera() && isInBranch(node, *scene.activeCamera())) {
-        branch.activeCamera = scene.activeCamera();
-        scene.setActiveCamera(nullptr);
-    }
     const Selection selected = session.selection();
     for (const NodeId id : selected.nodes()) {
         const Node* selectedNode = session.findNode(id);
@@ -82,9 +77,6 @@ Node* attach(EditorSession& session, DetachedBranch& branch)
             return nullptr;
         }
         parent->insertChild(std::min(branch.index, parent->children().size()), std::move(branch.node));
-    }
-    if (branch.activeCamera) {
-        scene.setActiveCamera(std::exchange(branch.activeCamera, nullptr));
     }
 
     return node;

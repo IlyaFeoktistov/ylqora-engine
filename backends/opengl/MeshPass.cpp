@@ -26,12 +26,12 @@ MeshPass::MeshPass(GlMeshCache& meshes)
     m_lightDirectionLocation = m_shader.uniformLocation("uLightDirection");
 }
 
-void MeshPass::draw(const FrameData& frame) const
+void MeshPass::draw(const FrameData& frame, const ViewData& view) const
 {
     if (frame.drawItems.empty()) {
         return;
     }
-    const Mat4 viewProjection = frame.camera.projection * frame.camera.view;
+    const Mat4 viewProjection = view.camera.projection * view.camera.view;
 
     m_shader.use();
     glUniformMatrix4fv(m_viewProjectionLocation, 1, GL_FALSE, glm::value_ptr(viewProjection));
@@ -40,6 +40,9 @@ void MeshPass::draw(const FrameData& frame) const
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     for (const DrawItem& item : frame.drawItems) {
+        if (!inMask(view.mask, item.layer)) {
+            continue;
+        }
         // Нормали поворачиваются вместе с объектом, но неравномерный масштаб
         // их бы исказил: для этого и нужна обратная транспонированная матрица.
         const Mat3 normalMatrix = glm::transpose(glm::inverse(Mat3(item.world)));

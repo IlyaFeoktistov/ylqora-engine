@@ -62,18 +62,16 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: the first node becomes the root, the 
     CHECK(session.createNode(type("Transform3D"), nullptr) == nullptr);
 }
 
-TEST_CASE_FIXTURE(Fixture, "EditorSession: deleting a branch resets the active camera and the selection inside it")
+TEST_CASE_FIXTURE(Fixture, "EditorSession: deleting a branch resets the selection inside it")
 {
     Node* root = session.createNode(type("Node3D"), nullptr);
     Node* holder = session.createNode(type("Node3D"), root);
     auto* camera = static_cast<Camera3D*>(session.createNode(type("Camera3D"), holder));
-    scene.setActiveCamera(camera);
     session.selection().select(camera->id());
     const NodeId holderId = holder->id();
 
     REQUIRE(session.deleteNode(holderId));
     CHECK(session.findNode(holderId) == nullptr);
-    CHECK(scene.activeCamera() == nullptr);
     CHECK(session.selection().selected() == 0);
     CHECK(root->children().empty());
 

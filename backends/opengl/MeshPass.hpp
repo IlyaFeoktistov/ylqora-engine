@@ -14,7 +14,8 @@ class MeshPass {
 public:
     explicit MeshPass(GlMeshCache& meshes);
 
-    void draw(const FrameData& frame) const;
+    // Меши кадра со слоем из маски вида, через камеру вида.
+    void draw(const FrameData& frame, const ViewData& view) const;
 
 private:
     GlMeshCache& m_meshes;

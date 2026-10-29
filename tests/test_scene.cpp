@@ -20,8 +20,9 @@ TEST_CASE("Scene: new scene is empty")
 
     // Пустую сцену можно обновлять и рисовать.
     scene.advance(0.016f);
-    const FrameData frame = buildFrameData(scene, 1.0f, DepthRange::MinusOneToOne);
-    CHECK(frame.clearColor == scene.clearColor());
+    const FrameData frame = extractFrame(scene, 1.0f, DepthRange::MinusOneToOne);
+    CHECK(frame.views.empty());
+    CHECK(frame.drawItems.empty());
 }
 
 TEST_CASE("Scene: root can be of any node type")
@@ -31,16 +32,6 @@ TEST_CASE("Scene: root can be of any node type")
     CHECK_FALSE(scene.empty());
     CHECK(scene.root() == &root);
     CHECK(root.parent() == nullptr);
-}
-
-TEST_CASE("Scene: replacing the root resets the active camera")
-{
-    Scene scene{EngineServices::none()};
-    auto& camera = scene.createRoot<Camera3D>();
-    scene.setActiveCamera(&camera);
-
-    scene.createRoot<Node>();
-    CHECK(scene.activeCamera() == nullptr);
 }
 
 TEST_CASE("Scene: takeRoot leaves the scene empty")

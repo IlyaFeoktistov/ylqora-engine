@@ -6,6 +6,7 @@
 #include <yqlora/editor/ProjectSetup.hpp>
 #include <yqlora/project/Project.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
+#include <yqlora/scene/Camera3D.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 
@@ -52,7 +53,7 @@ TEST_CASE("Project: create makes a folder with the project file and a starter sc
     REQUIRE(serializer.load(scene, loaded->directory() / *loaded->mainScenePath()));
     REQUIRE(scene.root());
     CHECK(scene.root()->children().size() == 2);
-    CHECK(scene.activeCamera() != nullptr);
+    CHECK(dynamic_cast<Camera3D*>(scene.root()->findChild("Camera")) != nullptr);
 
     // Второй раз в ту же папку нельзя.
     CHECK_FALSE(createProject(location, "My Game", serializer, error));

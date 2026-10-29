@@ -172,6 +172,7 @@ void applyEditorColors(const Json& json, EditorColors& colors)
     read("errorText", colors.errorText);
     read("selectionOutline", colors.selectionOutline);
     read("cameraGizmo", colors.cameraGizmo);
+    read("viewportBackground", colors.viewportBackground);
     read("playMode", colors.playMode);
     read("axisX", colors.axisX);
     read("axisY", colors.axisY);
