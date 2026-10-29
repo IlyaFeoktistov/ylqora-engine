@@ -4,6 +4,7 @@
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/scene/Component.hpp"
 #include "yqlora/scene/Node.hpp"
+#include "yqlora/scene/SceneSystem.hpp"
 
 #include <cassert>
 #include <concepts>
@@ -23,6 +24,7 @@ namespace yqlora {
 enum class TypeKind {
     Node,
     Component,
+    System,
 };
 
 // Описание типа узла или компонента: по нему редактор строит меню создания
@@ -34,7 +36,7 @@ public:
         return m_name;
     }
 
-    // Пусто у Node и Component: это корни иерархий.
+    // Пусто у Node, Component и SceneSystem: это корни иерархий.
     const std::string& baseName() const
     {
         return m_baseName;
@@ -55,7 +57,7 @@ public:
     // Встроенные компоненты (Transform) создаёт сам узел, поэтому они не создаваемые.
     bool creatable() const
     {
-        return m_createNode != nullptr || m_createComponent != nullptr;
+        return m_createNode != nullptr || m_createComponent != nullptr || m_createSystem != nullptr;
     }
 
     // Встроенный компонент: его создаёт сам узел, снять и выключить его нельзя.
@@ -113,6 +115,7 @@ public:
     // nullptr, если это не узел (не компонент) или тип нельзя создать.
     std::unique_ptr<Node> createNode() const;
     std::unique_ptr<Component> createComponent() const;
+    std::unique_ptr<SceneSystem> createSystem(Scene& scene) const;
 
 private:
     friend class TypeRegistry;
@@ -125,6 +128,7 @@ private:
     TypeKind m_kind = TypeKind::Node;
     std::function<std::unique_ptr<Node>()> m_createNode;
     std::function<std::unique_ptr<Component>()> m_createComponent;
+    std::function<std::unique_ptr<SceneSystem>(Scene&)> m_createSystem;
     std::vector<Property> m_properties;
     std::string m_requiredNode;
     std::vector<std::string> m_requiredComponents;
@@ -148,6 +152,7 @@ public:
     // вида Value(const Class&) и void(Class&, Value).
     template <typename Getter, typename Setter>
     TypeBuilder& property(std::string name, Getter getter, Setter setter, PropertyHint hint = PropertyHint::None)
+        requires(!std::same_as<Root, SceneSystem>)
     {
         using Value = std::remove_cvref_t<std::invoke_result_t<Getter, const Class&>>;
 
@@ -229,6 +234,7 @@ public:
     // Свойство-поле, когда getter и setter не нужны: .property("radius", &SphereShape::radius);
     template <typename Value>
     TypeBuilder& property(std::string name, Value Class::* field, PropertyHint hint = PropertyHint::None)
+        requires(!std::same_as<Root, SceneSystem>)
     {
         const auto getter = [field](const Class& object) -> const Value& {
             return object.*field;
@@ -322,6 +328,21 @@ public:
         return TypeBuilder<T, Component>(info);
     }
 
+    // Система сцены (см. SceneSystem): каждая новая сцена создаёт её через
+    // конструктор T(Scene&).
+    template <std::derived_from<SceneSystem> T>
+    TypeBuilder<T, SceneSystem> registerSystem()
+    {
+        TypeInfo& info = add<T>(TypeKind::System);
+        if constexpr (std::is_constructible_v<T, Scene&> && !std::is_abstract_v<T>) {
+            info.m_createSystem = [](Scene& scene) {
+                return std::unique_ptr<SceneSystem>(std::make_unique<T>(scene));
+            };
+        }
+
+        return TypeBuilder<T, SceneSystem>(info);
+    }
+
     // nullptr, если тип не зарегистрирован.
     const TypeInfo* find(std::string_view name) const;
 
@@ -363,7 +384,7 @@ private:
         info->m_name = std::string(name);
         info->m_module = m_module;
         info->m_kind = kind;
-        // У Node и Component базы в реестре нет.
+        // У корней (Node, Component, SceneSystem) базы в реестре нет.
         using Base = typename T::YqloraBaseType;
         if constexpr (!std::is_void_v<Base>) {
             static_assert(std::derived_from<T, Base>, "YQLORA_TYPE: the base is not a base of the class");
@@ -386,7 +407,8 @@ private:
     std::string m_module{engineModule()};
 };
 
-// Типы движка: Node, Node3D, Camera3D, Component, Transform3D, MeshRenderer.
+// Типы движка: Node, Node3D, Camera3D, Component, Transform3D, MeshRenderer,
+// SceneSystem, TransformSystem3D.
 YQLORA_API void registerEngineTypes(TypeRegistry& registry);
 
 } // namespace yqlora

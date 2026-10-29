@@ -246,29 +246,39 @@ public:
 Every scene has its own; the Play copy starts at zero and pause stops it. The
 real frame length comes from `FrameClock`, game time is derived from it.
 
-### Scene systems [next]
+### Scene systems [done]
 
 The main extension point: a module adds a system and its components; `Scene`,
 the frame loop and the application do not change.
 
 ```cpp
-class SceneSystem {
+class PhysicsWorld : public SceneSystem {
 public:
-    virtual ~SceneSystem() = default;
-    virtual void fixedUpdate(float step) {}    // physics steps here
-    virtual void update(float delta) {}
-    virtual void lateUpdate(float delta) {}    // after scripts: render list, audio
+    YQLORA_TYPE(PhysicsWorld, SceneSystem)
+    explicit PhysicsWorld(Scene& scene);
+
+    void fixedUpdate(float step) override;     // physics steps here
+    // also update, lateUpdate (after scripts: render list, audio)
+    // and updateTransforms (after the simulation, before extract)
 };
 
-// A module registers a factory once; every new scene gets an instance:
-systems.add<PhysicsWorld>([](Scene& scene) { return std::make_unique<PhysicsWorld>(scene); });
+// A module registers the type once; every new scene gets an instance:
+registry.registerSystem<PhysicsWorld>();
 scene.system<PhysicsWorld>()                    // a component registers its body in onEnterScene
 ```
 
-The edited scene in the editor has its systems too (bodies exist, colliders
-can be drawn), but only the Play copy is stepped.
+- Systems are types of the registry (`TypeKind::System`), so they belong to a
+  module and leave with it like components. A scene creates one instance of
+  every system type when it is constructed; on a reload of the game module the
+  scene is recreated together with its tree **[planned, step 3]**.
+- Systems are called in the order of registration. An explicit order comes
+  with the first pair of systems that needs one.
+- The edited scene in the editor has its systems too (bodies exist, colliders
+  can be drawn), but only the Play copy is stepped.
+- `TransformSystem3D` is the first system: it keeps the world matrices of 3D
+  nodes fresh, see the frame pipeline.
 
-### One frame [next]
+### One frame [done]
 
 The order lives in one place, `Scene::advance`:
 
@@ -285,9 +295,7 @@ scene.advance(realDelta):
 ```
 
 The game (`Application`) calls `advance` every frame, the editor's `PlayMode`
-calls it for the Play copy when not paused, tests call it directly. Today
-`advance` does everything above except the systems, which come with their
-item.
+calls it for the Play copy when not paused, tests call it directly.
 
 ## Frame pipeline
 
@@ -317,8 +325,9 @@ the order lives in one frame loop class that knows only the order **[next]**.
   together with the list of views, cameras, layers and masks **[next]**.
 - **World matrices** are cached with a dirty flag: a change of a transform
   marks the node and its branch, a read recomputes only what is stale
-  **[done]**. One pass over the changed nodes between simulation and extract
-  comes as the 3D transform system with the scene systems **[next]**.
+  **[done]**. `TransformSystem3D` queues the top changed node of every branch
+  and refreshes them in one pass between simulation and extract
+  (`scene.updateTransforms()`), so extract reads ready values **[done]**.
 - **The render graph**: a pass declares what it reads and writes, the graph
   orders the passes. A new effect is one more pass, not a change of the
   renderer. The editor adds its own passes (grid, selection outline) to the

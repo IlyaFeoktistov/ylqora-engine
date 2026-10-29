@@ -217,6 +217,8 @@ void Application::mainLoop()
             m_scene.advance(deltaSeconds);
         }
         onUpdate(deltaSeconds);
+        // Сцену меняют и без игры: редактор правит её между кадрами.
+        m_scene.updateTransforms();
 
         if (m_ui) {
             m_ui->beginFrame();

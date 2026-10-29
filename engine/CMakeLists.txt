@@ -41,6 +41,8 @@ add_library(yqlora SHARED
     src/scene/Camera3D.cpp
     src/scene/PhaseList.cpp
     src/scene/Scene.cpp
+    src/scene/SceneSystem.cpp
+    src/scene/TransformSystem3D.cpp
     src/scene/SceneSerializer.cpp
     src/project/Project.cpp
     src/reflection/ComponentRules.cpp

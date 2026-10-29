@@ -4,6 +4,7 @@
 #include "yqlora/scene/MeshRenderer.hpp"
 #include "yqlora/scene/Node3D.hpp"
 #include "yqlora/scene/Transform3D.hpp"
+#include "yqlora/scene/TransformSystem3D.hpp"
 
 #include <cassert>
 #include <ranges>
@@ -18,6 +19,11 @@ std::unique_ptr<Node> TypeInfo::createNode() const
 std::unique_ptr<Component> TypeInfo::createComponent() const
 {
     return m_createComponent ? m_createComponent() : nullptr;
+}
+
+std::unique_ptr<SceneSystem> TypeInfo::createSystem(Scene& scene) const
+{
+    return m_createSystem ? m_createSystem(scene) : nullptr;
 }
 
 const TypeInfo* TypeRegistry::find(std::string_view name) const
@@ -101,6 +107,9 @@ void registerEngineTypes(TypeRegistry& registry)
         .requiresNode<Node3D>()
         .property("mesh", &MeshRenderer::mesh, &MeshRenderer::setMesh, PropertyHint::Mesh)
         .property("color", &MeshRenderer::color, &MeshRenderer::setColor, PropertyHint::Color);
+
+    registry.registerSystem<SceneSystem>();
+    registry.registerSystem<TransformSystem3D>();
 }
 
 } // namespace yqlora

@@ -10,6 +10,8 @@
 
 namespace yqlora {
 
+class TransformSystem3D;
+
 // Базовый узел 3D-сцены. Всегда имеет Transform3D. Сам по себе это пустой
 // объект: ничего не рисует, но может быть точкой привязки для детей.
 //
@@ -58,16 +60,21 @@ public:
 protected:
     void onParentChanged() override;
     std::function<void()> captureWorldPosition() override;
+    void onEnterScene() override;
+    void onExitScene() override;
 
 private:
     friend class Transform3D;
+    friend class TransformSystem3D;
 
     const Node3D* parent3D() const;
 
     // Свой Transform или родитель изменился: мировая матрица узла и всех
     // Node3D под ним устарела. Если узел уже устаревший, его ветка тоже:
-    // свежий узел бывает только под свежими предками.
+    // свежий узел бывает только под свежими предками. Верхний устаревший
+    // узел встаёт в очередь TransformSystem3D сцены.
     void markWorldDirty();
+    TransformSystem3D* transformSystem() const;
 
     Transform3D* m_transform = nullptr; // принадлежит списку компонентов узла
 

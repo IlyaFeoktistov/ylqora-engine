@@ -1,9 +1,12 @@
 #include <doctest/doctest.h>
 
 #include <yqlora/core/EngineServices.hpp>
+#include <yqlora/input/Input.hpp>
 #include <yqlora/math/Euler.hpp>
+#include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Node3D.hpp>
 #include <yqlora/scene/Scene.hpp>
+#include <yqlora/scene/TransformSystem3D.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -98,4 +101,36 @@ TEST_CASE("setParent: KeepWorld decides whether the node stays in place")
     scene.setParent(wagon, hand, KeepWorld::Yes);
     CHECK(near(wagon.worldPosition(), {1.0f, 2.0f, 3.0f}));
     CHECK(near(wagon.transform().rotationDegrees(), {0.0f, -30.0f, 0.0f}));
+}
+
+TEST_CASE("TransformSystem3D: one pass refreshes the changed branches only")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    Input input;
+    EngineServices services{input, registry};
+    Scene scene{services};
+    auto* system = scene.system<TransformSystem3D>();
+    REQUIRE(system);
+
+    auto& root = scene.createRoot<Node3D>();
+    auto& child = root.addChild<Node3D>();
+    scene.updateTransforms();
+    CHECK(system->pendingCount() == 0);
+
+    // Ветка встаёт в очередь один раз, сколько бы её ни меняли.
+    root.transform().setPosition({1.0f, 0.0f, 0.0f});
+    child.transform().setPosition({0.0f, 1.0f, 0.0f});
+    root.transform().setScale({2.0f, 2.0f, 2.0f});
+    CHECK(system->pendingCount() == 1);
+
+    scene.updateTransforms();
+    CHECK(system->pendingCount() == 0);
+    CHECK(near(Vec3(child.worldMatrix()[3]), {1.0f, 2.0f, 0.0f}));
+
+    // Ушедший из сцены узел из очереди убирается.
+    child.transform().setPosition({0.0f, 2.0f, 0.0f});
+    CHECK(system->pendingCount() == 1);
+    auto removed = root.removeChild(child);
+    CHECK(system->pendingCount() == 0);
 }

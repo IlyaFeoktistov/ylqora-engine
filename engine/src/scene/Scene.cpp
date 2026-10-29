@@ -60,6 +60,15 @@ constexpr std::string_view phaseCallName(LifecyclePhase phase)
 Scene::Scene(const EngineServices& services)
     : m_services(services)
 {
+    for (const auto& type : m_services.registry().types()) {
+        if (type->kind() != TypeKind::System) {
+            continue;
+        }
+        if (std::unique_ptr<SceneSystem> system = type->createSystem(*this)) {
+            m_systemsByType.emplace(std::type_index(typeid(*system)), system.get());
+            m_systems.push_back(std::move(system));
+        }
+    }
 }
 
 Scene::~Scene()
@@ -249,10 +258,19 @@ void Scene::advance(float realDelta)
     startPending();
     m_time.beginFrame(realDelta);
     while (m_time.takeFixedStep()) {
+        for (const auto& system : m_systems) {
+            system->fixedUpdate(m_time.fixedStep());
+        }
         runPhase(LifecyclePhase::FixedUpdate, m_time.fixedStep());
     }
     runPhase(LifecyclePhase::Update, m_time.delta());
+    for (const auto& system : m_systems) {
+        system->update(m_time.delta());
+    }
     runPhase(LifecyclePhase::LateUpdate, m_time.delta());
+    for (const auto& system : m_systems) {
+        system->lateUpdate(m_time.delta());
+    }
     m_inFrame = false;
 
     // Сначала дерево: уничтоженные уходят и из очереди включённых.
@@ -261,6 +279,13 @@ void Scene::advance(float realDelta)
     }
     for (Component* component : std::exchange(m_joining, {})) {
         activate(*component);
+    }
+}
+
+void Scene::updateTransforms()
+{
+    for (const auto& system : m_systems) {
+        system->updateTransforms();
     }
 }
 

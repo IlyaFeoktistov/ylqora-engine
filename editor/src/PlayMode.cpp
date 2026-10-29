@@ -51,6 +51,10 @@ void PlayMode::update(float deltaSeconds)
     if (running()) {
         m_scene->advance(deltaSeconds);
     }
+    if (playing()) {
+        // На паузе узлы тоже двигают: в инспекторе и манипулятором.
+        m_scene->updateTransforms();
+    }
 }
 
 } // namespace yqlora::editor

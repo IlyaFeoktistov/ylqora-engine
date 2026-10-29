@@ -7,6 +7,7 @@
 #include "yqlora/scene/LifecyclePhase.hpp"
 #include "yqlora/scene/Node.hpp"
 #include "yqlora/scene/PhaseList.hpp"
+#include "yqlora/scene/SceneSystem.hpp"
 
 #include <array>
 #include <concepts>
@@ -26,6 +27,7 @@ class Camera3D;
 class YQLORA_API Scene {
 public:
     // Службы задаёт владелец сцены и они переживают её; см. EngineServices::none().
+    // Системы сцены создаются здесь, по одной на каждый тип в реестре.
     explicit Scene(const EngineServices& services);
     ~Scene();
 
@@ -124,6 +126,19 @@ public:
 
     std::span<Component* const> componentsOfType(std::type_index type) const;
 
+    // Система сцены типа T; nullptr, если такая не зарегистрирована.
+    template <std::derived_from<SceneSystem> T>
+    T* system() const
+    {
+        const auto it = m_systemsByType.find(std::type_index(typeid(T)));
+
+        return it != m_systemsByType.end() ? static_cast<T*>(it->second) : nullptr;
+    }
+
+    // Мировые матрицы изменённых узлов, см. SceneSystem::updateTransforms.
+    // Цикл кадра вызывает после advance, редактор - перед отрисовкой.
+    void updateTransforms();
+
     GameTime& time()
     {
         return m_time;
@@ -136,7 +151,8 @@ public:
 
     // Кадр игры длиной realDelta секунд по часам. Весь порядок кадра - здесь:
     // onEnable и onStart новым компонентам, фиксированные шаги, update,
-    // lateUpdate, затем отложенные изменения дерева. Вызывают только участвующие компоненты (activeAndEnabled),
+    // lateUpdate (системы - рядом с компонентами, см. SceneSystem), затем
+    // отложенные изменения дерева. Вызывают только участвующие компоненты (activeAndEnabled),
     // у типа которых эта фаза переопределена. Исключение из вызова жизненного
     // цикла выключает компонент и уходит в лог, кадр идёт дальше.
     void advance(float realDelta);
@@ -177,6 +193,9 @@ private:
     void runPhase(LifecyclePhase phase, float seconds);
 
     const EngineServices& m_services;
+    // Раньше дерева: компоненты обращаются к системам, пока выходят из сцены.
+    std::vector<std::unique_ptr<SceneSystem>> m_systems;
+    std::unordered_map<std::type_index, SceneSystem*> m_systemsByType;
     GameTime m_time;
     std::array<PhaseList, kLifecyclePhaseCount> m_phases;
     // Участвуют и ещё не получили onEnable или onStart.

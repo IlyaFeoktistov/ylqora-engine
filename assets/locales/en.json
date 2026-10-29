@@ -18,6 +18,12 @@
         "Component": {
             "description": "Base of all components. A disabled component takes no part in the game."
         },
+        "SceneSystem": {
+            "description": "Base of all scene systems: physics, audio, rendering."
+        },
+        "TransformSystem3D": {
+            "description": "Keeps world matrices of 3D nodes up to date in one pass over the changed ones."
+        },
         "MeshRenderer": {
             "description": "Draws a mesh at the position of its Node3D."
         },

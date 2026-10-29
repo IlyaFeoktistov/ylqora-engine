@@ -460,3 +460,67 @@ TEST_CASE("GameTime: scale, fixed steps and their limit")
     }
     CHECK(steps == kMaxFixedStepsPerFrame);
 }
+
+namespace {
+
+// Записывает шаги кадра системы рядом с событиями компонентов.
+struct RecordingSystem final : SceneSystem {
+    YQLORA_TYPE(RecordingSystem, SceneSystem)
+
+    using SceneSystem::SceneSystem;
+
+    void fixedUpdate(float /*stepSeconds*/) override
+    {
+        log->push_back("system:fixed");
+    }
+
+    void update(float /*deltaSeconds*/) override
+    {
+        log->push_back("system:update");
+    }
+
+    void lateUpdate(float /*deltaSeconds*/) override
+    {
+        log->push_back("system:late");
+    }
+
+    Events* log = nullptr;
+};
+
+} // namespace
+
+TEST_CASE("SceneSystem: every scene gets its own, steps run next to the component phases")
+{
+    Events events;
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    registry.registerComponent<Recorder>();
+    registry.registerSystem<RecordingSystem>();
+    Input input;
+    EngineServices services{input, registry};
+    Scene scene{services};
+    Scene other{services};
+
+    auto* system = scene.system<RecordingSystem>();
+    REQUIRE(system);
+    CHECK(system != other.system<RecordingSystem>());
+    system->log = &events;
+
+    scene.createRoot<Node3D>().addComponent<Recorder>(events);
+    scene.advance(kTwoFixedSteps);
+    CHECK(
+        events
+        == Events{
+            "enable",
+            "start",
+            "system:fixed",
+            "fixed",
+            "system:fixed",
+            "fixed",
+            "update",
+            "system:update",
+            "late",
+            "system:late"
+        }
+    );
+}

@@ -1,6 +1,8 @@
 #include "yqlora/scene/Node3D.hpp"
 
 #include "yqlora/math/Euler.hpp"
+#include "yqlora/scene/Scene.hpp"
+#include "yqlora/scene/TransformSystem3D.hpp"
 
 #include <glm/gtx/matrix_decompose.hpp>
 
@@ -30,6 +32,10 @@ void Node3D::markWorldDirty()
         return;
     }
     m_worldDirty = true;
+    const Node3D* p = parent3D();
+    if (TransformSystem3D* system = transformSystem(); system && (!p || !p->m_worldDirty)) {
+        system->markDirty(*this);
+    }
     for (const auto& child : children()) {
         if (auto* child3D = dynamic_cast<Node3D*>(child.get())) {
             child3D->markWorldDirty();
@@ -105,6 +111,26 @@ Vec3 Node3D::toLocal(const Vec3& worldPoint) const
 void Node3D::onParentChanged()
 {
     markWorldDirty();
+}
+
+TransformSystem3D* Node3D::transformSystem() const
+{
+    return scene() ? scene()->system<TransformSystem3D>() : nullptr;
+}
+
+void Node3D::onEnterScene()
+{
+    // Новый узел устаревший с рождения; лишняя запись безвредна, свежие пропускаются.
+    if (TransformSystem3D* system = transformSystem(); system && m_worldDirty) {
+        system->markDirty(*this);
+    }
+}
+
+void Node3D::onExitScene()
+{
+    if (TransformSystem3D* system = transformSystem()) {
+        system->forget(*this);
+    }
 }
 
 std::function<void()> Node3D::captureWorldPosition()
