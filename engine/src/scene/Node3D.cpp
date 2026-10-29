@@ -1,5 +1,9 @@
 #include "yqlora/scene/Node3D.hpp"
 
+#include "yqlora/math/Euler.hpp"
+
+#include <glm/gtx/matrix_decompose.hpp>
+
 namespace yqlora {
 
 Node3D::Node3D(std::string name)
@@ -11,20 +15,26 @@ Node3D::Node3D(std::string name)
 
 const Mat4& Node3D::worldMatrix() const
 {
-    // Сначала актуализируем родителя: его версия говорит, менялся ли он.
-    const Node3D* p = parent3D();
-    const Mat4* parentWorld = p ? &p->worldMatrix() : nullptr;
-    const std::uint32_t parentVersion = p ? p->m_worldVersion : 0;
-
-    if (!m_worldValid || m_seenLocalVersion != m_transform->version() || m_seenParentVersion != parentVersion) {
-        m_world = parentWorld ? *parentWorld * m_transform->matrix() : m_transform->matrix();
-        m_seenLocalVersion = m_transform->version();
-        m_seenParentVersion = parentVersion;
-        m_worldValid = true;
-        ++m_worldVersion;
+    if (m_worldDirty) {
+        const Node3D* p = parent3D();
+        m_world = p ? p->worldMatrix() * m_transform->matrix() : m_transform->matrix();
+        m_worldDirty = false;
     }
 
     return m_world;
+}
+
+void Node3D::markWorldDirty()
+{
+    if (m_worldDirty) {
+        return;
+    }
+    m_worldDirty = true;
+    for (const auto& child : children()) {
+        if (auto* child3D = dynamic_cast<Node3D*>(child.get())) {
+            child3D->markWorldDirty();
+        }
+    }
 }
 
 Vec3 Node3D::worldPosition() const
@@ -37,6 +47,34 @@ void Node3D::setWorldPosition(const Vec3& position)
     const Node3D* p = parent3D();
     const Vec3 local = p ? Vec3(glm::inverse(p->worldMatrix()) * Vec4(position, 1.0f)) : position;
     m_transform->setPosition(local);
+}
+
+std::optional<TransformValues> Node3D::localValuesForWorld(const Mat4& world) const
+{
+    const Node3D* p = parent3D();
+    const Mat4 local = p ? glm::inverse(p->worldMatrix()) * world : world;
+
+    Vec3 scale;
+    Quat rotation;
+    Vec3 translation;
+    Vec3 skew;
+    Vec4 perspective;
+    if (!glm::decompose(local, scale, rotation, translation, skew, perspective)) {
+        return std::nullopt;
+    }
+
+    return TransformValues{
+        .position = translation,
+        .rotationDegrees = math::closestEulerDegrees(rotation, m_transform->rotationDegrees()),
+        .scale = scale,
+    };
+}
+
+void Node3D::setWorldMatrix(const Mat4& world)
+{
+    if (const auto values = localValuesForWorld(world)) {
+        m_transform->setValues(*values);
+    }
 }
 
 Vec3 Node3D::worldForward() const
@@ -66,8 +104,14 @@ Vec3 Node3D::toLocal(const Vec3& worldPoint) const
 
 void Node3D::onParentChanged()
 {
-    // Новый родитель может случайно иметь ту же версию, что и старый.
-    m_worldValid = false;
+    markWorldDirty();
+}
+
+std::function<void()> Node3D::captureWorldPosition()
+{
+    return [this, world = worldMatrix()] {
+        setWorldMatrix(world);
+    };
 }
 
 const Node3D* Node3D::parent3D() const

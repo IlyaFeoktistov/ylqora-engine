@@ -7,6 +7,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <span>
 #include <string>
@@ -16,6 +17,14 @@
 namespace yqlora {
 
 class Scene;
+
+// Сохранять ли положение узла в мире, когда он переходит к другому родителю.
+// No - значения относительно родителя те же, узел прыгает вместе с ними
+// (меч в руку); Yes - пересчитываются, узел остаётся на месте (вагон к поезду).
+enum class KeepWorld : bool {
+    No,
+    Yes,
+};
 
 // Базовый элемент дерева сцены. Родитель владеет детьми, ребёнок хранит
 // невладеющий указатель на родителя. Имена и типы всегда на английском.
@@ -169,6 +178,14 @@ protected:
     {
     }
 
+    // Узел переносят с KeepWorld::Yes. Узел с положением запоминает своё
+    // мировое положение и возвращает, как вернуть его после переноса; узлу без
+    // положения возвращать нечего.
+    virtual std::function<void()> captureWorldPosition()
+    {
+        return {};
+    }
+
     // Узел попал в дерево сцены или ушёл из него, см. Component::onEnterScene.
     // При входе сначала узел, потом дети; при выходе наоборот.
     virtual void onEnterScene()
@@ -193,7 +210,7 @@ private:
 
     // Переносит узел последним ребёнком parent той же сцены, не выходя из неё:
     // компоненты не останавливаются. Проверки - в Scene::setParent.
-    void moveTo(Node& parent);
+    void moveTo(Node& parent, KeepWorld keepWorld);
 
     // Игра остановлена: onDisable и onStop у компонентов узла и детей, которые
     // их ждут. Следующий update снова начнёт с onEnable и onStart.

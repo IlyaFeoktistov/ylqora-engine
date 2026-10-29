@@ -359,7 +359,7 @@ TEST_CASE_FIXTURE(Fixture, "Tree changes: moving keeps components running")
 
     events.clear();
     action.call = [&] {
-        scene.setParent(node, to);
+        scene.setParent(node, to, KeepWorld::No);
         CHECK(node.parent() == &from);
         action.call = nullptr;
     };
@@ -371,7 +371,7 @@ TEST_CASE_FIXTURE(Fixture, "Tree changes: moving keeps components running")
     // Вне кадра - сразу; под неактивным родителем компонент выключается.
     events.clear();
     from.setActive(false);
-    scene.setParent(node, from);
+    scene.setParent(node, from, KeepWorld::No);
     CHECK(node.parent() == &from);
     CHECK(events == Events{"disable"});
 }

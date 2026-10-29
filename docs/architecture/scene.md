@@ -315,8 +315,10 @@ the order lives in one frame loop class that knows only the order **[next]**.
   frame N+1 while frame N is drawn) without changing game code. Today
   `buildFrameData` is already an extract; it becomes part of the render system
   together with the list of views, cameras, layers and masks **[next]**.
-- **World matrices** are updated in one pass over changed nodes, between
-  simulation and extract **[next]**.
+- **World matrices** are cached with a dirty flag: a change of a transform
+  marks the node and its branch, a read recomputes only what is stale
+  **[done]**. One pass over the changed nodes between simulation and extract
+  comes as the 3D transform system with the scene systems **[next]**.
 - **The render graph**: a pass declares what it reads and writes, the graph
   orders the passes. A new effect is one more pass, not a change of the
   renderer. The editor adds its own passes (grid, selection outline) to the
@@ -390,7 +392,7 @@ frame take part from the next one.
 
 ```cpp
 scene.destroy(node);              // the node with its branch, the root too
-scene.setParent(node, newParent); // last child of newParent
+scene.setParent(node, newParent, KeepWorld::No); // last child of newParent
 ```
 
 - Outside a frame (editor, loading, tests) both apply at once; `inFrame()`
@@ -398,9 +400,8 @@ scene.setParent(node, newParent); // last child of newParent
 - The queue refers to nodes by ID: a node gone with a destroyed branch is
   skipped, destroying twice is harmless.
 - A move keeps the components running (no `onDisable` / `onEnable`, unless the
-  new parent changes `activeInHierarchy`). Today it keeps the transform
-  relative to the parent; the choice below comes with world matrices
-  **[next]**.
+  new parent changes `activeInHierarchy`). What happens to the position is
+  the choice below.
 - A component enabled during a frame, like one of a new node, takes part from
   the next frame.
 - `removeChild`, `setRoot` and `takeRoot` during a frame are a programming
@@ -412,7 +413,7 @@ Both are needed: a sword taken into a hand gets a new position relative to
 the hand; a wagon hooked to a train must not move in the world.
 
 - **Scripts** say it in every call, there is no default (Unity and Godot have
-  opposite ones, any default would surprise someone) **[next]**:
+  opposite ones, any default would surprise someone) **[done]**:
 
   ```cpp
   scene.setParent(sword, hand, KeepWorld::No);    // local values stay, the node jumps
@@ -447,6 +448,14 @@ not part of this.
   state of the render system, not of `Scene`; a camera that leaves the scene
   drops out of the list by itself. Today `Scene::activeCamera()` is a raw
   `Camera3D*` reset by hand in several places.
+- **Camera preview** in the editor, as in Unity: while a camera is selected, a
+  small window in the corner of the viewport shows the picture through it, so
+  the camera can be placed by eye. A button on the viewport toggles it, the
+  choice is an editor setting **[next]**.
+- **Two windows during Play**, as in Unity: "Game" shows the main camera,
+  "Scene" keeps the free editor camera, where nodes are selected and changed
+  while the game runs. Changes made during Play belong to the Play copy and
+  are gone after Stop **[next]**.
 - A scene switch requested by a script happens between frames, never in the
   middle of an update **[planned, step 9]**.
 

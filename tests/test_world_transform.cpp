@@ -1,12 +1,14 @@
 #include <doctest/doctest.h>
 
-#include <yqlora/editor/TransformEdit.hpp>
+#include <yqlora/core/EngineServices.hpp>
+#include <yqlora/math/Euler.hpp>
 #include <yqlora/scene/Node3D.hpp>
+#include <yqlora/scene/Scene.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
 
 using namespace yqlora;
-using namespace yqlora::editor;
+using namespace yqlora::math;
 
 namespace {
 
@@ -47,11 +49,53 @@ TEST_CASE("setWorldMatrix: world matrix becomes local position, rotation and sca
     Mat4 world = glm::translate(Mat4(1.0f), Vec3(12.0f, 4.0f, 0.0f));
     world = glm::rotate(world, glm::radians(30.0f), Vec3(0.0f, 1.0f, 0.0f));
     world = glm::scale(world, Vec3(4.0f, 4.0f, 4.0f));
-    setWorldMatrix(child, world);
+    child.setWorldMatrix(world);
 
     // В координатах родителя со сдвигом 10 и масштабом 2.
     CHECK(near(child.transform().position(), {1.0f, 2.0f, 0.0f}));
     CHECK(near(child.transform().rotationDegrees(), {0.0f, 30.0f, 0.0f}));
     CHECK(near(child.transform().scale(), {2.0f, 2.0f, 2.0f}));
     CHECK(near(child.worldPosition(), {12.0f, 4.0f, 0.0f}));
+}
+
+TEST_CASE("World matrix: follows changes of the node, its parents and its parent")
+{
+    Node3D root;
+    auto& middle = root.addChild<Node3D>();
+    auto& leaf = middle.addChild<Node3D>();
+    leaf.transform().setPosition({0.0f, 0.0f, 1.0f});
+    CHECK(near(leaf.worldPosition(), {0.0f, 0.0f, 1.0f}));
+
+    root.transform().setPosition({5.0f, 0.0f, 0.0f});
+    CHECK(near(leaf.worldPosition(), {5.0f, 0.0f, 1.0f}));
+
+    middle.transform().setScale({2.0f, 2.0f, 2.0f});
+    CHECK(near(leaf.worldPosition(), {5.0f, 0.0f, 2.0f}));
+
+    // Ветку целиком переносят под другого родителя.
+    Node3D other;
+    other.transform().setPosition({0.0f, 10.0f, 0.0f});
+    other.addChild(root.removeChild(middle));
+    CHECK(near(leaf.worldPosition(), {0.0f, 10.0f, 2.0f}));
+}
+
+TEST_CASE("setParent: KeepWorld decides whether the node stays in place")
+{
+    Scene scene{EngineServices::none()};
+    auto& root = scene.createRoot<Node3D>();
+    auto& hand = root.addChild<Node3D>();
+    hand.transform().setPosition({10.0f, 0.0f, 0.0f});
+    hand.transform().setRotationDegrees({0.0f, 30.0f, 0.0f});
+    auto& sword = root.addChild<Node3D>();
+    sword.transform().setPosition({1.0f, 2.0f, 3.0f});
+    auto& wagon = root.addChild<Node3D>();
+    wagon.transform().setPosition({1.0f, 2.0f, 3.0f});
+
+    scene.setParent(sword, hand, KeepWorld::No);
+    CHECK(near(sword.transform().position(), {1.0f, 2.0f, 3.0f}));
+    CHECK_FALSE(near(sword.worldPosition(), {1.0f, 2.0f, 3.0f}));
+
+    scene.setParent(wagon, hand, KeepWorld::Yes);
+    CHECK(near(wagon.worldPosition(), {1.0f, 2.0f, 3.0f}));
+    CHECK(near(wagon.transform().rotationDegrees(), {0.0f, -30.0f, 0.0f}));
 }

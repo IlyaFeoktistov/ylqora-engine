@@ -30,6 +30,7 @@ add_library(yqlora SHARED
     src/platform/InputFeeder.cpp
     src/platform/MouseWrap.cpp
     src/input/Input.cpp
+    src/math/Euler.cpp
     src/scene/ExecutionOrder.cpp
     src/scene/GameTime.cpp
     src/scene/Node.cpp

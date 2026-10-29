@@ -4,8 +4,6 @@
 #include "yqlora/math/Math.hpp"
 #include "yqlora/scene/Component.hpp"
 
-#include <cstdint>
-
 namespace yqlora {
 
 // Положение, поворот и масштаб относительно родителя разом, как их видно в
@@ -56,7 +54,6 @@ public:
         return m_rotationDegrees;
     }
 
-    // Поворачивает так, чтобы -Z смотрел на target (в координатах родителя).
     TransformValues values() const
     {
         return {m_position, m_rotationDegrees, m_scale};
@@ -64,6 +61,7 @@ public:
 
     void setValues(const TransformValues& values);
 
+    // Поворачивает так, чтобы -Z смотрел на target (в координатах родителя).
     void lookAt(const Vec3& target, const Vec3& up = {0.0f, 1.0f, 0.0f});
 
     // Матрица T * R * S в пространстве родителя.
@@ -73,22 +71,13 @@ private:
     friend class Node3D;
     Transform3D() = default;
 
-    // Растёт при каждом изменении, по нему узел понимает, что кэш устарел.
-    std::uint32_t version() const
-    {
-        return m_version;
-    }
-
-    void touch()
-    {
-        ++m_version;
-    }
+    // Значения изменились: мировая матрица узла и его ветки устарела.
+    void touch();
 
     Vec3 m_position{0.0f};
     Quat m_rotation{1.0f, 0.0f, 0.0f, 0.0f};
     Vec3 m_rotationDegrees{0.0f};
     Vec3 m_scale{1.0f};
-    std::uint32_t m_version = 0;
 };
 
 } // namespace yqlora

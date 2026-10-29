@@ -12,7 +12,6 @@ add_library(yqlora_editor STATIC
     src/ProjectList.cpp
     src/ProjectManager.cpp
     src/SceneCommands.cpp
-    src/TransformEdit.cpp
     src/EditHistory.cpp
 )
 add_library(yqlora::editor ALIAS yqlora_editor)

@@ -106,7 +106,7 @@ void Scene::destroy(Node& node)
     destroyNow(node);
 }
 
-void Scene::setParent(Node& node, Node& parent)
+void Scene::setParent(Node& node, Node& parent, KeepWorld keepWorld)
 {
     assert(node.scene() == this && parent.scene() == this && "setParent: the nodes are not in this scene");
     if (!node.parent() || isInBranch(node, parent)) {
@@ -116,11 +116,11 @@ void Scene::setParent(Node& node, Node& parent)
         return;
     }
     if (m_inFrame) {
-        m_treeChanges.push_back({.node = node.id(), .parent = parent.id()});
+        m_treeChanges.push_back({.node = node.id(), .parent = parent.id(), .keepWorld = keepWorld});
 
         return;
     }
-    node.moveTo(parent);
+    node.moveTo(parent, keepWorld);
 }
 
 void Scene::applyTreeChange(const TreeChange& change)
@@ -142,7 +142,7 @@ void Scene::applyTreeChange(const TreeChange& change)
 
         return;
     }
-    node->moveTo(*parent);
+    node->moveTo(*parent, change.keepWorld);
 }
 
 void Scene::destroyNow(Node& node)

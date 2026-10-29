@@ -5,7 +5,8 @@
 #include "yqlora/scene/Node.hpp"
 #include "yqlora/scene/Transform3D.hpp"
 
-#include <cstdint>
+#include <functional>
+#include <optional>
 
 namespace yqlora {
 
@@ -36,6 +37,15 @@ public:
     // Ставит узел в точку мира: локальное положение пересчитывается от родителя.
     void setWorldPosition(const Vec3& position);
 
+    // Положение, поворот и масштаб относительно родителя, при которых у узла
+    // будет мировая матрица world. Углы подбираются ближе к нынешним, наклон
+    // (skew) теряется. nullopt, если матрицу не разложить.
+    std::optional<TransformValues> localValuesForWorld(const Mat4& world) const;
+
+    // Ставит узлу мировую матрицу, например после манипулятора или переноса
+    // с KeepWorld::Yes. Наклон (skew) теряется.
+    void setWorldMatrix(const Mat4& world);
+
     // Направления осей узла в мировом пространстве.
     Vec3 worldForward() const;
     Vec3 worldRight() const;
@@ -47,19 +57,23 @@ public:
 
 protected:
     void onParentChanged() override;
+    std::function<void()> captureWorldPosition() override;
 
 private:
+    friend class Transform3D;
+
     const Node3D* parent3D() const;
+
+    // Свой Transform или родитель изменился: мировая матрица узла и всех
+    // Node3D под ним устарела. Если узел уже устаревший, его ветка тоже:
+    // свежий узел бывает только под свежими предками.
+    void markWorldDirty();
 
     Transform3D* m_transform = nullptr; // принадлежит списку компонентов узла
 
-    // Кэш мировой матрицы. Валиден, пока не изменились ни свой Transform,
-    // ни мировая матрица родителя (сверяем по версиям).
+    // Кэш мировой матрицы, пересчитывается при чтении, если устарел.
     mutable Mat4 m_world{1.0f};
-    mutable std::uint32_t m_worldVersion = 0;
-    mutable std::uint32_t m_seenLocalVersion = 0;
-    mutable std::uint32_t m_seenParentVersion = 0;
-    mutable bool m_worldValid = false;
+    mutable bool m_worldDirty = true;
 };
 
 } // namespace yqlora

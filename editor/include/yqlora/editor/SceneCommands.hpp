@@ -2,9 +2,9 @@
 
 #include "yqlora/editor/Command.hpp"
 #include "yqlora/editor/Selection.hpp"
-#include "yqlora/editor/TransformEdit.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/scene/Node.hpp"
+#include "yqlora/scene/Transform3D.hpp"
 
 #include <cstddef>
 #include <memory>

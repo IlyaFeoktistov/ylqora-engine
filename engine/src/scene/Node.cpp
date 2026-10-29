@@ -218,9 +218,10 @@ void Node::stop()
     }
 }
 
-void Node::moveTo(Node& parent)
+void Node::moveTo(Node& parent, KeepWorld keepWorld)
 {
     assert(m_parent && m_scene && parent.m_scene == m_scene && "moveTo: both nodes must be in the same scene");
+    const std::function<void()> restoreWorld = keepWorld == KeepWorld::Yes ? captureWorldPosition() : nullptr;
     auto& siblings = m_parent->m_children;
     const auto it = std::ranges::find_if(siblings, [&](const auto& c) {
         return c.get() == this;
@@ -231,6 +232,9 @@ void Node::moveTo(Node& parent)
     parent.m_children.push_back(std::move(self));
     updateActiveInHierarchy();
     onParentChanged();
+    if (restoreWorld) {
+        restoreWorld();
+    }
 }
 
 void Node::setActive(bool active)

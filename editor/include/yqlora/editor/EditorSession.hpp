@@ -4,9 +4,9 @@
 #include "yqlora/editor/PlayMode.hpp"
 #include "yqlora/editor/SceneDocument.hpp"
 #include "yqlora/editor/Selection.hpp"
-#include "yqlora/editor/TransformEdit.hpp"
 #include "yqlora/project/Project.hpp"
 #include "yqlora/reflection/Property.hpp"
+#include "yqlora/scene/Transform3D.hpp"
 
 #include <filesystem>
 #include <memory>

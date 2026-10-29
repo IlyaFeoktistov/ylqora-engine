@@ -1,12 +1,8 @@
-#include "yqlora/editor/TransformEdit.hpp"
-
-#include "yqlora/scene/Node3D.hpp"
-
-#include <glm/gtx/matrix_decompose.hpp>
+#include "yqlora/math/Euler.hpp"
 
 #include <cmath>
 
-namespace yqlora::editor {
+namespace yqlora::math {
 
 namespace {
 
@@ -45,32 +41,4 @@ Vec3 closestEulerDegrees(const Quat& rotation, const Vec3& previousDegrees)
     return distanceSquared(a, previousDegrees) <= distanceSquared(b, previousDegrees) ? a : b;
 }
 
-std::optional<TransformValues> localValuesForWorld(const Node3D& node, const Mat4& world)
-{
-    const auto* parent = dynamic_cast<const Node3D*>(node.parent());
-    const Mat4 local = parent ? glm::inverse(parent->worldMatrix()) * world : world;
-
-    Vec3 scale;
-    Quat rotation;
-    Vec3 translation;
-    Vec3 skew;
-    Vec4 perspective;
-    if (!glm::decompose(local, scale, rotation, translation, skew, perspective)) {
-        return std::nullopt;
-    }
-
-    return TransformValues{
-        .position = translation,
-        .rotationDegrees = closestEulerDegrees(rotation, node.transform().rotationDegrees()),
-        .scale = scale,
-    };
-}
-
-void setWorldMatrix(Node3D& node, const Mat4& world)
-{
-    if (const auto values = localValuesForWorld(node, world)) {
-        node.transform().setValues(*values);
-    }
-}
-
-} // namespace yqlora::editor
+} // namespace yqlora::math

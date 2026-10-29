@@ -13,7 +13,7 @@ add_executable(yqlora_tests
     test_project.cpp
     test_session.cpp
     test_log.cpp
-    test_transform_edit.cpp
+    test_world_transform.cpp
     test_history.cpp
     test_resources.cpp
     test_project_files.cpp

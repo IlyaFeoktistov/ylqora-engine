@@ -4,7 +4,6 @@
 
 #include "yqlora/editor/EditorCamera.hpp"
 #include "yqlora/editor/EditorSession.hpp"
-#include "yqlora/editor/TransformEdit.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/scene/Node3D.hpp"
 
@@ -132,7 +131,7 @@ bool ManipulatorGizmo::drawManipulator(GizmoContext& context)
         glm::value_ptr(world)
     );
     if (moved) {
-        if (const auto values = localValuesForWorld(*node, world)) {
+        if (const auto values = node->localValuesForWorld(world)) {
             context.session.setTransform(*node, *values);
         }
     }

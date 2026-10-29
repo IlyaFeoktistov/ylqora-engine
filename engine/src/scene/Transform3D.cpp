@@ -1,5 +1,7 @@
 #include "yqlora/scene/Transform3D.hpp"
 
+#include "yqlora/scene/Node3D.hpp"
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
@@ -45,6 +47,14 @@ void Transform3D::lookAt(const Vec3& target, const Vec3& up)
         return;
     }
     setRotation(glm::quatLookAt(glm::normalize(direction), up));
+}
+
+void Transform3D::touch()
+{
+    // Встроенный компонент живёт только на Node3D; до подключения узла нет.
+    if (Node* node = owner()) {
+        static_cast<Node3D*>(node)->markWorldDirty();
+    }
 }
 
 Mat4 Transform3D::matrix() const
