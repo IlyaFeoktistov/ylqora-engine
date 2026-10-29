@@ -16,6 +16,7 @@ class Scene;
 namespace yqlora::editor {
 
 struct EditorColors;
+struct EditorMetrics;
 
 struct PropertyResult {
     // Свойство само не меняется: его записывают командой, чтобы правку можно было отменить.
@@ -35,6 +36,7 @@ struct PropertyResult {
 // Что виджету нужно кроме самого свойства.
 struct PropertyEditorContext {
     const EditorColors& colors;
+    const EditorMetrics& metrics;
     // Из неё выбирается узел для ссылки на узел.
     const Scene& scene;
     // Ресурсы проекта для ссылок на ресурсы. nullptr, если проекта нет.

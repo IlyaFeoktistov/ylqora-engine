@@ -1,12 +1,59 @@
 #include "yqlora/scene/Scene.hpp"
 
+#include "yqlora/core/Log.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/ExecutionOrder.hpp"
 
+#include <algorithm>
 #include <cassert>
+#include <exception>
+#include <string_view>
 #include <utility>
 
 namespace yqlora {
+
+namespace {
+
+constexpr std::string_view kUnknownError = "unknown exception";
+
+void disableAfterError(Component& component, std::string_view callName, std::string_view error)
+{
+    const Node* node = component.owner();
+    log::error(
+        "{} of component '{}' on node '{}' threw: {}. The component is disabled",
+        callName,
+        component.typeName(),
+        node ? node->name() : std::string(),
+        error
+    );
+    component.setEnabled(false);
+}
+
+// Ошибка в коде игры не роняет игру: компонент выключается, ошибка уходит в лог.
+template <typename Call>
+void guarded(Component& component, std::string_view callName, Call&& call)
+{
+    try {
+        call();
+    } catch (const std::exception& error) {
+        disableAfterError(component, callName, error.what());
+    } catch (...) {
+        disableAfterError(component, callName, kUnknownError);
+    }
+}
+
+constexpr std::string_view phaseCallName(LifecyclePhase phase)
+{
+    switch (phase) {
+    case LifecyclePhase::FixedUpdate: return "onFixedUpdate";
+    case LifecyclePhase::Update: return "onUpdate";
+    case LifecyclePhase::LateUpdate: return "onLateUpdate";
+    }
+
+    return {};
+}
+
+} // namespace
 
 Scene::Scene(const EngineServices& services)
     : m_services(services)
@@ -57,6 +104,19 @@ std::span<Component* const> Scene::componentsOfType(std::type_index type) const
 void Scene::enterComponent(Component& component)
 {
     m_components[std::type_index(typeid(component))].push_back(&component);
+    if (component.activeAndEnabled()) {
+        activate(component);
+    }
+}
+
+void Scene::exitComponent(Component& component)
+{
+    deactivate(component);
+    std::erase(m_components[std::type_index(typeid(component))], &component);
+}
+
+void Scene::activate(Component& component)
+{
     if (const TypeInfo* type = m_services.registry().find(component.typeName())) {
         const int order = executionOrderOf(m_services, *type);
         for (std::size_t i = 0; i < kLifecyclePhaseCount; ++i) {
@@ -68,13 +128,39 @@ void Scene::enterComponent(Component& component)
     m_starting.push_back(&component);
 }
 
-void Scene::exitComponent(Component& component)
+void Scene::deactivate(Component& component)
 {
-    std::erase(m_components[std::type_index(typeid(component))], &component);
     for (PhaseList& list : m_phases) {
         list.remove(component);
     }
     std::erase(m_starting, &component);
+    std::ranges::replace(m_startBatch, &component, nullptr);
+    if (component.m_enableCalled) {
+        component.m_enableCalled = false;
+        guarded(component, "onDisable", [&] {
+            component.onDisable();
+        });
+    }
+}
+
+void Scene::stopComponent(Component& component)
+{
+    if (component.m_enableCalled) {
+        component.m_enableCalled = false;
+        guarded(component, "onDisable", [&] {
+            component.onDisable();
+        });
+    }
+    if (component.m_started) {
+        component.m_started = false;
+        guarded(component, "onStop", [&] {
+            component.onStop();
+        });
+    }
+    // Следующий запуск снова начнёт с onEnable и onStart, даже у компонента без фаз кадра.
+    if (component.activeAndEnabled() && std::ranges::find(m_starting, &component) == m_starting.end()) {
+        m_starting.push_back(&component);
+    }
 }
 
 void Scene::stop()
@@ -97,30 +183,49 @@ void Scene::advance(float realDelta)
 
 void Scene::startPending()
 {
-    // Копия: onStart может добавить компоненты, они запустятся в следующем кадре.
-    for (Component* component : std::exchange(m_starting, {})) {
-        start(*component);
+    // Очередь забираем целиком: onStart может добавить компоненты, они
+    // запустятся в следующем кадре.
+    m_startBatch = std::exchange(m_starting, {});
+    for (std::size_t i = 0; i < m_startBatch.size(); ++i) {
+        if (Component* component = m_startBatch[i]) {
+            start(*component);
+        }
     }
+    m_startBatch.clear();
 }
 
 void Scene::start(Component& component)
 {
-    if (!component.m_started) {
+    // Каждый вызов мог выключить компонент: исключением или из кода игры.
+    if (!component.m_enableCalled && component.activeAndEnabled()) {
+        component.m_enableCalled = true;
+        guarded(component, "onEnable", [&] {
+            component.onEnable();
+        });
+    }
+    if (!component.m_started && component.activeAndEnabled()) {
         component.m_started = true;
-        component.onStart();
+        guarded(component, "onStart", [&] {
+            component.onStart();
+        });
     }
 }
 
 void Scene::runPhase(LifecyclePhase phase, float seconds)
 {
     m_phases[static_cast<std::size_t>(phase)].forEach([&](Component& component) {
-        // Добавленный в этом кадре мог ещё не получить onStart.
+        // Включённый в этом кадре мог ещё не получить onEnable и onStart.
         start(component);
-        switch (phase) {
-        case LifecyclePhase::FixedUpdate: component.onFixedUpdate(seconds); break;
-        case LifecyclePhase::Update: component.onUpdate(seconds); break;
-        case LifecyclePhase::LateUpdate: component.onLateUpdate(seconds); break;
+        if (!component.activeAndEnabled()) {
+            return;
         }
+        guarded(component, phaseCallName(phase), [&] {
+            switch (phase) {
+            case LifecyclePhase::FixedUpdate: component.onFixedUpdate(seconds); break;
+            case LifecyclePhase::Update: component.onUpdate(seconds); break;
+            case LifecyclePhase::LateUpdate: component.onLateUpdate(seconds); break;
+            }
+        });
     });
 }
 

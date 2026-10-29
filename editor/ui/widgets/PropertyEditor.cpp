@@ -1,6 +1,7 @@
 #include "widgets/PropertyEditor.hpp"
 
 #include "style/Theme.hpp"
+#include "widgets/Checkbox.hpp"
 
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/i18n/Translate.hpp"
@@ -235,7 +236,7 @@ void valueField(
     const float speed = dragSpeed(property);
     switch (property.type()) {
     case PropertyType::Bool:
-        result.changed = ImGui::Checkbox("##value", &std::get<bool>(value)) || result.changed;
+        result.changed = checkbox("##value", &std::get<bool>(value), context.metrics.checkboxPadding) || result.changed;
         break;
     case PropertyType::Int:
         ImGui::SetNextItemWidth(-FLT_MIN);

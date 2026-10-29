@@ -87,7 +87,15 @@ void SceneTreePanel::drawNode(const Node& node, Selection& selection)
     }
 
     const auto id = reinterpret_cast<void*>(static_cast<std::uintptr_t>(node.id()));
+    // Неактивные узлы бледные, как в Unity.
+    const bool inactive = !node.activeInHierarchy();
+    if (inactive) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    }
     const bool open = ImGui::TreeNodeEx(id, flags, "%s  %s", icons::forNodeType(node.typeName()), node.name().c_str());
+    if (inactive) {
+        ImGui::PopStyleColor();
+    }
     ImGui::SetItemTooltip("%s", std::string(node.typeName()).c_str());
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen()) {
         if (ImGui::GetIO().KeyCtrl) {

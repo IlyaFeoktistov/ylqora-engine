@@ -17,6 +17,9 @@ FrameData buildFrameData(const Scene& scene, float aspect, DepthRange depthRange
         frame.camera.position = camera->worldPosition();
     }
     for (const MeshRenderer* renderer : scene.components<MeshRenderer>()) {
+        if (!renderer->activeAndEnabled()) {
+            continue;
+        }
         const auto* node = dynamic_cast<const Node3D*>(renderer->owner());
         const MeshData* mesh = findBuiltinMesh(renderer->mesh().id);
         if (node && mesh) {

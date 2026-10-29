@@ -34,7 +34,7 @@ public:
         return m_name;
     }
 
-    // Пусто у Node и у компонентов, унаследованных прямо от Component.
+    // Пусто у Node и Component: это корни иерархий.
     const std::string& baseName() const
     {
         return m_baseName;
@@ -56,6 +56,13 @@ public:
     bool creatable() const
     {
         return m_createNode != nullptr || m_createComponent != nullptr;
+    }
+
+    // Встроенный компонент: его создаёт сам узел, снять и выключить его нельзя.
+    // Это несоздаваемые компоненты, кроме корня Component.
+    bool builtin() const
+    {
+        return m_kind == TypeKind::Component && !creatable() && !m_baseName.empty();
     }
 
     // Ключ перевода с описанием типа для подсказки в редакторе.
@@ -335,7 +342,8 @@ public:
     // Тип и все его базовые, от самого типа к корню.
     std::vector<const TypeInfo*> chain(const TypeInfo& type) const;
 
-    // Свойства типа вместе с базовыми, от Node к наследнику.
+    // Свойства типа вместе с базовыми, от корня (Node, Component) к наследнику.
+    // У встроенного компонента нет свойств корня: выключить его нельзя.
     std::vector<const Property*> properties(const TypeInfo& type) const;
 
     // Убирает все типы модуля, например перед выгрузкой dll игры: иначе в
@@ -355,9 +363,9 @@ private:
         info->m_name = std::string(name);
         info->m_module = m_module;
         info->m_kind = kind;
-        // У Node и у компонентов прямо от Component базы в реестре нет.
+        // У Node и Component базы в реестре нет.
         using Base = typename T::YqloraBaseType;
-        if constexpr (!std::is_void_v<Base> && !std::is_same_v<Base, Component>) {
+        if constexpr (!std::is_void_v<Base>) {
             static_assert(std::derived_from<T, Base>, "YQLORA_TYPE: the base is not a base of the class");
             const TypeInfo* base = find<Base>();
             assert(base && "TypeRegistry: register the base type first");
@@ -378,7 +386,7 @@ private:
     std::string m_module{engineModule()};
 };
 
-// Типы движка: Node, Node3D, Camera3D, Transform3D, MeshRenderer.
+// Типы движка: Node, Node3D, Camera3D, Component, Transform3D, MeshRenderer.
 YQLORA_API void registerEngineTypes(TypeRegistry& registry);
 
 } // namespace yqlora

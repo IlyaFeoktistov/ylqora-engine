@@ -80,6 +80,10 @@ void keepNearest(std::optional<Hit>& best, NodeId node, std::optional<float> t)
 // Камеры - узлы, а не компоненты, поэтому их ищем по дереву.
 void pickCameras(const Node& node, const Ray& worldRay, std::optional<Hit>& best)
 {
+    // Неактивную ветку не видно, и выбрать её можно только в дереве.
+    if (!node.activeInHierarchy()) {
+        return;
+    }
     if (const auto* camera = dynamic_cast<const Camera3D*>(&node)) {
         keepNearest(best, camera->id(), intersectSphere(worldRay, camera->worldPosition(), kCameraPickRadius));
     }
@@ -116,6 +120,9 @@ NodeId pickNode(const Scene& scene, const Ray& ray)
     std::optional<Hit> best;
     pickCameras(*scene.root(), ray, best);
     for (const MeshRenderer* renderer : scene.components<MeshRenderer>()) {
+        if (!renderer->activeAndEnabled()) {
+            continue;
+        }
         const auto* node = dynamic_cast<const Node3D*>(renderer->owner());
         if (const MeshData* mesh = findBuiltinMesh(renderer->mesh().id); node && mesh) {
             pickMesh(*node, *mesh, ray, best);

@@ -2,6 +2,7 @@
 
 #include "style/Icons.hpp"
 #include "style/Theme.hpp"
+#include "widgets/Checkbox.hpp"
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/core/Utf8Path.hpp"
@@ -261,7 +262,7 @@ void ProjectManagerPanel::drawRemoveDialog()
     ImGui::TextUnformatted(tr("projects.removeQuestion").c_str());
     ImGui::TextDisabled("%s", toUtf8(row.directory).c_str());
     if (!row.missing) {
-        ImGui::Checkbox(tr("projects.deleteFolder").c_str(), &m_deleteFolder);
+        checkbox(tr("projects.deleteFolder").c_str(), &m_deleteFolder, m_theme.metrics().checkboxPadding);
         if (m_deleteFolder) {
             drawError("projects.deleteWarning", m_theme.colors());
         }

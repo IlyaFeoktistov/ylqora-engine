@@ -23,6 +23,12 @@ struct EditorColors {
     Vec4 axisW{0.6f, 0.6f, 0.6f, 1.0f};
 };
 
+// Размеры элементов редактора, которых нет среди настроек ImGui.
+struct EditorMetrics {
+    // Отступ вокруг флажка по вертикали: флажок меньше поля ввода.
+    float checkboxPadding = 2.0f;
+};
+
 // Внешний вид интерфейса задаётся файлом темы (assets/themes/*.json), а не кодом:
 // шрифт, размеры и отступы, цвета ImGui и цвета редактора. Чего нет в файле,
 // остаётся как в стандартной тёмной теме ImGui. Принадлежит EditorApp,
@@ -38,8 +44,14 @@ public:
         return m_colors;
     }
 
+    const EditorMetrics& metrics() const
+    {
+        return m_metrics;
+    }
+
 private:
     EditorColors m_colors;
+    EditorMetrics m_metrics;
 };
 
 // Цвет темы в виде, который принимает ImGui. alpha умножается на прозрачность цвета.

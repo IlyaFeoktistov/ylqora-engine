@@ -331,7 +331,7 @@ the order lives in one frame loop class that knows only the order **[next]**.
 |---|---|---|
 | constructor | anywhere | defaults; no scene yet |
 | `onEnterScene` / `onExitScene` | editor and game | register in scene systems (physics, audio, lights) |
-| `onEnable` / `onDisable` | game only | the component starts or stops taking part: enabled and its node active in hierarchy **[next]** |
+| `onEnable` / `onDisable` | game only | the component starts or stops taking part: enabled and its node active in hierarchy **[done]** |
 | `onStart` | game only | once, before the first phase call of the component |
 | `onFixedUpdate(step)` | game only | physics, fixed step of game time **[done]** |
 | `onUpdate(delta)` | game only | per-frame logic |
@@ -356,7 +356,7 @@ the order lives in one frame loop class that knows only the order **[next]**.
   one is skipped at once and dropped from the list after the phase, so the
   lists never change under an iteration.
 
-### Active and enabled [next]
+### Active and enabled [done]
 
 As in Unity:
 
@@ -369,9 +369,18 @@ As in Unity:
 - There is no separate `visible` flag: hiding a mesh is disabling its
   `MeshRenderer`, like `Renderer.enabled` in Unity.
 - A node has a **layer** (one of 32, names in the project settings). Camera
-  masks and physics collisions filter by layers.
+  masks and physics collisions filter by layers **[next]**, together with
+  the cameras below.
 - An exception from a lifecycle call is caught: the component is disabled, the
   error goes to the log, the game goes on.
+- `active` and `enabled` are ordinary registry properties (of `Node` and of
+  the `Component` root type): the scene file, the inspector, undo and later
+  the script bindings get them without extra code.
+- `onEnable` comes before `onStart` and before the first phase after the
+  component is enabled again; `onDisable` comes at once on disabling and
+  before `onStop`. Re-enabling does not repeat `onStart`.
+- A builtin component (`Transform3D`) cannot be disabled, as it cannot be
+  removed: it has no `enabled` property.
 
 ### Deferred tree changes [next]
 

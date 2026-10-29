@@ -157,6 +157,7 @@ void InspectorPanel::draw(EditorContext& context)
 
     const PropertyEditorContext widgets{
         .colors = context.theme.colors(),
+        .metrics = context.theme.metrics(),
         .scene = session.scene(),
         .resources = session.project() ? &session.project()->resources() : nullptr,
     };

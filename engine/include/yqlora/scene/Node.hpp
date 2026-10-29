@@ -67,6 +67,21 @@ public:
         return m_parent;
     }
 
+    // Неактивный узел выключает всю свою ветку: компоненты в ней не участвуют
+    // в игре, не рисуются и не выбираются мышью.
+    bool active() const
+    {
+        return m_active;
+    }
+
+    void setActive(bool active);
+
+    // Узел и все его предки активны.
+    bool activeInHierarchy() const
+    {
+        return m_activeInHierarchy;
+    }
+
     // Сцена, в дереве которой узел. nullptr, пока узел вне сцены.
     Scene* scene() const
     {
@@ -175,9 +190,13 @@ private:
     void enterScene(Scene& scene);
     void exitScene();
 
-    // Игра остановлена: onStop у компонентов узла и детей, которые успели
-    // запуститься. Следующий update снова начнёт с onStart.
+    // Игра остановлена: onDisable и onStop у компонентов узла и детей, которые
+    // их ждут. Следующий update снова начнёт с onEnable и onStart.
     void stop();
+
+    // Пересчитывает activeInHierarchy после смены флага или родителя, в сцене
+    // включает и выключает компоненты ветки.
+    void updateActiveInHierarchy();
 
     void addRequiredComponents(const Component& component);
 
@@ -185,6 +204,8 @@ private:
     std::string m_name;
     Node* m_parent = nullptr;
     Scene* m_scene = nullptr;
+    bool m_active = true;
+    bool m_activeInHierarchy = true;
     std::vector<std::unique_ptr<Component>> m_components;
     std::vector<std::unique_ptr<Node>> m_children;
 };

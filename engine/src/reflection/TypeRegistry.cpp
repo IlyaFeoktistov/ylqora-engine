@@ -42,6 +42,9 @@ std::vector<const Property*> TypeRegistry::properties(const TypeInfo& type) cons
     // Базовые свойства первыми.
     std::vector<const Property*> result;
     for (const TypeInfo* t : chain(type) | std::views::reverse) {
+        if (type.builtin() && t->baseName().empty()) {
+            continue;
+        }
         for (const Property& property : t->ownProperties()) {
             result.push_back(&property);
         }
@@ -76,7 +79,11 @@ std::size_t TypeRegistry::removeModule(std::string_view module)
 
 void registerEngineTypes(TypeRegistry& registry)
 {
-    registry.registerNode<Node>().property("name", &Node::name, &Node::setName);
+    registry.registerNode<Node>()
+        .property("name", &Node::name, &Node::setName)
+        .property("active", &Node::active, &Node::setActive);
+
+    registry.registerComponent<Component>().property("enabled", &Component::enabled, &Component::setEnabled);
 
     registry.registerNode<Node3D>();
 

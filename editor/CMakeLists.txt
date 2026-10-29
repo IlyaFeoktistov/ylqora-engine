@@ -46,6 +46,7 @@ add_library(yqlora_editor_ui STATIC
     ui/panels/SceneTreePanel.cpp
     ui/panels/ViewportPanel.cpp
     ui/style/Theme.cpp
+    ui/widgets/Checkbox.cpp
     ui/widgets/PropertyEditor.cpp
 )
 add_library(yqlora::editor_ui ALIAS yqlora_editor_ui)

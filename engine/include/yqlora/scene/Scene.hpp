@@ -117,29 +117,43 @@ public:
     }
 
     // Кадр игры длиной realDelta секунд по часам. Весь порядок кадра - здесь:
-    // onStart новым компонентам, фиксированные шаги, update, lateUpdate.
-    // Вызывают только компоненты, у типа которых эта фаза переопределена.
+    // onEnable и onStart новым компонентам, фиксированные шаги, update,
+    // lateUpdate. Вызывают только участвующие компоненты (activeAndEnabled),
+    // у типа которых эта фаза переопределена. Исключение из вызова жизненного
+    // цикла выключает компонент и уходит в лог, кадр идёт дальше.
     void advance(float realDelta);
 
-    // Игра остановлена: onStop у всего, что успело запуститься.
+    // Игра остановлена: onDisable и onStop у всего, что успело запуститься.
     void stop();
 
 private:
     friend class Node;
-    // Компонент вошёл в дерево сцены или вышел из него: индекс по типам,
-    // списки фаз, очередь onStart.
+    friend class Component;
+    // Компонент вошёл в дерево сцены или вышел из него: индекс по типам
+    // и, если он участвует в игре, списки фаз.
     void enterComponent(Component& component);
     void exitComponent(Component& component);
 
+    // Компонент начал участвовать в игре: в списки фаз и в очередь onEnable.
+    void activate(Component& component);
+    // Перестал: из списков и очереди, onDisable, если onEnable он получил.
+    void deactivate(Component& component);
+    // onDisable и onStop, если компонент их ждёт.
+    void stopComponent(Component& component);
+
     void startPending();
+    // onEnable и onStart, если компонент участвует и ещё их не получил.
     void start(Component& component);
     void runPhase(LifecyclePhase phase, float seconds);
 
     const EngineServices& m_services;
     GameTime m_time;
     std::array<PhaseList, kLifecyclePhaseCount> m_phases;
-    // Вошли в сцену и ещё не получили onStart.
+    // Участвуют и ещё не получили onEnable или onStart.
     std::vector<Component*> m_starting;
+    // Очередь, которую сейчас обходит startPending; выключенный по ходу
+    // обхода заменяется на nullptr.
+    std::vector<Component*> m_startBatch;
     std::unique_ptr<Node> m_root;
     std::unordered_map<std::type_index, std::vector<Component*>> m_components;
     Camera3D* m_activeCamera = nullptr;

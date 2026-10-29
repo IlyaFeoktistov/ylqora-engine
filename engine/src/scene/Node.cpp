@@ -55,6 +55,7 @@ Node& Node::insertChild(std::size_t index, std::unique_ptr<Node> child)
     child->m_parent = this;
     Node& ref = *child;
     m_children.insert(m_children.begin() + static_cast<std::ptrdiff_t>(index), std::move(child));
+    ref.updateActiveInHierarchy();
     ref.onParentChanged();
     if (m_scene) {
         ref.enterScene(*m_scene);
@@ -79,6 +80,7 @@ std::unique_ptr<Node> Node::removeChild(Node& child)
     std::unique_ptr<Node> result = std::move(*it);
     m_children.erase(it);
     result->m_parent = nullptr;
+    result->updateActiveInHierarchy();
     result->onParentChanged();
 
     return result;
@@ -154,11 +156,8 @@ std::unique_ptr<Component> Node::removeComponent(Component& component)
     if (it == m_components.end()) {
         return nullptr;
     }
-    if (component.m_started) {
-        component.m_started = false;
-        component.onStop();
-    }
     if (m_scene) {
+        m_scene->stopComponent(component);
         component.onExitScene();
         m_scene->exitComponent(component);
     }
@@ -206,14 +205,45 @@ void Node::exitScene()
 
 void Node::stop()
 {
+    if (!m_scene) {
+        // Вне сцены ничего не запускается.
+        return;
+    }
     for (const auto& child : m_children) {
         child->stop();
     }
     for (const auto& component : m_components) {
-        if (component->m_started) {
-            component->m_started = false;
-            component->onStop();
+        m_scene->stopComponent(*component);
+    }
+}
+
+void Node::setActive(bool active)
+{
+    m_active = active;
+    updateActiveInHierarchy();
+}
+
+void Node::updateActiveInHierarchy()
+{
+    const bool active = m_active && (!m_parent || m_parent->m_activeInHierarchy);
+    if (active == m_activeInHierarchy) {
+        return;
+    }
+    m_activeInHierarchy = active;
+    // По индексу: onDisable может поменять списки узла.
+    for (std::size_t i = 0; m_scene && i < m_components.size(); ++i) {
+        Component& component = *m_components[i];
+        if (!component.enabled()) {
+            continue;
         }
+        if (active) {
+            m_scene->activate(component);
+        } else {
+            m_scene->deactivate(component);
+        }
+    }
+    for (std::size_t i = 0; i < m_children.size(); ++i) {
+        m_children[i]->updateActiveInHierarchy();
     }
 }
 

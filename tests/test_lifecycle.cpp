@@ -6,6 +6,7 @@
 #include <yqlora/scene/Node3D.hpp>
 #include <yqlora/scene/Scene.hpp>
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -25,6 +26,11 @@ struct Recorder : Component {
 
     YQLORA_TYPE(Recorder, Component)
 
+    void onEnable() override
+    {
+        events.push_back(prefix + "enable");
+    }
+
     void onStart() override
     {
         events.push_back(prefix + "start");
@@ -43,6 +49,11 @@ struct Recorder : Component {
     void onLateUpdate(float /*deltaSeconds*/) override
     {
         events.push_back(prefix + "late");
+    }
+
+    void onDisable() override
+    {
+        events.push_back(prefix + "disable");
     }
 
     void onStop() override
@@ -71,6 +82,16 @@ struct UpdateOnly final : Component {
     Events& events;
 };
 
+// Бросает исключение из onUpdate.
+struct Thrower final : Component {
+    YQLORA_TYPE(Thrower, Component)
+
+    void onUpdate(float /*deltaSeconds*/) override
+    {
+        throw std::runtime_error("broken script");
+    }
+};
+
 // Порядок выполнения раньше остальных.
 struct Early final : Recorder {
     using Recorder::Recorder;
@@ -90,6 +111,7 @@ struct Fixture {
         registry.registerComponent<Recorder>().allowMultiple();
         registry.registerComponent<UpdateOnly>();
         registry.registerComponent<Early>().executionOrder(-1);
+        registry.registerComponent<Thrower>();
     }
 
     // Журнал раньше сцены: сцена при уничтожении останавливает дерево и пишет в него.
@@ -107,7 +129,7 @@ TEST_CASE_FIXTURE(Fixture, "Lifecycle: start once, then fixed steps, update and 
     scene.createRoot<Node3D>().addComponent<Recorder>(events);
 
     scene.advance(kTwoFixedSteps);
-    CHECK(events == Events{"start", "fixed", "fixed", "update", "late"});
+    CHECK(events == Events{"enable", "start", "fixed", "fixed", "update", "late"});
 
     events.clear();
     scene.advance(kNoFixedStep);
@@ -115,12 +137,12 @@ TEST_CASE_FIXTURE(Fixture, "Lifecycle: start once, then fixed steps, update and 
 
     events.clear();
     scene.stop();
-    CHECK(events == Events{"stop"});
+    CHECK(events == Events{"disable", "stop"});
 
-    // После остановки следующий запуск снова начинается с onStart.
+    // После остановки следующий запуск снова начинается с onEnable и onStart.
     events.clear();
     scene.advance(kNoFixedStep);
-    CHECK(events == Events{"start", "update", "late"});
+    CHECK(events == Events{"enable", "start", "update", "late"});
 }
 
 TEST_CASE_FIXTURE(Fixture, "Lifecycle: only overridden phases are called")
@@ -144,8 +166,11 @@ TEST_CASE_FIXTURE(Fixture, "Lifecycle: execution order, then the order of enteri
     CHECK(
         events
         == Events{
+            "a:enable",
             "a:start",
+            "early:enable",
             "early:start",
+            "b:enable",
             "b:start",
             "early:update",
             "a:update",
@@ -164,7 +189,7 @@ TEST_CASE_FIXTURE(Fixture, "Lifecycle: a component added during the game starts 
 
     root.addComponent<Recorder>(events);
     scene.advance(kNoFixedStep);
-    CHECK(events == Events{"start", "update", "late"});
+    CHECK(events == Events{"enable", "start", "update", "late"});
 }
 
 TEST_CASE_FIXTURE(Fixture, "Lifecycle: removing a started component or node stops it")
@@ -176,15 +201,15 @@ TEST_CASE_FIXTURE(Fixture, "Lifecycle: removing a started component or node stop
 
     events.clear();
     auto owned = child.removeComponent(recorder);
-    CHECK(events == Events{"stop"});
+    CHECK(events == Events{"disable", "stop"});
     scene.advance(kNoFixedStep);
-    CHECK(events == Events{"stop"});
+    CHECK(events == Events{"disable", "stop"});
 
     child.addComponent(std::move(owned));
     scene.advance(kNoFixedStep);
     events.clear();
     auto removedNode = root.removeChild(child);
-    CHECK(events == Events{"stop"});
+    CHECK(events == Events{"disable", "stop"});
 }
 
 TEST_CASE_FIXTURE(Fixture, "Lifecycle: taking the tree out of the scene stops it")
@@ -194,7 +219,7 @@ TEST_CASE_FIXTURE(Fixture, "Lifecycle: taking the tree out of the scene stops it
 
     events.clear();
     auto root = scene.takeRoot();
-    CHECK(events == Events{"stop"});
+    CHECK(events == Events{"disable", "stop"});
 }
 
 TEST_CASE_FIXTURE(Fixture, "Lifecycle: nothing happens without advance")
@@ -202,6 +227,87 @@ TEST_CASE_FIXTURE(Fixture, "Lifecycle: nothing happens without advance")
     scene.createRoot<Node3D>().addComponent<Recorder>(events);
     scene.stop();
     CHECK(events.empty());
+}
+
+TEST_CASE_FIXTURE(Fixture, "Lifecycle: a disabled component takes no part until enabled")
+{
+    auto& recorder = scene.createRoot<Node3D>().addComponent<Recorder>(events);
+    recorder.setEnabled(false);
+    scene.advance(kNoFixedStep);
+    CHECK(events.empty());
+
+    recorder.setEnabled(true);
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"enable", "start", "update", "late"});
+
+    // Выключение сразу даёт onDisable; повторное включение - onEnable, но не второй onStart.
+    events.clear();
+    recorder.setEnabled(false);
+    CHECK(events == Events{"disable"});
+    scene.advance(kNoFixedStep);
+    recorder.setEnabled(true);
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"disable", "enable", "update", "late"});
+}
+
+TEST_CASE_FIXTURE(Fixture, "Lifecycle: an inactive node switches off its whole branch")
+{
+    auto& root = scene.createRoot<Node3D>();
+    auto& parent = root.addChild<Node3D>();
+    auto& child = parent.addChild<Node3D>();
+    child.addComponent<Recorder>(events, "child:");
+    scene.advance(kNoFixedStep);
+
+    events.clear();
+    parent.setActive(false);
+    CHECK(events == Events{"child:disable"});
+    CHECK(child.active());
+    CHECK_FALSE(child.activeInHierarchy());
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"child:disable"});
+
+    // Свой флаг ребёнка выключен: активация родителя его не включает.
+    child.setActive(false);
+    parent.setActive(true);
+    CHECK_FALSE(child.activeInHierarchy());
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"child:disable"});
+
+    events.clear();
+    child.setActive(true);
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"child:enable", "child:update", "child:late"});
+}
+
+TEST_CASE_FIXTURE(Fixture, "Lifecycle: a node moved under an inactive parent is switched off")
+{
+    auto& root = scene.createRoot<Node3D>();
+    auto& inactive = root.addChild<Node3D>();
+    inactive.setActive(false);
+    auto& node = root.addChild<Node3D>();
+    node.addComponent<Recorder>(events);
+    scene.advance(kNoFixedStep);
+
+    events.clear();
+    inactive.addChild(root.removeChild(node));
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"disable", "stop"});
+    CHECK_FALSE(node.activeInHierarchy());
+}
+
+TEST_CASE_FIXTURE(Fixture, "Lifecycle: an exception disables the component, the game goes on")
+{
+    auto& root = scene.createRoot<Node3D>();
+    auto& thrower = root.addComponent<Thrower>();
+    root.addComponent<Recorder>(events);
+
+    scene.advance(kNoFixedStep);
+    CHECK_FALSE(thrower.enabled());
+    CHECK(events == Events{"enable", "start", "update", "late"});
+
+    events.clear();
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"update", "late"});
 }
 
 TEST_CASE("Lifecycle: a scene without a registry calls nobody")

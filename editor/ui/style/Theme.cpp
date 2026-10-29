@@ -179,6 +179,16 @@ void applyEditorColors(const Json& json, EditorColors& colors)
     read("axisW", colors.axisW);
 }
 
+void applyEditorMetrics(const Json& json, EditorMetrics& metrics)
+{
+    if (!json.is_object()) {
+        return;
+    }
+    if (const auto it = json.find("checkboxPadding"); it != json.end() && it->is_number()) {
+        metrics.checkboxPadding = it->get<float>();
+    }
+}
+
 // Манипуляторы окрашены в те же цвета осей, что и поля X, Y, Z в инспекторе.
 void applyManipulatorColors(const EditorColors& colors)
 {
@@ -215,6 +225,7 @@ bool Theme::load(const std::filesystem::path& file, const std::filesystem::path&
     applyStyle(json.value("style", Json()), style);
     applyColors(json.value("colors", Json()), style);
     applyEditorColors(json.value("editor", Json()), m_colors);
+    applyEditorMetrics(json.value("editorStyle", Json()), m_metrics);
     applyManipulatorColors(m_colors);
 
     return true;

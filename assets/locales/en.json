@@ -15,6 +15,9 @@
         "Camera3D": {
             "description": "Perspective camera. The scene is shown through the active camera."
         },
+        "Component": {
+            "description": "Base of all components. A disabled component takes no part in the game."
+        },
         "MeshRenderer": {
             "description": "Draws a mesh at the position of its Node3D."
         },
@@ -112,6 +115,8 @@
         "missing": "folder not found",
         "column": {
             "name": "Name",
+        "active": "Active",
+        "enabled": "Enabled",
             "path": "Folder",
             "version": "Version"
         },

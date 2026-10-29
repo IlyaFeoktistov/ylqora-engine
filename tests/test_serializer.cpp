@@ -41,6 +41,8 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: scene survives save and load")
     player.transform().setRotationDegrees({0.0f, 100.0f, 0.0f});
     player.transform().setScale({2.0f, 2.0f, 2.0f});
     player.addComponent<TestComponent>().value = 42;
+    player.getComponent<TestComponent>()->setEnabled(false);
+    player.setActive(false);
     auto& camera = player.addChild<Camera3D>("Eyes");
     camera.setFovDegrees(75.0f);
     original.setActiveCamera(&camera);
@@ -64,6 +66,9 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: scene survives save and load")
     CHECK(loadedPlayer->components().size() == 2);
     REQUIRE(loadedPlayer->getComponent<TestComponent>());
     CHECK(loadedPlayer->getComponent<TestComponent>()->value == 42);
+    CHECK_FALSE(loadedPlayer->getComponent<TestComponent>()->enabled());
+    CHECK_FALSE(loadedPlayer->active());
+    CHECK(loaded.root()->active());
 
     auto* loadedCamera = dynamic_cast<Camera3D*>(loadedPlayer->findChild("Eyes"));
     REQUIRE(loadedCamera);
