@@ -1,6 +1,8 @@
 #include <doctest/doctest.h>
 
 #include <yqlora/editor/EditorSession.hpp>
+#include <yqlora/input/Input.hpp>
+#include <yqlora/platform/InputFeeder.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Camera3D.hpp>
 #include <yqlora/scene/Scene.hpp>
@@ -134,4 +136,26 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: Stop returns the scene as it was befo
     CHECK(restored->transform().position() == Vec3(1.0f, 0.0f, 0.0f));
     CHECK(session.selection().selected() == cubeId);
     CHECK(session.document().modified() == modifiedBefore);
+}
+
+TEST_CASE_FIXTURE(Fixture, "EditorSession: the game sees input only while its window is focused")
+{
+    session.createNode(type("Node3D"), nullptr);
+    Input appInput;
+    InputFeeder feeder(appInput);
+    feeder.keyDown(Key::Space);
+    constexpr float kFrame = 0.016f;
+
+    session.play();
+    const Input& gameInput = session.scene().services().input();
+    // Клавиши, набранные в инспекторе, до игры не доходят.
+    session.update(kFrame, appInput);
+    CHECK_FALSE(gameInput.isKeyDown(Key::Space));
+
+    session.setGameInputFocused(true);
+    session.update(kFrame, appInput);
+    CHECK(gameInput.isKeyDown(Key::Space));
+
+    // Ввод игры свой: редактируемая сцена по-прежнему видит службы редактора.
+    CHECK(&gameInput != &scene.services().input());
 }

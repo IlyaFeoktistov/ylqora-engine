@@ -1,9 +1,12 @@
 #pragma once
 
+#include "yqlora/input/Input.hpp"
+
 #include <memory>
 
 namespace yqlora {
 
+class EngineServices;
 class Scene;
 class SceneSerializer;
 
@@ -12,7 +15,9 @@ class SceneSerializer;
 namespace yqlora::editor {
 
 // Игра в редакторе: копия редактируемой сцены, которая живёт от Play до Stop.
-// Сама редактируемая сцена во время игры не меняется.
+// Сама редактируемая сцена во время игры не меняется. У копии свой ввод: она
+// видит нажатия, только пока окно игры в фокусе, так что клавиши, набранные
+// в инспекторе, не двигают игрока.
 class PlayMode {
 public:
     explicit PlayMode(const SceneSerializer& serializer);
@@ -46,7 +51,14 @@ public:
         return playing() && !m_paused;
     }
 
-    void update(float deltaSeconds);
+    // Окно игры в фокусе: со следующего кадра игра видит ввод.
+    void setInputFocused(bool focused)
+    {
+        m_inputFocused = focused;
+    }
+
+    // input - ввод приложения за этот кадр.
+    void update(float deltaSeconds, const Input& input);
 
     // Копия для игры; nullptr, пока игры нет.
     Scene* scene()
@@ -61,8 +73,14 @@ public:
 
 private:
     const SceneSerializer& m_serializer;
+    // Что видит игра: ввод приложения или, без фокуса, ничего не нажато.
+    Input m_input;
+    // Службы копии: как у редактируемой сцены, но со своим вводом. Живут
+    // дольше сцены, она хранит ссылку на них.
+    std::unique_ptr<EngineServices> m_services;
     std::unique_ptr<Scene> m_scene;
     bool m_paused = false;
+    bool m_inputFocused = false;
 };
 
 } // namespace yqlora::editor

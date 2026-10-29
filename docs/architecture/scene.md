@@ -225,7 +225,8 @@ public:
 - The registry in the services is what lets `Node::addComponent` check the
   component rules itself and what tells the scene the lifecycle phases of a
   type.
-- In the editor the Play copy sees input only while the viewport is focused,
+- In the editor the Play copy has its own services with its own `Input`: it
+  sees the input of the application only while the Game window is focused,
   so keys typed in the inspector do not move the player.
 
 ### Game time [done]
@@ -470,7 +471,10 @@ not part of this.
 - **Two windows during Play**, as in Unity: "Game" shows the main camera,
   "Scene" keeps the free editor camera, where nodes are selected and changed
   while the game runs. Changes made during Play belong to the Play copy and
-  are gone after Stop **[next]**.
+  are gone after Stop **[done]**. The Game window comes forward and takes the
+  input on Play; without a game it shows the edited scene through its main
+  camera. Mouse position relative to the Game window comes with the HUD
+  **[planned, step 8]**.
 - A scene switch requested by a script happens between frames, never in the
   middle of an update **[planned, step 9]**.
 

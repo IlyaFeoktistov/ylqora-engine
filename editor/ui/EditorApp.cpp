@@ -6,6 +6,7 @@
 #include "menu/MainMenu.hpp"
 
 #include "panels/FileSystemPanel.hpp"
+#include "panels/GamePanel.hpp"
 #include "panels/InspectorPanel.hpp"
 #include "panels/SceneTreePanel.hpp"
 #include "panels/ViewportPanel.hpp"
@@ -50,6 +51,7 @@ EditorApp::EditorApp()
     m_panels.push_back(std::make_unique<InspectorPanel>());
     m_panels.push_back(std::make_unique<FileSystemPanel>());
     m_panels.push_back(std::make_unique<ViewportPanel>());
+    m_panels.push_back(std::make_unique<GamePanel>());
 }
 
 EditorContext EditorApp::context()
@@ -111,7 +113,7 @@ void EditorApp::onStart()
 
 void EditorApp::onUpdate(float deltaSeconds)
 {
-    m_session.update(deltaSeconds);
+    m_session.update(deltaSeconds, input());
     // Камера обновляется в окне сцены, там же известно, над ним ли курсор.
     m_deltaSeconds = deltaSeconds;
 }

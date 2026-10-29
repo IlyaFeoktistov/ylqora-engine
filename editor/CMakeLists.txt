@@ -41,13 +41,16 @@ add_library(yqlora_editor_ui STATIC
     ui/gizmos/SelectionGizmo.cpp
     ui/menu/MainMenu.cpp
     ui/panels/FileSystemPanel.cpp
+    ui/panels/GamePanel.cpp
     ui/panels/InspectorPanel.cpp
     ui/panels/ProjectManagerPanel.cpp
     ui/panels/SceneTreePanel.cpp
     ui/panels/ViewportPanel.cpp
     ui/style/Theme.cpp
     ui/widgets/Checkbox.cpp
+    ui/widgets/PlayFrame.cpp
     ui/widgets/PropertyEditor.cpp
+    ui/widgets/RenderView.cpp
 )
 add_library(yqlora::editor_ui ALIAS yqlora_editor_ui)
 

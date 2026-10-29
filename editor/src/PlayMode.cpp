@@ -1,5 +1,6 @@
 #include "yqlora/editor/PlayMode.hpp"
 
+#include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/scene/Scene.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
@@ -18,10 +19,14 @@ bool PlayMode::start(const Scene& source)
     if (playing()) {
         return false;
     }
+    m_input = Input{};
+    m_services = std::make_unique<EngineServices>(m_input, source.services().registry());
+    m_services->setProject(source.services().project());
     // Копия через формат файла: в ней те же ID узлов, и выделение остаётся на месте.
-    auto copy = std::make_unique<Scene>(source.services());
+    auto copy = std::make_unique<Scene>(*m_services);
     if (!m_serializer.fromJson(*copy, m_serializer.toJson(source))) {
         log::error("Cannot copy the scene for Play");
+        m_services.reset();
 
         return false;
     }
@@ -38,6 +43,7 @@ void PlayMode::stop()
     }
     m_scene->stop();
     m_scene.reset();
+    m_services.reset();
     m_paused = false;
 }
 
@@ -46,8 +52,9 @@ void PlayMode::setPaused(bool paused)
     m_paused = playing() && paused;
 }
 
-void PlayMode::update(float deltaSeconds)
+void PlayMode::update(float deltaSeconds, const Input& input)
 {
+    m_input = m_inputFocused ? input : Input{};
     if (running()) {
         m_scene->advance(deltaSeconds);
     }

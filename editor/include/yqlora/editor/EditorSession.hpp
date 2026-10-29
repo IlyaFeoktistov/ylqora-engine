@@ -139,9 +139,15 @@ public:
     void stop();
 
     // Кадр игры: обновляет копию сцены, пока игра идёт и не на паузе.
-    void update(float deltaSeconds)
+    // input - ввод приложения, игра видит его, только пока окно игры в фокусе.
+    void update(float deltaSeconds, const Input& input)
     {
-        m_play.update(deltaSeconds);
+        m_play.update(deltaSeconds, input);
+    }
+
+    void setGameInputFocused(bool focused)
+    {
+        m_play.setInputFocused(focused);
     }
 
     // nullptr, если такого узла в сцене нет.

@@ -47,21 +47,10 @@ public:
 };
 
 // Набор гизмо окна сцены. Порядок - это приоритет мыши: первый в списке
-// получает клик первым. Слой включается и выключается целиком, например
-// на время игры.
+// получает клик первым.
 class GizmoLayer {
 public:
     void add(std::unique_ptr<Gizmo> gizmo);
-
-    void setEnabled(bool enabled)
-    {
-        m_enabled = enabled;
-    }
-
-    bool enabled() const
-    {
-        return m_enabled;
-    }
 
     void prepareFrame(FrameData& frame, const GizmoContext& context) const;
 
@@ -70,7 +59,6 @@ public:
 
 private:
     std::vector<std::unique_ptr<Gizmo>> m_gizmos;
-    bool m_enabled = true;
 };
 
 } // namespace yqlora::editor

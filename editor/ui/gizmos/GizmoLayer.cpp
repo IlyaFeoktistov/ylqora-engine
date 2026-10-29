@@ -9,9 +9,6 @@ void GizmoLayer::add(std::unique_ptr<Gizmo> gizmo)
 
 void GizmoLayer::prepareFrame(FrameData& frame, const GizmoContext& context) const
 {
-    if (!m_enabled) {
-        return;
-    }
     for (const auto& gizmo : m_gizmos) {
         gizmo->prepareFrame(frame, context);
     }
@@ -19,9 +16,6 @@ void GizmoLayer::prepareFrame(FrameData& frame, const GizmoContext& context) con
 
 bool GizmoLayer::draw(GizmoContext& context)
 {
-    if (!m_enabled) {
-        return false;
-    }
     bool mouseTaken = false;
     for (const auto& gizmo : m_gizmos) {
         if (gizmo->draw(context)) {

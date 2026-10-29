@@ -40,6 +40,8 @@ void buildDefaultLayout(unsigned int dockspace)
     dock("Scene", left);
     dock("Inspector", right);
     dock("FileSystem", bottom);
+    // Окно игры - вкладкой за окном вида: вперёд оно выходит само на Play.
+    dock("Game", center);
     dock("Viewport", center);
     ImGui::DockBuilderFinish(dockspace);
 }

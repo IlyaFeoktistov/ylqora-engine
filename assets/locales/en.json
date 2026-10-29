@@ -49,6 +49,7 @@
         },
         "window": {
             "scene": "Scene",
+            "game": "Game",
             "viewport": "Viewport",
             "inspector": "Inspector",
             "files": "Files"
@@ -118,7 +119,7 @@
             "play": "Play",
             "pause": "Pause",
             "stop": "Stop",
-            "noCamera": "The scene has no camera: showing it through the editor camera"
+            "noCamera": "The scene has no camera"
         }
     },
     "projects": {
