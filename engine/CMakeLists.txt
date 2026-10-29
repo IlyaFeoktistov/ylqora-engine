@@ -50,6 +50,8 @@ add_library(yqlora SHARED
     src/reflection/ComponentRules.cpp
     src/reflection/Property.cpp
     src/reflection/PropertyJson.cpp
+    src/reflection/TypeBuilder.cpp
+    src/reflection/TypeInfo.cpp
     src/reflection/TypeRegistry.cpp
     src/render/FrameBuilder.cpp
     src/render/MeshData.cpp

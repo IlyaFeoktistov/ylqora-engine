@@ -14,7 +14,7 @@ class TypeInfo;
 class TypeRegistry;
 
 // Правила компонентов из реестра (requiresNode, requiresComponent, allowMultiple),
-// см. TypeBuilder. Правила базового типа действуют и на наследников.
+// см. BasicTypeBuilder. Правила базового типа действуют и на наследников.
 
 // type - это тип base или его наследник.
 YQLORA_API bool derivesFrom(const TypeRegistry& registry, const TypeInfo& type, std::string_view base);

@@ -1,0 +1,134 @@
+#pragma once
+
+#include "yqlora/core/Export.hpp"
+#include "yqlora/reflection/Property.hpp"
+#include "yqlora/scene/LifecyclePhase.hpp"
+
+#include <functional>
+#include <memory>
+#include <span>
+#include <string>
+#include <vector>
+
+namespace yqlora {
+
+class Component;
+class Node;
+class Scene;
+class SceneSystem;
+
+enum class TypeKind {
+    Node,
+    Component,
+    System,
+};
+
+// Описание типа узла или компонента: по нему редактор строит меню создания
+// и инспектор, а файлы сцен создают объекты по имени типа.
+class YQLORA_API TypeInfo {
+public:
+    const std::string& name() const
+    {
+        return m_name;
+    }
+
+    // Пусто у Node, Component и SceneSystem: это корни иерархий.
+    const std::string& baseName() const
+    {
+        return m_baseName;
+    }
+
+    TypeKind kind() const
+    {
+        return m_kind;
+    }
+
+    // Модуль, который зарегистрировал тип: движок или dll игры. Типы модуля
+    // убираются из реестра вместе, когда dll выгружают.
+    const std::string& module() const
+    {
+        return m_module;
+    }
+
+    // Встроенные компоненты (Transform) создаёт сам узел, поэтому они не создаваемые.
+    bool creatable() const
+    {
+        return m_createNode != nullptr || m_createComponent != nullptr || m_createSystem != nullptr;
+    }
+
+    // Встроенный компонент: его создаёт сам узел, снять и выключить его нельзя.
+    // Это несоздаваемые компоненты, кроме корня Component.
+    bool builtin() const
+    {
+        return m_kind == TypeKind::Component && !creatable() && !m_baseName.empty();
+    }
+
+    // Ключ перевода с описанием типа для подсказки в редакторе.
+    std::string descriptionKey() const;
+
+    // Только свойства этого типа, без базовых. Все вместе: TypeRegistry::properties().
+    std::span<const Property> ownProperties() const
+    {
+        return m_properties;
+    }
+
+    // Правила компонента, только свои, без базовых. Проверяют их функции
+    // из ComponentRules.hpp, они же учитывают правила базовых типов.
+
+    // Тип узла, на котором может жить компонент; пусто - на любом.
+    const std::string& requiredNode() const
+    {
+        return m_requiredNode;
+    }
+
+    // Компоненты, которые должны быть на том же узле.
+    std::span<const std::string> requiredComponents() const
+    {
+        return m_requiredComponents;
+    }
+
+    // Можно несколько компонентов этого типа на одном узле.
+    bool allowsMultiple() const
+    {
+        return m_allowMultiple;
+    }
+
+    // Фазы кадра, которые переопределил тип компонента (см. LifecyclePhase.hpp).
+    LifecyclePhases phases() const
+    {
+        return m_phases;
+    }
+
+    // Порядок выполнения по умолчанию из кода. Действующий порядок - executionOrderOf.
+    int executionOrder() const
+    {
+        return m_executionOrder;
+    }
+
+    // nullptr, если это не узел (не компонент) или тип нельзя создать.
+    std::unique_ptr<Node> createNode() const;
+    std::unique_ptr<Component> createComponent() const;
+    std::unique_ptr<SceneSystem> createSystem(Scene& scene) const;
+
+private:
+    friend class TypeRegistry;
+    template <typename Self>
+    friend class BasicTypeBuilder;
+    friend class TypeBuilder;
+
+    std::string m_name;
+    std::string m_baseName;
+    std::string m_module;
+    TypeKind m_kind = TypeKind::Node;
+    std::function<std::unique_ptr<Node>()> m_createNode;
+    std::function<std::unique_ptr<Component>()> m_createComponent;
+    std::function<std::unique_ptr<SceneSystem>(Scene&)> m_createSystem;
+    std::vector<Property> m_properties;
+    std::string m_requiredNode;
+    std::vector<std::string> m_requiredComponents;
+    bool m_allowMultiple = false;
+    LifecyclePhases m_phases = 0;
+    int m_executionOrder = 0;
+};
+
+} // namespace yqlora

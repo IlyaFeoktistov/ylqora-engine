@@ -11,9 +11,12 @@
 
 #include <array>
 #include <concepts>
+#include <map>
 #include <memory>
 #include <ranges>
 #include <span>
+#include <string>
+#include <string_view>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
@@ -95,12 +98,14 @@ public:
     template <std::derived_from<Component> T>
     auto components() const
     {
-        return componentsOfType(typeid(T)) | std::views::transform([](Component* component) {
+        return componentsOfType(typeNameOf<T>()) | std::views::transform([](Component* component) {
                    return static_cast<T*>(component);
                });
     }
 
-    std::span<Component* const> componentsOfType(std::type_index type) const;
+    // По имени типа: так находятся и типы, описанные во время выполнения, у
+    // которых нет своего C++-класса (все скрипты Luau - один LuauScript).
+    std::span<Component* const> componentsOfType(std::string_view typeName) const;
 
     // Система сцены типа T; nullptr, если такая не зарегистрирована.
     template <std::derived_from<SceneSystem> T>
@@ -184,7 +189,7 @@ private:
     std::vector<TreeChange> m_treeChanges;
     bool m_inFrame = false;
     std::unique_ptr<Node> m_root;
-    std::unordered_map<std::type_index, std::vector<Component*>> m_components;
+    std::map<std::string, std::vector<Component*>, std::less<>> m_components;
 };
 
 } // namespace yqlora

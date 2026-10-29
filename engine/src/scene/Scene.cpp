@@ -160,9 +160,9 @@ void Scene::destroyNow(Node& node)
     node.parent()->removeChild(node);
 }
 
-std::span<Component* const> Scene::componentsOfType(std::type_index type) const
+std::span<Component* const> Scene::componentsOfType(std::string_view typeName) const
 {
-    const auto it = m_components.find(type);
+    const auto it = m_components.find(typeName);
     if (it == m_components.end()) {
         return {};
     }
@@ -172,7 +172,7 @@ std::span<Component* const> Scene::componentsOfType(std::type_index type) const
 
 void Scene::enterComponent(Component& component)
 {
-    m_components[std::type_index(typeid(component))].push_back(&component);
+    m_components[std::string(component.typeName())].push_back(&component);
     if (component.activeAndEnabled()) {
         activate(component);
     }
@@ -181,7 +181,9 @@ void Scene::enterComponent(Component& component)
 void Scene::exitComponent(Component& component)
 {
     deactivate(component);
-    std::erase(m_components[std::type_index(typeid(component))], &component);
+    if (const auto it = m_components.find(component.typeName()); it != m_components.end()) {
+        std::erase(it->second, &component);
+    }
 }
 
 void Scene::activate(Component& component)

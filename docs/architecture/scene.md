@@ -152,9 +152,13 @@ sandbox and a language server.
 - Every `.luau` script registers **its own component type** in the registry,
   named after the script, with the properties declared in the script. All of
   them create instances of one C++ class, `LuauScript`, bound to the script
-  resource. So the registry must accept types and properties defined at run
-  time, not only from C++ templates **[next]**: properties are already
-  type-erased (`std::function` over `void*`), the builder is not.
+  resource. The registry accepts such types **[done]**:
+  `registry.registerType(name, kind, base)` returns a `TypeBuilder` that takes
+  the factory, the lifecycle phases and properties made of functions
+  (`Property::forComponent`); a script instance returns its own type name from
+  `typeName()`. Types of C++ classes go through the same path
+  (`ClassTypeBuilder` turns members into those values), and the scene indexes
+  components by type name, so all `LuauScript` types get lists of their own.
 - Bindings are generated from the registry: properties plus **registered
   methods** of engine types **[next]**. One list serves Luau, the inspector and
   the API documentation. The same list produces type definition files for

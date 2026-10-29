@@ -12,19 +12,31 @@
 
 namespace yqlora {
 
-std::unique_ptr<Node> TypeInfo::createNode() const
+TypeBuilder TypeRegistry::registerType(std::string name, TypeKind kind, std::string base)
 {
-    return m_createNode ? m_createNode() : nullptr;
+    return TypeBuilder(addType(std::move(name), kind, std::move(base)));
 }
 
-std::unique_ptr<Component> TypeInfo::createComponent() const
+TypeInfo& TypeRegistry::addType(std::string name, TypeKind kind, std::string base)
 {
-    return m_createComponent ? m_createComponent() : nullptr;
-}
+    assert(!find(name) && "TypeRegistry: type name is already registered");
+    if (!base.empty()) {
+        [[maybe_unused]] const TypeInfo* baseType = find(base);
+        assert(baseType && "TypeRegistry: register the base type first");
+        assert(baseType->kind() == kind && "TypeRegistry: the base is a type of another kind");
+    }
 
-std::unique_ptr<SceneSystem> TypeInfo::createSystem(Scene& scene) const
-{
-    return m_createSystem ? m_createSystem(scene) : nullptr;
+    auto info = std::make_unique<TypeInfo>();
+    info->m_name = std::move(name);
+    info->m_baseName = std::move(base);
+    info->m_module = m_module;
+    info->m_kind = kind;
+
+    TypeInfo& ref = *info;
+    m_byName.emplace(ref.m_name, &ref);
+    m_types.push_back(std::move(info));
+
+    return ref;
 }
 
 const TypeInfo* TypeRegistry::find(std::string_view name) const

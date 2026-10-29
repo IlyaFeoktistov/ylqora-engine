@@ -153,10 +153,33 @@ enum class PropertyHint {
     Layers, // int: набор слоёв (LayerMask), флажок на каждый
 };
 
-// Свойство узла или компонента: имя, тип и доступ к значению. Создаётся
-// через TypeBuilder при регистрации типа в TypeRegistry.
+// Свойство узла или компонента: имя, тип и доступ к значению. Доступ к
+// значению - функции над PropertyValue, поэтому свойство может объявить и
+// C++-класс (ClassTypeBuilder), и тип, описанный во время выполнения
+// (скрипт Luau, граф визуального скрипта).
 class YQLORA_API Property {
 public:
+    using NodeGetter = std::function<PropertyValue(const Node&)>;
+    using NodeSetter = std::function<void(Node&, const PropertyValue&)>;
+    using ComponentGetter = std::function<PropertyValue(const Component&)>;
+    using ComponentSetter = std::function<void(Component&, const PropertyValue&)>;
+
+    // Setter получает значение уже проверенного типа type.
+    static Property forNode(
+        std::string name,
+        PropertyType type,
+        NodeGetter getter,
+        NodeSetter setter,
+        PropertyHint hint = PropertyHint::None
+    );
+    static Property forComponent(
+        std::string name,
+        PropertyType type,
+        ComponentGetter getter,
+        ComponentSetter setter,
+        PropertyHint hint = PropertyHint::None
+    );
+
     const std::string& name() const
     {
         return m_name;
@@ -186,22 +209,21 @@ public:
     bool set(Node& node, const PropertyValue& value) const;
     bool set(Component& component, const PropertyValue& value) const;
 
-private:
-    template <typename Class, typename Root>
-    friend class TypeBuilder;
+    // Имена значений перечисления по порядку, см. enumNames.
+    void setEnumNames(std::vector<std::string> names);
 
-    // Указатель на объект приходит как Root (Node или Component), к своему типу
-    // его приводит функция, созданная в TypeBuilder.
-    using Getter = std::function<PropertyValue(const void*)>;
-    using Setter = std::function<void(void*, const PropertyValue&)>;
+private:
+    Property() = default;
 
     std::string m_name;
     PropertyType m_type = PropertyType::Bool;
     PropertyHint m_hint = PropertyHint::None;
     std::vector<std::string> m_enumNames;
-    bool m_forNode = false;
-    Getter m_get;
-    Setter m_set;
+    // Своё у узлов и у компонентов: объект одного вида не передать свойству другого.
+    NodeGetter m_nodeGet;
+    NodeSetter m_nodeSet;
+    ComponentGetter m_componentGet;
+    ComponentSetter m_componentSet;
 };
 
 } // namespace yqlora
