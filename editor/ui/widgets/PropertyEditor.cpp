@@ -316,7 +316,7 @@ void valueField(
     case PropertyType::Int:
         if (property.hint() == PropertyHint::Layer) {
             result.changed = layerCombo(std::get<int>(value)) || result.changed;
-        } else if (property.hint() == PropertyHint::LayerMask) {
+        } else if (property.hint() == PropertyHint::Layers) {
             result.changed = layerMaskCombo(std::get<int>(value), context.metrics.checkboxPadding) || result.changed;
         } else {
             ImGui::SetNextItemWidth(-FLT_MIN);

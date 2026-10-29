@@ -100,7 +100,7 @@ void registerEngineTypes(TypeRegistry& registry)
         .property("near", &Camera3D::nearPlane, &Camera3D::setNearPlane)
         .property("far", &Camera3D::farPlane, &Camera3D::setFarPlane)
         .property("order", &Camera3D::order, &Camera3D::setOrder)
-        .property("cullingMask", &Camera3D::cullingMask, &Camera3D::setCullingMask, PropertyHint::LayerMask)
+        .property("cullingMask", &Camera3D::cullingMask, &Camera3D::setCullingMask, PropertyHint::Layers)
         .property("clear", &Camera3D::clear, &Camera3D::setClear)
         .enumNames({"ColorAndDepth", "DepthOnly", "Nothing"})
         .property("background", &Camera3D::background, &Camera3D::setBackground, PropertyHint::Color);

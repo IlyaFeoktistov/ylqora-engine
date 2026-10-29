@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 
 #include <yqlora/core/Settings.hpp>
+#include <yqlora/editor/EditorSettings.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -78,4 +79,20 @@ TEST_CASE("Settings: corrupted file does not crash")
     Settings settings(file);
     CHECK_FALSE(settings.load());
     CHECK(settings.language.empty());
+}
+
+TEST_CASE("EditorSettings: defaults without a file, the choice survives a restart")
+{
+    const auto file = tempSettingsFile("editor.json");
+
+    editor::EditorSettings fresh(file);
+    fresh.load();
+    CHECK(fresh.cameraPreview);
+
+    fresh.cameraPreview = false;
+    REQUIRE(fresh.save());
+
+    editor::EditorSettings reloaded(file);
+    reloaded.load();
+    CHECK_FALSE(reloaded.cameraPreview);
 }

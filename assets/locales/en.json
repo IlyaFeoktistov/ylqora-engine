@@ -64,6 +64,9 @@
             "missing": "Missing",
             "requiredBy": "Cannot be removed, required by:"
         },
+        "viewport": {
+            "cameraPreview": "Preview of the selected camera"
+        },
         "layers": {
             "everything": "Everything",
             "nothing": "Nothing"

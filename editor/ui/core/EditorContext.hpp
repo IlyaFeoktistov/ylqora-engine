@@ -15,6 +15,7 @@ namespace yqlora::editor {
 
 class ActionRegistry;
 class EditorSession;
+class EditorSettings;
 class Theme;
 
 // Всё, с чем работают панели редактора. Собирается заново каждый кадр.
@@ -25,6 +26,7 @@ struct EditorContext {
     const SceneSerializer& serializer;
     ActionRegistry& actions;
     const Theme& theme;
+    EditorSettings& settings;
     float deltaSeconds = 0.0f;
 
     // Открыть сцену проекта. Сначала спросит про несохранённые изменения в текущей.

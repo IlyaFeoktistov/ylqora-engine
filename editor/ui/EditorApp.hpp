@@ -8,6 +8,7 @@
 
 #include "yqlora/core/Application.hpp"
 #include "yqlora/editor/EditorSession.hpp"
+#include "yqlora/editor/EditorSettings.hpp"
 #include "yqlora/editor/ProjectManager.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
@@ -44,6 +45,8 @@ private:
     Theme m_theme;
     SceneSerializer m_serializer{registry()};
     std::unique_ptr<ProjectManager> m_projects;
+    // Путь к папке пользователя известен только после запуска, см. onStart.
+    std::unique_ptr<EditorSettings> m_settings;
     std::unique_ptr<ProjectManagerPanel> m_projectManager;
     EditorSession m_session{scene(), m_serializer};
     ActionRegistry m_actions;

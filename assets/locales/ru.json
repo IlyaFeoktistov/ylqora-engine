@@ -64,6 +64,9 @@
             "missing": "Не найден",
             "requiredBy": "Нельзя снять, нужен для:"
         },
+        "viewport": {
+            "cameraPreview": "Превью выбранной камеры"
+        },
         "layers": {
             "everything": "Все",
             "nothing": "Ничего"

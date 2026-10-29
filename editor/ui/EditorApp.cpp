@@ -33,6 +33,7 @@ constexpr int kWindowWidth = 1600;
 constexpr int kWindowHeight = 900;
 constexpr const char* kThemeFile = "themes/dark.json";
 constexpr const char* kProjectListFile = "projects.json";
+constexpr const char* kEditorSettingsFile = "editor.json";
 
 } // namespace
 
@@ -60,6 +61,7 @@ EditorContext EditorApp::context()
         .serializer = m_serializer,
         .actions = m_actions,
         .theme = m_theme,
+        .settings = *m_settings,
         .deltaSeconds = m_deltaSeconds,
         .openScene = [this](const std::filesystem::path& path) {
             openScene(path);
@@ -77,6 +79,8 @@ void EditorApp::onStart()
     }
 
     m_projects = std::make_unique<ProjectManager>(userDataDirectory() / kProjectListFile, m_serializer);
+    m_settings = std::make_unique<EditorSettings>(userDataDirectory() / kEditorSettingsFile);
+    m_settings->load();
     m_projectManager = std::make_unique<ProjectManagerPanel>(*m_projects, m_theme);
 
     registerEditorActions(

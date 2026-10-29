@@ -465,7 +465,8 @@ not part of this.
 - **Camera preview** in the editor, as in Unity: while a camera is selected, a
   small window in the corner of the viewport shows the picture through it, so
   the camera can be placed by eye. A button on the viewport toggles it, the
-  choice is an editor setting **[next]**.
+  choice is an editor setting (`EditorSettings`, a file in the user folder)
+  **[done]**.
 - **Two windows during Play**, as in Unity: "Game" shows the main camera,
   "Scene" keeps the free editor camera, where nodes are selected and changed
   while the game runs. Changes made during Play belong to the Play copy and
