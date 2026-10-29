@@ -301,7 +301,9 @@ calls it for the Play copy when not paused, tests call it directly.
 ## Frame pipeline
 
 The whole engine frame, not only the scene part. Each stage has one owner;
-the order lives in one frame loop class that knows only the order **[next]**.
+the order lives in one frame loop class that knows only the order
+**[done]**: `FrameLoop` calls the stages of `FrameStages`, the owner (the
+game's `Application`, a test) says what each stage does.
 
 ```
 1. Begin       FrameClock: frame length
@@ -318,6 +320,11 @@ the order lives in one frame loop class that knows only the order **[next]**.
 7. Interface   ImGui of the editor and tools
 8. Present
 ```
+
+- **In the editor** the scene windows (viewport, game, camera preview) do
+  their own extract and render during the interface stage: each has its own
+  camera and texture. The Play copy is simulated and its transforms are
+  updated in the simulate stage, by `PlayMode`, in the same order.
 
 - **The snapshot from Extract** is all the renderer reads; it never touches
   the scene. Later the renderer can move to its own thread (the game computes

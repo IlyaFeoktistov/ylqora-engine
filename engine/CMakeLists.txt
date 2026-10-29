@@ -20,6 +20,7 @@ add_library(yqlora SHARED
     src/core/EngineServices.cpp
     src/core/FileFormat.cpp
     src/core/FrameClock.cpp
+    src/core/FrameLoop.cpp
     src/core/Log.cpp
     src/core/Settings.cpp
     src/core/UiLayer.cpp

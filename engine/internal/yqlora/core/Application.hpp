@@ -171,6 +171,9 @@ protected:
     }
 
 private:
+    // Стадии кадра для FrameLoop: что делает приложение на каждой из них.
+    class Stages;
+
     void initSettingsAndLanguage();
     void updateTitle();
     void mainLoop();

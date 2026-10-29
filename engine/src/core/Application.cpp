@@ -1,6 +1,6 @@
 #include "yqlora/core/Application.hpp"
 
-#include "yqlora/core/FrameClock.hpp"
+#include "yqlora/core/FrameLoop.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/LogSettings.hpp"
 #include "yqlora/core/Settings.hpp"
@@ -187,51 +187,94 @@ DepthRange Application::depthRange() const
     return m_renderer->depthRange();
 }
 
+class Application::Stages final : public FrameStages {
+public:
+    explicit Stages(Application& app)
+        : m_app(app)
+        , m_input(app.m_input)
+    {
+        m_events.onCloseRequested = [&app] {
+            app.onCloseRequested();
+        };
+        m_events.onResized = [&app](int width, int height) {
+            app.m_renderer->resize(width, height);
+        };
+    }
+
+    bool input() override
+    {
+        m_input.beginFrame();
+        m_app.m_window->pollEvents(m_events, m_input);
+        if (m_app.m_ui && m_app.m_window->mouseWrapping()) {
+            m_app.m_ui->setMouseDelta(m_app.m_input.mousePosition(), m_app.m_input.mouseDelta());
+        }
+
+        return m_app.m_running;
+    }
+
+    void simulate(float deltaSeconds) override
+    {
+        if (m_app.m_sceneRunning) {
+            m_app.m_scene->advance(deltaSeconds);
+        }
+        m_app.onUpdate(deltaSeconds);
+    }
+
+    void updateTransforms() override
+    {
+        // Сцену меняют и без игры: редактор правит её между кадрами.
+        m_app.m_scene->updateTransforms();
+    }
+
+    // В редакторе Extract и рендер делают его окна во время интерфейса: у
+    // каждого своя камера и своя текстура.
+    void extract() override
+    {
+        if (m_app.m_ui) {
+            return;
+        }
+        m_frame = extractFrame(*m_app.m_scene, m_app.aspectRatio(), m_app.depthRange());
+        m_app.onPrepareFrame(m_frame);
+    }
+
+    void render() override
+    {
+        if (!m_app.m_ui) {
+            m_app.m_renderer->render(m_frame);
+        }
+    }
+
+    void interface() override
+    {
+        if (!m_app.m_ui) {
+            return;
+        }
+        m_app.m_ui->beginFrame();
+        m_app.onGui();
+        m_app.m_renderer->clearWindow(kWindowClearColor);
+        m_app.m_ui->endFrame();
+    }
+
+    void present() override
+    {
+        m_app.m_renderer->present();
+    }
+
+private:
+    Application& m_app;
+    InputFeeder m_input;
+    WindowEvents m_events;
+    FrameData m_frame;
+};
+
 void Application::mainLoop()
 {
-    WindowEvents events;
-    events.onCloseRequested = [this] {
-        onCloseRequested();
-    };
-    events.onResized = [this](int width, int height) {
-        m_renderer->resize(width, height);
-    };
-
-    InputFeeder input(m_input);
+    Stages stages(*this);
+    FrameLoop loop(stages, kMaxFrameSeconds);
     m_running = true;
-    FrameClock clock(kMaxFrameSeconds);
-    clock.reset(platform::timeSeconds());
-
+    loop.reset(platform::timeSeconds());
     while (m_running) {
-        const float deltaSeconds = clock.tick(platform::timeSeconds());
-
-        input.beginFrame();
-        m_window->pollEvents(events, input);
-        if (m_ui && m_window->mouseWrapping()) {
-            m_ui->setMouseDelta(m_input.mousePosition(), m_input.mouseDelta());
-        }
-        if (!m_running) {
-            break;
-        }
-
-        if (m_sceneRunning) {
-            m_scene->advance(deltaSeconds);
-        }
-        onUpdate(deltaSeconds);
-        // Сцену меняют и без игры: редактор правит её между кадрами.
-        m_scene->updateTransforms();
-
-        if (m_ui) {
-            m_ui->beginFrame();
-            onGui();
-            m_renderer->clearWindow(kWindowClearColor);
-            m_ui->endFrame();
-        } else {
-            FrameData frame = extractFrame(*m_scene, aspectRatio(), depthRange());
-            onPrepareFrame(frame);
-            m_renderer->render(frame);
-        }
-        m_renderer->present();
+        loop.runFrame(platform::timeSeconds());
     }
 }
 
