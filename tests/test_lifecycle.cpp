@@ -3,9 +3,11 @@
 #include <yqlora/core/EngineServices.hpp>
 #include <yqlora/input/Input.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
+#include <yqlora/scene/Camera3D.hpp>
 #include <yqlora/scene/Node3D.hpp>
 #include <yqlora/scene/Scene.hpp>
 
+#include <functional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -82,6 +84,20 @@ struct UpdateOnly final : Component {
     Events& events;
 };
 
+// Выполняет заданное действие в onUpdate: так тесты меняют сцену посреди кадра.
+struct Action final : Component {
+    YQLORA_TYPE(Action, Component)
+
+    void onUpdate(float /*deltaSeconds*/) override
+    {
+        if (call) {
+            call();
+        }
+    }
+
+    std::function<void()> call;
+};
+
 // Бросает исключение из onUpdate.
 struct Thrower final : Component {
     YQLORA_TYPE(Thrower, Component)
@@ -112,6 +128,8 @@ struct Fixture {
         registry.registerComponent<UpdateOnly>();
         registry.registerComponent<Early>().executionOrder(-1);
         registry.registerComponent<Thrower>();
+        // Раньше остальных: успевает поменять сцену до их update.
+        registry.registerComponent<Action>().executionOrder(-1);
     }
 
     // Журнал раньше сцены: сцена при уничтожении останавливает дерево и пишет в него.
@@ -308,6 +326,100 @@ TEST_CASE_FIXTURE(Fixture, "Lifecycle: an exception disables the component, the 
     events.clear();
     scene.advance(kNoFixedStep);
     CHECK(events == Events{"update", "late"});
+}
+
+TEST_CASE_FIXTURE(Fixture, "Tree changes: destroying during a frame happens at its end")
+{
+    auto& root = scene.createRoot<Node3D>();
+    auto& doomed = root.addChild<Node3D>();
+    doomed.addComponent<Recorder>(events);
+    auto& action = root.addComponent<Action>();
+    scene.advance(kNoFixedStep);
+
+    events.clear();
+    action.call = [&] {
+        scene.destroy(doomed);
+        CHECK(root.children().size() == 1);
+        action.call = nullptr;
+    };
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"update", "late", "disable", "stop"});
+    CHECK(root.children().empty());
+}
+
+TEST_CASE_FIXTURE(Fixture, "Tree changes: moving keeps components running")
+{
+    auto& root = scene.createRoot<Node3D>();
+    auto& from = root.addChild<Node3D>();
+    auto& to = root.addChild<Node3D>();
+    auto& node = from.addChild<Node3D>();
+    node.addComponent<Recorder>(events);
+    auto& action = root.addComponent<Action>();
+    scene.advance(kNoFixedStep);
+
+    events.clear();
+    action.call = [&] {
+        scene.setParent(node, to);
+        CHECK(node.parent() == &from);
+        action.call = nullptr;
+    };
+    scene.advance(kNoFixedStep);
+    CHECK(node.parent() == &to);
+    CHECK(from.children().empty());
+    CHECK(events == Events{"update", "late"});
+
+    // Вне кадра - сразу; под неактивным родителем компонент выключается.
+    events.clear();
+    from.setActive(false);
+    scene.setParent(node, from);
+    CHECK(node.parent() == &from);
+    CHECK(events == Events{"disable"});
+}
+
+TEST_CASE_FIXTURE(Fixture, "Tree changes: a node created during a frame takes part from the next one")
+{
+    auto& root = scene.createRoot<Node3D>();
+    auto& action = root.addComponent<Action>();
+    scene.advance(kNoFixedStep);
+
+    action.call = [&] {
+        root.addChild<Node3D>().addComponent<Recorder>(events);
+        action.call = nullptr;
+    };
+    scene.advance(kNoFixedStep);
+    CHECK(events.empty());
+    scene.advance(kNoFixedStep);
+    CHECK(events == Events{"enable", "start", "update", "late"});
+}
+
+TEST_CASE_FIXTURE(Fixture, "Tree changes: destroyed twice, or with the branch, is applied once")
+{
+    auto& root = scene.createRoot<Node3D>();
+    auto& parent = root.addChild<Node3D>();
+    auto& child = parent.addChild<Camera3D>();
+    scene.setActiveCamera(&child);
+    auto& action = root.addComponent<Action>();
+    action.call = [&] {
+        scene.destroy(child);
+        scene.destroy(parent);
+        scene.destroy(child);
+        action.call = nullptr;
+    };
+    scene.advance(kNoFixedStep);
+    CHECK(root.children().empty());
+    // Камера ушла вместе с веткой: висячего указателя не остаётся.
+    CHECK(scene.activeCamera() == nullptr);
+}
+
+TEST_CASE_FIXTURE(Fixture, "Tree changes: outside a frame the root is destroyed at once")
+{
+    scene.createRoot<Node3D>().addComponent<Recorder>(events);
+    scene.advance(kNoFixedStep);
+
+    events.clear();
+    scene.destroy(*scene.root());
+    CHECK(scene.empty());
+    CHECK(events == Events{"disable", "stop"});
 }
 
 TEST_CASE("Lifecycle: a scene without a registry calls nobody")

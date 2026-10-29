@@ -2,7 +2,9 @@
 
 #include "yqlora/core/Log.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
+#include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/ExecutionOrder.hpp"
+#include "yqlora/scene/NodeTree.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -68,6 +70,7 @@ Scene::~Scene()
 void Scene::setRoot(std::unique_ptr<Node> root)
 {
     assert((!root || !root->parent()) && "setRoot: node already has a parent");
+    assert(!m_inFrame && "setRoot: during a frame use Scene::destroy");
     // Камера могла жить в старом дереве, указатель на неё сейчас станет висячим.
     m_activeCamera = nullptr;
     if (m_root) {
@@ -82,6 +85,7 @@ void Scene::setRoot(std::unique_ptr<Node> root)
 
 std::unique_ptr<Node> Scene::takeRoot()
 {
+    assert(!m_inFrame && "takeRoot: during a frame use Scene::destroy");
     m_activeCamera = nullptr;
     if (m_root) {
         m_root->stop();
@@ -89,6 +93,69 @@ std::unique_ptr<Node> Scene::takeRoot()
     }
 
     return std::move(m_root);
+}
+
+void Scene::destroy(Node& node)
+{
+    assert(node.scene() == this && "destroy: the node is not in this scene");
+    if (m_inFrame) {
+        m_treeChanges.push_back({.node = node.id()});
+
+        return;
+    }
+    destroyNow(node);
+}
+
+void Scene::setParent(Node& node, Node& parent)
+{
+    assert(node.scene() == this && parent.scene() == this && "setParent: the nodes are not in this scene");
+    if (!node.parent() || isInBranch(node, parent)) {
+        log::error("Scene: node '{}' cannot be moved under '{}'", node.name(), parent.name());
+        assert(false && "setParent: the root cannot be moved, nor a node into its own branch");
+
+        return;
+    }
+    if (m_inFrame) {
+        m_treeChanges.push_back({.node = node.id(), .parent = parent.id()});
+
+        return;
+    }
+    node.moveTo(parent);
+}
+
+void Scene::applyTreeChange(const TreeChange& change)
+{
+    Node* node = m_root ? findNode(*m_root, change.node) : nullptr;
+    if (!node) {
+        // Ушёл раньше вместе с уничтоженной веткой.
+        return;
+    }
+    if (change.parent == 0) {
+        destroyNow(*node);
+
+        return;
+    }
+    Node* parent = findNode(*m_root, change.parent);
+    // Прошлые изменения кадра могли сделать перенос невозможным.
+    if (!parent || !node->parent() || isInBranch(*node, *parent)) {
+        log::error("Scene: node '{}' cannot be moved, the tree has changed during the frame", node->name());
+
+        return;
+    }
+    node->moveTo(*parent);
+}
+
+void Scene::destroyNow(Node& node)
+{
+    if (&node == m_root.get()) {
+        setRoot(nullptr);
+
+        return;
+    }
+    if (m_activeCamera && isInBranch(node, *m_activeCamera)) {
+        m_activeCamera = nullptr;
+    }
+    node.parent()->removeChild(node);
 }
 
 std::span<Component* const> Scene::componentsOfType(std::type_index type) const
@@ -117,6 +184,11 @@ void Scene::exitComponent(Component& component)
 
 void Scene::activate(Component& component)
 {
+    if (m_inFrame) {
+        m_joining.push_back(&component);
+
+        return;
+    }
     if (const TypeInfo* type = m_services.registry().find(component.typeName())) {
         const int order = executionOrderOf(m_services, *type);
         for (std::size_t i = 0; i < kLifecyclePhaseCount; ++i) {
@@ -134,6 +206,7 @@ void Scene::deactivate(Component& component)
         list.remove(component);
     }
     std::erase(m_starting, &component);
+    std::erase(m_joining, &component);
     std::ranges::replace(m_startBatch, &component, nullptr);
     if (component.m_enableCalled) {
         component.m_enableCalled = false;
@@ -172,6 +245,7 @@ void Scene::stop()
 
 void Scene::advance(float realDelta)
 {
+    m_inFrame = true;
     startPending();
     m_time.beginFrame(realDelta);
     while (m_time.takeFixedStep()) {
@@ -179,6 +253,15 @@ void Scene::advance(float realDelta)
     }
     runPhase(LifecyclePhase::Update, m_time.delta());
     runPhase(LifecyclePhase::LateUpdate, m_time.delta());
+    m_inFrame = false;
+
+    // Сначала дерево: уничтоженные уходят и из очереди включённых.
+    for (const TreeChange& change : std::exchange(m_treeChanges, {})) {
+        applyTreeChange(change);
+    }
+    for (Component* component : std::exchange(m_joining, {})) {
+        activate(*component);
+    }
 }
 
 void Scene::startPending()

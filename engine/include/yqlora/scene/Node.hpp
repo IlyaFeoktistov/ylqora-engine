@@ -111,6 +111,7 @@ public:
     Node& insertChild(std::size_t index, std::unique_ptr<Node> child);
 
     // Отцепляет ребёнка и возвращает владение им; nullptr, если это не наш ребёнок.
+    // Во время кадра сцены нельзя: там Scene::destroy и Scene::setParent.
     std::unique_ptr<Node> removeChild(Node& child);
 
     // Поиск среди прямых детей по имени.
@@ -189,6 +190,10 @@ private:
     friend class Scene;
     void enterScene(Scene& scene);
     void exitScene();
+
+    // Переносит узел последним ребёнком parent той же сцены, не выходя из неё:
+    // компоненты не останавливаются. Проверки - в Scene::setParent.
+    void moveTo(Node& parent);
 
     // Игра остановлена: onDisable и onStop у компонентов узла и детей, которые
     // их ждут. Следующий update снова начнёт с onEnable и onStart.

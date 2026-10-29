@@ -72,6 +72,7 @@ std::unique_ptr<Node> Node::removeChild(Node& child)
     if (it == m_children.end()) {
         return nullptr;
     }
+    assert(!(m_scene && m_scene->inFrame()) && "removeChild: during a frame use Scene::destroy or Scene::setParent");
     // Узел уходит из дерева посреди игры: он и его дети останавливаются.
     child.stop();
     if (child.m_scene) {
@@ -215,6 +216,21 @@ void Node::stop()
     for (const auto& component : m_components) {
         m_scene->stopComponent(*component);
     }
+}
+
+void Node::moveTo(Node& parent)
+{
+    assert(m_parent && m_scene && parent.m_scene == m_scene && "moveTo: both nodes must be in the same scene");
+    auto& siblings = m_parent->m_children;
+    const auto it = std::ranges::find_if(siblings, [&](const auto& c) {
+        return c.get() == this;
+    });
+    std::unique_ptr<Node> self = std::move(*it);
+    siblings.erase(it);
+    m_parent = &parent;
+    parent.m_children.push_back(std::move(self));
+    updateActiveInHierarchy();
+    onParentChanged();
 }
 
 void Node::setActive(bool active)

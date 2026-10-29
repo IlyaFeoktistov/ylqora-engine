@@ -72,6 +72,24 @@ public:
     // Забирает дерево из сцены, сцена становится пустой. Запущенное в игре останавливается.
     std::unique_ptr<Node> takeRoot();
 
+    // Уничтожает узел этой сцены со всей веткой, корень тоже. Во время кадра
+    // (см. inFrame) - в его конце, чтобы ни одна фаза не видела наполовину
+    // изменённое дерево; вне кадра - сразу.
+    void destroy(Node& node);
+
+    // Переносит узел последним ребёнком parent той же сцены. Положение
+    // относительно родителя сохраняется, компоненты не останавливаются.
+    // Когда применяется - как у destroy. Корень и перенос внутрь своей же
+    // ветки - ошибка программы.
+    void setParent(Node& node, Node& parent);
+
+    // Идёт кадр (advance): изменения дерева ждут его конца, а компоненты,
+    // включённые в нём (и узлы, созданные в нём), участвуют со следующего.
+    bool inFrame() const
+    {
+        return m_inFrame;
+    }
+
     // Камера, через которую смотрим. Должна принадлежать этой сцене;
     // при удалении камеры из дерева сбросьте её через setActiveCamera(nullptr).
     void setActiveCamera(Camera3D* camera)
@@ -118,7 +136,7 @@ public:
 
     // Кадр игры длиной realDelta секунд по часам. Весь порядок кадра - здесь:
     // onEnable и onStart новым компонентам, фиксированные шаги, update,
-    // lateUpdate. Вызывают только участвующие компоненты (activeAndEnabled),
+    // lateUpdate, затем отложенные изменения дерева. Вызывают только участвующие компоненты (activeAndEnabled),
     // у типа которых эта фаза переопределена. Исключение из вызова жизненного
     // цикла выключает компонент и уходит в лог, кадр идёт дальше.
     void advance(float realDelta);
@@ -141,6 +159,17 @@ private:
     // onDisable и onStop, если компонент их ждёт.
     void stopComponent(Component& component);
 
+    // Изменение дерева, отложенное до конца кадра. Узлы заданы по ID: к
+    // моменту применения узел мог уйти вместе с уничтоженной веткой.
+    struct TreeChange {
+        NodeId node = 0;
+        // 0 - уничтожить узел, иначе - новый родитель.
+        NodeId parent = 0;
+    };
+
+    void applyTreeChange(const TreeChange& change);
+    void destroyNow(Node& node);
+
     void startPending();
     // onEnable и onStart, если компонент участвует и ещё их не получил.
     void start(Component& component);
@@ -154,6 +183,10 @@ private:
     // Очередь, которую сейчас обходит startPending; выключенный по ходу
     // обхода заменяется на nullptr.
     std::vector<Component*> m_startBatch;
+    // Включены во время кадра: попадут в списки фаз в его конце.
+    std::vector<Component*> m_joining;
+    std::vector<TreeChange> m_treeChanges;
+    bool m_inFrame = false;
     std::unique_ptr<Node> m_root;
     std::unordered_map<std::type_index, std::vector<Component*>> m_components;
     Camera3D* m_activeCamera = nullptr;

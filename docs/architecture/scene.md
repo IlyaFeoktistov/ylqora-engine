@@ -286,8 +286,8 @@ scene.advance(realDelta):
 
 The game (`Application`) calls `advance` every frame, the editor's `PlayMode`
 calls it for the Play copy when not paused, tests call it directly. Today
-`advance` does the phases and the fixed step; systems and deferred changes
-come with their items below.
+`advance` does everything above except the systems, which come with their
+item.
 
 ## Frame pipeline
 
@@ -382,11 +382,54 @@ As in Unity:
 - A builtin component (`Transform3D`) cannot be disabled, as it cannot be
   removed: it has no `enabled` property.
 
-### Deferred tree changes [next]
+### Deferred tree changes [done]
 
 Destroying a node and changing its parent during a frame are applied at the
 end of the frame, so no phase sees a half-changed tree. Nodes created during a
 frame take part from the next one.
+
+```cpp
+scene.destroy(node);              // the node with its branch, the root too
+scene.setParent(node, newParent); // last child of newParent
+```
+
+- Outside a frame (editor, loading, tests) both apply at once; `inFrame()`
+  tells which case it is.
+- The queue refers to nodes by ID: a node gone with a destroyed branch is
+  skipped, destroying twice is harmless.
+- A move keeps the components running (no `onDisable` / `onEnable`, unless the
+  new parent changes `activeInHierarchy`). Today it keeps the transform
+  relative to the parent; the choice below comes with world matrices
+  **[next]**.
+- A component enabled during a frame, like one of a new node, takes part from
+  the next frame.
+- `removeChild`, `setRoot` and `takeRoot` during a frame are a programming
+  error: they would change the tree under the phases.
+
+### Changing the parent: local or world position
+
+Both are needed: a sword taken into a hand gets a new position relative to
+the hand; a wagon hooked to a train must not move in the world.
+
+- **Scripts** say it in every call, there is no default (Unity and Godot have
+  opposite ones, any default would surprise someone) **[next]**:
+
+  ```cpp
+  scene.setParent(sword, hand, KeepWorld::No);    // local values stay, the node jumps
+  scene.setParent(wagon, train, KeepWorld::Yes);  // stays in place in the world
+  ```
+
+- **The editor** asks when a node is dragged to another parent in the tree:
+  "Keep the world position?" with a "Remember my choice" checkbox. The choice
+  is an editor setting (a habit of the person, not a property of the game) and
+  can be changed there. Alt while dropping does the opposite once. Undo returns
+  both the parent and the old transform. Comes with dragging nodes in the tree
+  **[planned, step 4]**.
+- Keeping the world position is not always exact: under a parent with
+  non-uniform scale and rotation the world matrix has a skew that position,
+  rotation and scale cannot hold; the nearest values are taken, as in Unity.
+- Nodes without a transform (`Node`) and parents that are not `Node3D` have
+  nothing to recompute: the flag changes nothing there.
 
 ## Cameras and rendering [next]
 
