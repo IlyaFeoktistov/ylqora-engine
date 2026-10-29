@@ -16,8 +16,8 @@ Status marks: **[done]** implemented, **[next]** the next stage of work
    `Camera3D`, ...) in code and attaches its own components to them. The type
    tree of nodes never changes when a game module is reloaded.
 2. **A script is a component.** It cannot exist in the world on its own, only
-   attached to a node. Every script class is its own component type, in C++
-   and in Luau alike.
+   attached to a node. Every script class is its own component type, in C++,
+   in Luau and in visual scripts alike.
 3. **One component of a type per node by default.** A type opts in to
    repetition with `.allowMultiple()`.
 4. **The core does not assume 3D.** Only 3D is implemented in the MVP, 2D comes
@@ -25,7 +25,8 @@ Status marks: **[done]** implemented, **[next]** the next stage of work
 5. **Rendering, physics and audio are components on a node, not node types.**
    A mesh is `MeshRenderer` on a `Node3D`; a 2D sprite will be `SpriteRenderer`
    on a `Node2D`.
-6. **Scripting languages:** C++ first (MVP), then Luau after the MVP.
+6. **Scripting languages:** C++ first (MVP), then Luau after the MVP, then
+   visual scripts after 2D.
 
 ## Core concepts
 
@@ -164,6 +165,30 @@ sandbox and a language server.
 - A Luau error disables the component and goes to the log, like a C++
   exception.
 - Luau scripts are their own type module (`luau`), reloaded like `game.dll`.
+
+## Visual scripts [planned, after 2D]
+
+For those who do not write code: a script is built from blocks connected by
+links, then attached to a node and works like a C++ or Luau script.
+
+- A graph is a resource (a file of the project): blocks, their pins and the
+  links between them. Execution links set the order of actions, data links
+  carry values.
+- Every graph registers **its own component type**, like a Luau script, with
+  the properties declared in the graph. All of them create instances of one
+  C++ class, `VisualScript`, bound to the graph resource.
+- Entry blocks are the lifecycle calls (`onStart`, `onUpdate`, `onStop`) and
+  later events (input, collisions).
+- The block palette is generated from the same registry list as the Luau
+  bindings: properties and registered methods of engine and game types. A new
+  method of a type becomes a block without extra work.
+- The engine interprets the graph. A limit on steps per call guards against
+  endless loops; an error disables the component and goes to the log, like a
+  C++ exception.
+- Visual scripts are their own type module (`visual`), reloaded when a graph
+  is saved.
+- The graph editor is a panel of the editor; editing logic lives apart from
+  ImGui, like the rest of the editor.
 
 ## Engine context
 

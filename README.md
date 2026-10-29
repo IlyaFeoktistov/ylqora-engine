@@ -27,7 +27,8 @@ MVP: everything needed to build a small game prototype.
 - [ ] Running a game without the editor
 - [ ] Documentation: public API, engine internals, editor user guide
 
-After the MVP: Luau scripts, then 2D.
+After the MVP: Luau scripts, then 2D, then visual scripting (blocks and links
+instead of code, attached to a node like any other script).
 
 Architecture: [scene, nodes and components](docs/architecture/scene.md), [project settings](docs/architecture/project-settings.md).
 
