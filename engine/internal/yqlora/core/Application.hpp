@@ -3,27 +3,33 @@
 #include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/Export.hpp"
 #include "yqlora/input/Input.hpp"
+#include "yqlora/math/DepthRange.hpp"
+#include "yqlora/math/Math.hpp"
 #include "yqlora/platform/Window.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
-#include "yqlora/render/FrameData.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
-#include "yqlora/scene/Scene.hpp"
 
 #include <filesystem>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
-#include <string_view>
 
 namespace yqlora {
 
-class Window;
 class FileDialogs;
+class GameRuntime;
+class Language;
 class Renderer;
 class UiLayer;
-class Settings;
-class Localization;
+
+enum class ApplicationMode {
+    // Игра: каждый кадр GameRuntime двигает свою сцену и рисует её в окно.
+    Game,
+    // Инструмент (редактор): окно целиком занимает интерфейс на Dear ImGui,
+    // сцены инструмент рисует сам, в onGui.
+    Tool,
+};
 
 struct ApplicationConfig {
     // Латиница, без пробелов: из имени строится путь к папке настроек.
@@ -33,13 +39,12 @@ struct ApplicationConfig {
     int width = kDefaultWindowWidth;
     int height = kDefaultWindowHeight;
     GraphicsApi api = GraphicsApi::OpenGL;
-    // Интерфейс на Dear ImGui. С ним приложение само решает, куда рисовать
-    // сцену (обычно в RenderTarget внутри окна интерфейса) в onGui().
-    bool ui = false;
+    ApplicationMode mode = ApplicationMode::Game;
 };
 
-// Владеет окном, рендерером, сценой, настройками и локализацией,
-// крутит игровой цикл. Игра наследуется и переопределяет on*-методы.
+// Собирает части приложения и крутит цикл кадра: окно, рендерер, ввод,
+// язык, реестр типов и службы движка. Сцену держит GameRuntime (режим игры)
+// или сам инструмент. Игра или инструмент наследуются и переопределяют on*-методы.
 class YQLORA_API Application {
 public:
     explicit Application(ApplicationConfig config);
@@ -53,11 +58,6 @@ public:
     void quit()
     {
         m_running = false;
-    }
-
-    Scene& scene()
-    {
-        return *m_scene;
     }
 
     // Типы узлов и компонентов: движка (регистрируются сразу) и игры.
@@ -77,19 +77,26 @@ public:
         return m_services;
     }
 
-    Settings& settings()
-    {
-        return *m_settings;
-    }
-
-    Localization& localization()
-    {
-        return *m_localization;
-    }
-
     const Input& input() const
     {
         return m_input;
+    }
+
+    // Только в режиме игры и только во время run().
+    GameRuntime* game()
+    {
+        return m_game.get();
+    }
+
+    // Только во время run().
+    Language& language()
+    {
+        return *m_language;
+    }
+
+    Renderer& renderer()
+    {
+        return *m_renderer;
     }
 
     // См. Window::setMouseWrapping.
@@ -102,33 +109,6 @@ public:
     // нужны, чтобы построить проекцию своей камеры.
     float aspectRatio() const;
     DepthRange depthRange() const;
-
-    Renderer& renderer()
-    {
-        return *m_renderer;
-    }
-
-    // Обновлять ли сцену каждый кадр. У игры всегда да; редактор включает
-    // обновление только на время Play.
-    void setSceneRunning(bool running)
-    {
-        m_sceneRunning = running;
-    }
-
-    // Переключает язык интерфейса и сохраняет выбор в настройках.
-    bool setLanguage(std::string_view language);
-
-    // Название разработчика движка: из него строятся папки в профиле пользователя.
-    static constexpr std::string_view organization()
-    {
-        return "Yqlora";
-    }
-
-    // Папка для данных приложения в профиле пользователя (настройки, списки).
-    std::filesystem::path userDataDirectory() const;
-
-    // Ресурсы движка рядом с программой: переводы, шрифты, темы.
-    std::filesystem::path assetsDirectory() const;
 
     // Уточнение в заголовке окна перед названием программы, например имя проекта.
     // Пустая строка - только название.
@@ -149,11 +129,6 @@ protected:
     {
     }
 
-    // Последняя правка кадра перед отрисовкой, например включить сетку редактора.
-    virtual void onPrepareFrame(FrameData& /*frame*/)
-    {
-    }
-
     // Окно просят закрыть (крестик, Alt+F4). По умолчанию сразу выход;
     // приложение может сначала спросить про несохранённые изменения.
     virtual void onCloseRequested()
@@ -161,7 +136,7 @@ protected:
         quit();
     }
 
-    // Только при ApplicationConfig::ui: строит интерфейс кадра вызовами ImGui.
+    // Только в режиме инструмента: строит интерфейс кадра вызовами ImGui.
     // Шрифт и тему стоит задать в onStart, до первого кадра.
     virtual void onGui()
     {
@@ -172,10 +147,12 @@ protected:
     }
 
 private:
-    // Стадии кадра для FrameLoop: что делает приложение на каждой из них.
+    // Стадии кадра для FrameLoop: общие и свои у каждого режима.
     class Stages;
+    class GameStages;
+    class ToolStages;
 
-    void initSettingsAndLanguage();
+    // Заголовок окна на текущем языке; меняется, только если стал другим.
     void updateTitle();
     void mainLoop();
 
@@ -183,18 +160,18 @@ private:
     TypeRegistry m_registry;
     Input m_input;
     EngineServices m_services{m_input, m_registry};
-    // Создаётся после регистрации типов: системы сцены берутся из реестра.
-    std::unique_ptr<Scene> m_scene;
-    std::unique_ptr<Settings> m_settings;
-    std::unique_ptr<Localization> m_localization;
+    std::unique_ptr<Language> m_language;
     std::unique_ptr<Window> m_window;
     std::unique_ptr<FileDialogs> m_dialogs;
     std::unique_ptr<Renderer> m_renderer;
-    // Только при ApplicationConfig::ui.
+    // Только в режиме инструмента.
     std::unique_ptr<UiLayer> m_ui;
+    // Только в режиме игры. Создаётся в run(): к этому времени игра
+    // зарегистрировала свои типы, и системы сцены берутся из полного реестра.
+    std::unique_ptr<GameRuntime> m_game;
     bool m_running = false;
-    bool m_sceneRunning = true;
     std::string m_titleDetail;
+    std::string m_title;
 };
 
 } // namespace yqlora

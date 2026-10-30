@@ -64,8 +64,8 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: new scenes get free names and can be o
     CHECK(*first == "New Scene.yscene");
     CHECK(*second == "New Scene 2.yscene");
 
-    Scene scene{EngineServices::none()};
-    EditorSession session(scene, serializer);
+    EditorSession session(EngineServices::none(), serializer);
+    Scene& scene = session.scene();
     REQUIRE(session.open(project));
     REQUIRE(session.openScene(*second));
     CHECK(session.document().id() == project.resources().id(*second));
@@ -95,8 +95,7 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: nothing outside the project can be tou
 
 TEST_CASE_FIXTURE(Fixture, "ProjectFiles: a renamed scene keeps its id, the session and project follow it")
 {
-    Scene scene{EngineServices::none()};
-    EditorSession session(scene, serializer);
+    EditorSession session(EngineServices::none(), serializer);
     REQUIRE(session.open(project));
     const ResourceId id = session.document().id();
     REQUIRE(id != 0);

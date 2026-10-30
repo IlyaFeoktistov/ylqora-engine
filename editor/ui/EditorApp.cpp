@@ -13,9 +13,10 @@
 #include "style/Icons.hpp"
 #include "style/Theme.hpp"
 
+#include "yqlora/core/AppPaths.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
-#include "yqlora/i18n/Localization.hpp"
+#include "yqlora/i18n/Language.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/platform/Platform.hpp"
 
@@ -44,7 +45,7 @@ EditorApp::EditorApp()
           .titleKey = kTitleKey,
           .width = kWindowWidth,
           .height = kWindowHeight,
-          .ui = true,
+          .mode = ApplicationMode::Tool,
       })
 {
     m_panels.push_back(std::make_unique<SceneTreePanel>());
@@ -74,14 +75,16 @@ EditorContext EditorApp::context()
 void EditorApp::onStart()
 {
     const auto assets = assetsDirectory();
+    const auto userData = userDataDirectory(kApplicationName);
     m_theme.load(assets / kThemeFile, assets);
 
-    for (const std::string& code : localization().availableLanguages()) {
-        m_languages.emplace_back(code, localization().displayName(code));
+    const Localization& localization = language().localization();
+    for (const std::string& code : localization.availableLanguages()) {
+        m_languages.emplace_back(code, localization.displayName(code));
     }
 
-    m_projects = std::make_unique<ProjectManager>(userDataDirectory() / kProjectListFile, m_serializer);
-    m_settings = std::make_unique<EditorSettings>(userDataDirectory() / kEditorSettingsFile);
+    m_projects = std::make_unique<ProjectManager>(userData / kProjectListFile, m_serializer);
+    m_settings = std::make_unique<EditorSettings>(userData / kEditorSettingsFile);
     m_settings->load();
     m_projectManager = std::make_unique<ProjectManagerPanel>(*m_projects, m_theme);
 
@@ -107,8 +110,6 @@ void EditorApp::onStart()
                 },
         }
     );
-    // Своя сцена приложения у редактора не обновляется: игра идёт в копии, см. EditorSession::play.
-    setSceneRunning(false);
 }
 
 void EditorApp::onUpdate(float deltaSeconds)

@@ -6,8 +6,8 @@
 
 namespace yqlora::editor {
 
-SceneDocument::SceneDocument(Scene& scene, const SceneSerializer& serializer)
-    : m_scene(scene)
+SceneDocument::SceneDocument(const EngineServices& services, const SceneSerializer& serializer)
+    : m_scene(services)
     , m_serializer(serializer)
 {
 }

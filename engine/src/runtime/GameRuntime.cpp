@@ -1,0 +1,27 @@
+#include "yqlora/runtime/GameRuntime.hpp"
+
+#include "yqlora/render/FrameBuilder.hpp"
+
+namespace yqlora {
+
+GameRuntime::GameRuntime(const EngineServices& services)
+    : m_scene(services)
+{
+}
+
+void GameRuntime::simulate(float deltaSeconds)
+{
+    m_scene.advance(deltaSeconds);
+}
+
+void GameRuntime::updateTransforms()
+{
+    m_scene.updateTransforms();
+}
+
+FrameData GameRuntime::extract(float aspect, DepthRange depthRange) const
+{
+    return extractFrame(m_scene, aspect, depthRange);
+}
+
+} // namespace yqlora

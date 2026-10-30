@@ -66,11 +66,12 @@ TEST_CASE_FIXTURE(Fixture, "SceneDocument: a scene that cannot be read leaves th
     std::string error;
     Project project = *createProject(location, "Game", serializer, error);
 
-    SceneDocument document{scene, serializer};
+    SceneDocument document{EngineServices::none(), serializer};
+    const Scene& documentScene = document.scene();
     REQUIRE(document.load(project, project.mainScene()));
     CHECK(document.id() == project.mainScene());
     CHECK_FALSE(document.modified());
-    const NodeId root = scene.root()->id();
+    const NodeId root = documentScene.root()->id();
 
     // Файл, который не читается: сцена и её ID остаются прежними.
     const auto broken = project.directory() / "broken.yscene";
@@ -80,9 +81,9 @@ TEST_CASE_FIXTURE(Fixture, "SceneDocument: a scene that cannot be read leaves th
     REQUIRE(brokenId != 0);
     CHECK_FALSE(document.load(project, brokenId));
     CHECK(document.id() == project.mainScene());
-    CHECK(scene.root()->id() == root);
+    CHECK(documentScene.root()->id() == root);
 
     document.reset(0);
-    CHECK(scene.empty());
+    CHECK(documentScene.empty());
     CHECK(document.path(project).empty());
 }

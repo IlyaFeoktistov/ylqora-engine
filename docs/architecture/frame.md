@@ -161,7 +161,7 @@ game's `Application`, a test) says what each stage does.
 - **The render thread** comes when it is needed; the snapshot from Extract
   already allows it **[planned, later]**.
 
-## The application [next]
+## The application [done]
 
 `Application` assembles the parts and runs the frame loop, nothing else.
 
@@ -177,5 +177,3 @@ game's `Application`, a test) says what each stage does.
   the first start, switches it and remembers the choice.
 - The folders of user data and of engine assets come from platform
   functions, not from methods of the application.
-- Editor panels get a narrow `EditorHost` instead of the application (see
-  [editor](editor.md)).

@@ -169,8 +169,7 @@ TEST_CASE_FIXTURE(Fixture, "ComponentRules: dependents of a component")
 TEST_CASE_FIXTURE(Fixture, "EditorSession: component rules")
 {
     SceneSerializer serializer{registry};
-    Scene scene{EngineServices::none()};
-    EditorSession session{scene, serializer};
+    EditorSession session{EngineServices::none(), serializer};
     Node* node = session.createNode(type("Node3D"), nullptr);
     REQUIRE(node);
 
@@ -244,8 +243,7 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: component rules on load")
 TEST_CASE_FIXTURE(Fixture, "Inspection: what the inspector shows for the selected node")
 {
     SceneSerializer serializer{registry};
-    Scene scene{EngineServices::none()};
-    EditorSession session{scene, serializer};
+    EditorSession session{EngineServices::none(), serializer};
     CHECK_FALSE(inspect(session));
 
     Node* node = session.createNode(type("Node3D"), nullptr);

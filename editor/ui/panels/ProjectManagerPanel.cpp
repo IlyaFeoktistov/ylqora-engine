@@ -4,6 +4,7 @@
 #include "style/Theme.hpp"
 #include "widgets/Checkbox.hpp"
 
+#include "yqlora/core/AppPaths.hpp"
 #include "yqlora/core/Application.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/core/Version.hpp"
@@ -65,7 +66,7 @@ std::optional<Project> ProjectManagerPanel::draw(Application& app)
         if (ImGui::Button((std::string(icons::kAdd) + "  " + tr("projects.new")).c_str())) {
             m_newName.clear();
             if (m_location.empty()) {
-                m_location = toUtf8(platform::documentsPath() / Application::organization());
+                m_location = toUtf8(platform::documentsPath() / kOrganization);
             }
             m_error.clear();
             m_openCreate = true;

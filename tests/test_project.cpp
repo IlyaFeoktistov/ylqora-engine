@@ -122,8 +122,8 @@ TEST_CASE("EditorSession: open, change, save and reopen a project")
     const auto project = createProject(freshDirectory("session"), "Game", serializer, error);
     REQUIRE(project);
 
-    Scene scene{EngineServices::none()};
-    EditorSession session(scene, serializer);
+    EditorSession session(EngineServices::none(), serializer);
+    Scene& scene = session.scene();
     CHECK_FALSE(session.saveScene()); // проект ещё не открыт
 
     REQUIRE(session.open(*project));
@@ -151,9 +151,9 @@ TEST_CASE("EditorSession: a project with a broken scene opens with an empty scen
     REQUIRE(project);
     std::filesystem::remove(project->directory() / *project->mainScenePath());
 
-    Scene scene{EngineServices::none()};
+    EditorSession session(EngineServices::none(), serializer);
+    Scene& scene = session.scene();
     scene.createRoot<Node>("FromBefore");
-    EditorSession session(scene, serializer);
     CHECK_FALSE(session.open(*project));
     CHECK(session.project());
     CHECK(scene.empty());

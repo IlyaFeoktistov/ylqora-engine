@@ -17,6 +17,7 @@ target_compile_definitions(yqlora_engine_code INTERFACE
 
 add_library(yqlora SHARED
     src/core/Application.cpp
+    src/core/AppPaths.cpp
     src/core/EngineServices.cpp
     src/core/EngineTypes.cpp
     src/core/FileFormat.cpp
@@ -25,6 +26,7 @@ add_library(yqlora SHARED
     src/core/Log.cpp
     src/core/Settings.cpp
     src/core/Version.cpp
+    src/i18n/Language.cpp
     src/i18n/Localization.cpp
     src/platform/FileDialogs.cpp
     src/platform/Platform.cpp
@@ -67,6 +69,7 @@ add_library(yqlora SHARED
     src/render/RenderTypes.cpp
     src/render/RendererFactory.cpp
     src/resource/ResourceDatabase.cpp
+    src/runtime/GameRuntime.cpp
     src/ui/UiLayer.cpp
 )
 add_library(yqlora::yqlora ALIAS yqlora)

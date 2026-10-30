@@ -81,8 +81,8 @@ struct Fixture {
 
     TypeRegistry registry;
     SceneSerializer serializer{registry};
-    Scene scene{EngineServices::none()};
-    EditorSession session{scene, serializer};
+    EditorSession session{EngineServices::none(), serializer};
+    Scene& scene = session.scene();
 };
 
 } // namespace

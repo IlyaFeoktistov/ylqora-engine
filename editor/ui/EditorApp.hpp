@@ -48,7 +48,7 @@ private:
     // Путь к папке пользователя известен только после запуска, см. onStart.
     std::unique_ptr<EditorSettings> m_settings;
     std::unique_ptr<ProjectManagerPanel> m_projectManager;
-    EditorSession m_session{scene(), m_serializer};
+    EditorSession m_session{services(), m_serializer};
     ActionRegistry m_actions;
     std::vector<std::unique_ptr<EditorPanel>> m_panels;
     UnsavedChangesDialog m_unsaved;

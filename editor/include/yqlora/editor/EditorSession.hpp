@@ -16,6 +16,7 @@
 namespace yqlora {
 
 class Component;
+class EngineServices;
 class Node;
 class Node3D;
 class Scene;
@@ -34,7 +35,7 @@ namespace yqlora::editor {
 // открытии сцены); файл сцены и историю ведёт SceneDocument, игру - PlayMode.
 class EditorSession {
 public:
-    EditorSession(Scene& scene, const SceneSerializer& serializer);
+    EditorSession(const EngineServices& services, const SceneSerializer& serializer);
 
     const std::optional<Project>& project() const
     {
@@ -143,6 +144,8 @@ public:
     void update(float deltaSeconds, const Input& input)
     {
         m_play.update(deltaSeconds, input);
+        // Сцену документа правят между кадрами: мировые матрицы одним проходом.
+        m_document.scene().updateTransforms();
     }
 
     void setGameInputFocused(bool focused)

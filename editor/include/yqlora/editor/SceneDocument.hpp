@@ -2,13 +2,14 @@
 
 #include "yqlora/editor/EditHistory.hpp"
 #include "yqlora/resource/ResourceId.hpp"
+#include "yqlora/scene/Scene.hpp"
 
 #include <filesystem>
 
 namespace yqlora {
 
+class EngineServices;
 class Project;
-class Scene;
 class SceneSerializer;
 
 } // namespace yqlora
@@ -19,7 +20,8 @@ namespace yqlora::editor {
 // правок с момента открытия.
 class SceneDocument {
 public:
-    SceneDocument(Scene& scene, const SceneSerializer& serializer);
+    // Сцена документа создаётся со службами владельца, они её переживают.
+    SceneDocument(const EngineServices& services, const SceneSerializer& serializer);
 
     Scene& scene()
     {
@@ -65,7 +67,7 @@ public:
     }
 
 private:
-    Scene& m_scene;
+    Scene m_scene;
     const SceneSerializer& m_serializer;
     ResourceId m_id = 0;
     EditHistory m_history;

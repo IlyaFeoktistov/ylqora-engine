@@ -16,9 +16,9 @@
 
 namespace yqlora::editor {
 
-EditorSession::EditorSession(Scene& scene, const SceneSerializer& serializer)
+EditorSession::EditorSession(const EngineServices& services, const SceneSerializer& serializer)
     : m_serializer(serializer)
-    , m_document(scene, serializer)
+    , m_document(services, serializer)
     , m_play(serializer)
 {
 }
