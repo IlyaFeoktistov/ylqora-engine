@@ -111,8 +111,8 @@ void FileSystemPanel::drawEntry(
 {
     const bool selected = entry.path == m_selected;
     const bool openScene = entry.path == session.scenePath();
-    const auto mainScenePath = session.project()->mainScenePath();
-    const bool mainScene = mainScenePath && entry.path == *mainScenePath;
+    const auto startupScenePath = session.project()->startupScenePath();
+    const bool mainScene = startupScenePath && entry.path == *startupScenePath;
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick
                                | ImGuiTreeNodeFlags_SpanAvailWidth;
@@ -169,7 +169,7 @@ void FileSystemPanel::drawContextMenu(
         return;
     }
     ProjectFiles files(*session.project());
-    const auto mainScene = session.project()->mainScenePath();
+    const auto mainScene = session.project()->startupScenePath();
     const auto item = [](const char* icon, const char* key) {
         const std::string label = std::string(icon) + "  " + tr(key);
 
@@ -195,7 +195,7 @@ void FileSystemPanel::drawContextMenu(
             m_openRequest = entry.path;
         }
         if (entry.path != mainScene && item(icons::kMainScene, "editor.files.setMain")) {
-            session.setMainScene(entry.path);
+            session.settingsEditing().setStartupScene(entry.path);
         }
         ImGui::Separator();
     }

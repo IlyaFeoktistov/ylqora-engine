@@ -7,6 +7,7 @@
 #include <yqlora/editor/ProjectList.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
 #include <yqlora/input/Input.hpp>
+#include <yqlora/project/GeneralSettings.hpp>
 #include <yqlora/project/Project.hpp>
 #include <yqlora/project/ProjectUpgrade.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
@@ -47,14 +48,16 @@ TEST_CASE("Project: create makes a folder with the project file and a starter sc
     CHECK(project->directory() == location / "My Game");
     CHECK(std::filesystem::exists(project->projectFile()));
 
-    const auto loaded = Project::open(project->directory());
+    const auto loaded = Project::open(project->directory(), registry);
     REQUIRE(loaded);
     CHECK(loaded->name() == "My Game");
-    CHECK(loaded->mainScene() == project->mainScene());
-    REQUIRE(loaded->mainScenePath());
+    const auto& general = loaded->settings().get<GeneralSettings>();
+    CHECK(general.startupScene == project->settings().get<GeneralSettings>().startupScene);
+    CHECK(general.gameName == "My Game");
+    REQUIRE(loaded->startupScenePath());
 
     Scene scene{EngineServices::none()};
-    REQUIRE(serializer.load(scene, loaded->directory() / *loaded->mainScenePath()));
+    REQUIRE(serializer.load(scene, loaded->directory() / *loaded->startupScenePath()));
     REQUIRE(scene.root());
     CHECK(scene.root()->children().size() == 2);
     CHECK(dynamic_cast<Camera3D*>(scene.root()->findChild("Camera")) != nullptr);
@@ -79,7 +82,8 @@ TEST_CASE("isValidFileName: names must be usable as file and folder names everyw
 
 TEST_CASE("Project: a folder without a project file is not a project")
 {
-    CHECK_FALSE(Project::open(freshDirectory("project_missing")));
+    const TypeRegistry registry;
+    CHECK_FALSE(Project::open(freshDirectory("project_missing"), registry));
     CHECK_FALSE(Project::readInfo(freshDirectory("project_missing")));
 }
 
@@ -132,7 +136,7 @@ TEST_CASE("EditorSession: open, change, save and reopen a project")
     Scene& scene = session.scene();
     CHECK_FALSE(session.saveScene()); // проект ещё не открыт
 
-    REQUIRE(session.open(*project));
+    REQUIRE(session.open(*Project::open(project->directory(), registry)));
     REQUIRE(scene.root());
     session.selection().select(scene.root()->id());
     scene.root()->setName("Renamed");
@@ -143,7 +147,7 @@ TEST_CASE("EditorSession: open, change, save and reopen a project")
     CHECK_FALSE(session.project());
     CHECK(session.selection().selected() == 0);
 
-    REQUIRE(session.open(*project));
+    REQUIRE(session.open(*Project::open(project->directory(), registry)));
     CHECK(scene.root()->name() == "Renamed");
 }
 
@@ -155,7 +159,7 @@ TEST_CASE("EditorSession: a project with a broken scene opens with an empty scen
     std::string error;
     const auto project = createProject(freshDirectory("session_broken"), "Game", serializer, error);
     REQUIRE(project);
-    std::filesystem::remove(project->directory() / *project->mainScenePath());
+    std::filesystem::remove(project->directory() / *project->startupScenePath());
 
     Input input;
 
@@ -164,7 +168,7 @@ TEST_CASE("EditorSession: a project with a broken scene opens with an empty scen
     EditorSession session(services, serializer);
     Scene& scene = session.scene();
     scene.createRoot<Node>("FromBefore");
-    CHECK_FALSE(session.open(*project));
+    CHECK_FALSE(session.open(*Project::open(project->directory(), registry)));
     CHECK(session.project());
     CHECK(scene.empty());
 }
@@ -211,13 +215,13 @@ TEST_CASE("Project: the version tells whether a project opens, needs an upgrade 
     rewrite(R"({"name": "Game", "version": 99, "engine": "9.9.9"})");
     CHECK(Project::readInfo(project->directory())->compatibility == FormatCompatibility::Newer);
     CHECK(Project::readInfo(project->directory())->engineVersion == "9.9.9");
-    CHECK_FALSE(Project::open(project->directory()));
+    CHECK_FALSE(Project::open(project->directory(), registry));
     CHECK_FALSE(upgradeProject(project->directory(), serializer));
 
     // Без версии - файл не этого формата, переводить не с чего.
     rewrite(R"({"name": "Game"})");
     CHECK(Project::readInfo(project->directory())->compatibility == FormatCompatibility::Unsupported);
-    CHECK_FALSE(Project::open(project->directory()));
+    CHECK_FALSE(Project::open(project->directory(), registry));
 }
 
 TEST_CASE("Project: upgrading a current project rewrites it and keeps it working")
@@ -230,12 +234,15 @@ TEST_CASE("Project: upgrading a current project rewrites it and keeps it working
     REQUIRE(project);
 
     REQUIRE(upgradeProject(project->directory(), serializer));
-    const auto reopened = Project::open(project->directory());
+    const auto reopened = Project::open(project->directory(), registry);
     REQUIRE(reopened);
-    CHECK(reopened->mainScene() == project->mainScene());
+    CHECK(
+        reopened->settings().get<GeneralSettings>().startupScene
+        == project->settings().get<GeneralSettings>().startupScene
+    );
 
     // Испорченная сцена: перевод отказывается и ничего не трогает.
     std::ofstream(project->directory() / "broken.yscene") << "not json";
     CHECK_FALSE(upgradeProject(project->directory(), serializer));
-    CHECK(Project::open(project->directory()));
+    CHECK(Project::open(project->directory(), registry));
 }

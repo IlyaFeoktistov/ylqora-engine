@@ -1,10 +1,12 @@
 #pragma once
 
 #include "yqlora/editor/Command.hpp"
+#include "yqlora/editor/EditHistory.hpp"
 #include "yqlora/editor/PlayMode.hpp"
 #include "yqlora/editor/SceneDocument.hpp"
 #include "yqlora/editor/SceneEditing.hpp"
 #include "yqlora/editor/Selection.hpp"
+#include "yqlora/editor/SettingsEditing.hpp"
 #include "yqlora/project/Project.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/scene/Transform3D.hpp"
@@ -30,11 +32,12 @@ class TypeRegistry;
 
 namespace yqlora::editor {
 
-// Открытый в редакторе проект: его сцена, выделение и игра в редакторе.
-// Без интерфейса, панели только вызывают эти методы. Сцена меняется
-// только командами, поэтому любую правку можно отменить. Сама сессия
-// согласует части между собой (выделение при Play и Stop, история при
-// открытии сцены); файл сцены и историю ведёт SceneDocument, игру - PlayMode.
+// Открытый в редакторе проект: его сцена, настройки, выделение и игра в
+// редакторе. Без интерфейса, панели только вызывают эти методы. Сцена и
+// настройки меняются только командами, поэтому любую правку можно отменить.
+// Сама сессия согласует части между собой (выделение при Play и Stop,
+// история при открытии сцены) и ведёт общую историю правок; файл сцены
+// ведёт SceneDocument, игру - PlayMode.
 class EditorSession {
 public:
     // Открытый проект сессия ставит в services: его видят сцены редактора.
@@ -88,10 +91,35 @@ public:
         return m_editing;
     }
 
+    // Правка настроек проекта командами с отменой.
+    SettingsEditing& settingsEditing()
+    {
+        return m_settingsEditing;
+    }
+
+    // Правка закончилась (отпустили мышь, ушли из поля ввода): следующая
+    // будет отдельным шагом истории.
+    void finishEdit()
+    {
+        m_history.finishEdit();
+    }
+
+    // Во время игры истории нет: по Stop сцена всё равно вернётся как была.
+    bool canUndo() const;
+    bool canRedo() const;
+    bool undo();
+    bool redo();
+
+    // Сцену меняли после открытия или последнего сохранения.
+    bool sceneModified() const
+    {
+        return !m_history.atSaved();
+    }
+
     // Типы, которые знает сессия: те же, что у её сериализатора.
     const TypeRegistry& registry() const;
 
-    // Открывает проект и его главную сцену. Если сцена не читается, проект
+    // Открывает проект и его стартовую сцену. Если сцена не читается, проект
     // всё равно открывается с пустой сценой, а метод возвращает false.
     bool open(Project project);
     void close();
@@ -104,9 +132,6 @@ public:
 
     // Сохраняет сцену в её файл. Во время игры нельзя: в сцене состояние игры.
     bool saveScene();
-
-    // Делает сцену главной: она откроется вместе с проектом.
-    bool setMainScene(const std::filesystem::path& path);
 
     bool playing() const
     {
@@ -143,8 +168,13 @@ public:
     Node* selectedNode();
 
 private:
-    // Правка ведёт историю документа.
+    // Правка сцены и настроек идёт через общую историю.
     friend class SceneEditing;
+    friend class SettingsEditing;
+
+    // Во время игры правка сцены в историю не попадает: по Stop сцена вернётся
+    // как была. Правка настроек попадает всегда, она переживает Stop.
+    bool execute(std::unique_ptr<Command> command);
 
     EngineServices& m_services;
     const SceneSerializer& m_serializer;
@@ -154,7 +184,9 @@ private:
     Selection m_selection;
     // Выделение до Play: к нему возвращаемся, если после игры выбранных узлов не осталось.
     Selection m_selectionBeforePlay;
+    EditHistory m_history;
     SceneEditing m_editing{*this};
+    SettingsEditing m_settingsEditing{*this};
 };
 
 // Уточнение заголовка окна: проект и открытая сцена, "*" у несохранённой.

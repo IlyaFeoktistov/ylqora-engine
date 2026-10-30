@@ -1,6 +1,7 @@
 #pragma once
 
 #include "yqlora/core/Export.hpp"
+#include "yqlora/project/SettingsSection.hpp"
 #include "yqlora/reflection/TypeBuilder.hpp"
 #include "yqlora/reflection/TypeInfo.hpp"
 #include "yqlora/reflection/TypeName.hpp"
@@ -109,6 +110,23 @@ public:
         }
 
         return ClassTypeBuilder<T, SceneSystem>(info);
+    }
+
+    // Раздел настроек проекта (см. SettingsSection), файл settings/<file>.json
+    // в папке проекта. Проект создаёт по экземпляру каждого раздела.
+    template <std::derived_from<SettingsSection> T>
+    ClassTypeBuilder<T, SettingsSection> registerSettings(std::string file = {})
+    {
+        TypeInfo& info = add<T>(TypeKind::Settings);
+        info.m_settingsFile = std::move(file);
+        if constexpr (std::is_default_constructible_v<T> && !std::is_abstract_v<T>) {
+            assert(!info.m_settingsFile.empty() && "registerSettings: name the file of the section");
+            info.m_createSettings = [] {
+                return std::unique_ptr<SettingsSection>(std::make_unique<T>());
+            };
+        }
+
+        return ClassTypeBuilder<T, SettingsSection>(info);
     }
 
     // nullptr, если тип не зарегистрирован.

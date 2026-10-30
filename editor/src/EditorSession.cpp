@@ -5,6 +5,7 @@
 #include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
+#include "yqlora/project/GeneralSettings.hpp"
 #include "yqlora/reflection/ComponentRules.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/Node3D.hpp"
@@ -37,11 +38,13 @@ bool EditorSession::open(Project project)
     m_project = std::move(project);
     m_services.setProject(&*m_project);
     m_selection.clear();
-    // От прошлого проекта ничего не должно остаться, даже если главная сцена
-    // не прочитается: тогда проект открывается с пустой сценой.
-    m_document.reset(m_project->mainScene());
-    if (!m_document.load(*m_project, m_project->mainScene())) {
-        log::warn("Main scene of '{}' is not loaded, starting with an empty scene", m_project->name());
+    m_history.clear();
+    // От прошлого проекта ничего не должно остаться, даже если стартовая
+    // сцена не прочитается: тогда проект открывается с пустой сценой.
+    const ResourceId startup = m_project->settings().get<GeneralSettings>().startupScene.id;
+    m_document.reset(startup);
+    if (!m_document.load(*m_project, startup)) {
+        log::warn("Startup scene of '{}' is not loaded, starting with an empty scene", m_project->name());
 
         return false;
     }
@@ -53,6 +56,7 @@ void EditorSession::close()
 {
     stop();
     m_document.reset(0);
+    m_history.clear();
     m_services.setProject(nullptr);
     m_project.reset();
     m_selection.clear();
@@ -70,6 +74,7 @@ bool EditorSession::openScene(const std::filesystem::path& path)
     if (id == 0 || !m_document.load(*m_project, id)) {
         return false;
     }
+    m_history.clear();
     m_selection.clear();
 
     return true;
@@ -77,29 +82,46 @@ bool EditorSession::openScene(const std::filesystem::path& path)
 
 bool EditorSession::saveScene()
 {
-    return m_project && !playing() && m_document.save(*m_project);
-}
-
-bool EditorSession::setMainScene(const std::filesystem::path& path)
-{
-    const ResourceId id = m_project ? m_project->resources().id(path) : 0;
-    if (id == 0) {
+    if (!m_project || playing() || !m_document.save(*m_project)) {
         return false;
     }
-    const ResourceId previous = m_project->mainScene();
-    m_project->setMainScene(id);
-    if (!m_project->save()) {
-        m_project->setMainScene(previous);
-
-        return false;
-    }
+    m_history.markSaved();
 
     return true;
 }
 
+bool EditorSession::canUndo() const
+{
+    return !playing() && m_history.canUndo();
+}
+
+bool EditorSession::canRedo() const
+{
+    return !playing() && m_history.canRedo();
+}
+
+bool EditorSession::undo()
+{
+    return !playing() && m_history.undo(*this);
+}
+
+bool EditorSession::redo()
+{
+    return !playing() && m_history.redo(*this);
+}
+
+bool EditorSession::execute(std::unique_ptr<Command> command)
+{
+    if (playing() && command && command->changesScene()) {
+        return command->apply(*this);
+    }
+
+    return m_history.execute(*this, std::move(command));
+}
+
 void EditorSession::play()
 {
-    m_document.history().finishEdit();
+    m_history.finishEdit();
     if (m_play.start(m_document.scene())) {
         m_selectionBeforePlay = m_selection;
     }
@@ -143,7 +165,7 @@ std::string windowTitle(const EditorSession& session)
         return {};
     }
     std::string title = session.project()->name() + " - " + toUtf8(session.scenePath().filename());
-    if (session.document().modified()) {
+    if (session.sceneModified()) {
         title += " *";
     }
 

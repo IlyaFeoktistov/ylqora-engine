@@ -114,6 +114,10 @@ void drawMainMenu(const MainMenuContext& context)
         context.actions.menuItem(actions::kRedo);
         ImGui::EndMenu();
     }
+    if (context.session.project() && ImGui::BeginMenu(tr("editor.menu.project").c_str())) {
+        context.actions.menuItem(actions::kProjectSettings);
+        ImGui::EndMenu();
+    }
     drawViewMenu(context);
     if (context.session.project()) {
         drawPlayControls(context);

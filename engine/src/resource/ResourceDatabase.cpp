@@ -6,6 +6,7 @@
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/resource/BuiltinResources.hpp"
 
+#include <algorithm>
 #include <random>
 #include <vector>
 
@@ -65,7 +66,7 @@ bool isInside(const fs::path& path, const fs::path& folder)
 
 } // namespace
 
-void ResourceDatabase::scan(const fs::path& root, std::string_view skipName)
+void ResourceDatabase::scan(const fs::path& root, std::span<const std::string_view> skipNames)
 {
     m_root = root;
     m_paths.clear();
@@ -76,13 +77,14 @@ void ResourceDatabase::scan(const fs::path& root, std::string_view skipName)
     for (; !ec && it != fs::recursive_directory_iterator(); it.increment(ec)) {
         const fs::path& absolute = it->path();
         const std::string name = toUtf8(absolute.filename());
-        if (name.empty() || name.front() == '.') {
+        const bool skipped = it.depth() == 0 && std::ranges::find(skipNames, name) != skipNames.end();
+        if (name.empty() || name.front() == '.' || skipped) {
             if (it->is_directory(ec)) {
                 it.disable_recursion_pending();
             }
             continue;
         }
-        if (!it->is_regular_file(ec) || isMeta(absolute) || (it.depth() == 0 && name == skipName)) {
+        if (!it->is_regular_file(ec) || isMeta(absolute)) {
             continue;
         }
 

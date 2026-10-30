@@ -3,12 +3,17 @@
 #include <yqlora/resource/BuiltinResources.hpp>
 #include <yqlora/resource/ResourceDatabase.hpp>
 
+#include <array>
 #include <filesystem>
 #include <fstream>
+#include <string_view>
 
 using namespace yqlora;
 
 namespace {
+
+// Как файл проекта: в корне, но не ресурс.
+constexpr std::array<std::string_view, 1> kNotResources{"project.yqlora"};
 
 std::filesystem::path freshDirectory(const char* name)
 {
@@ -36,7 +41,7 @@ TEST_CASE("ResourceDatabase: files get ids that survive a rescan")
     touch(root / "project.yqlora");
 
     ResourceDatabase database;
-    database.scan(root, "project.yqlora");
+    database.scan(root, kNotResources);
     CHECK(database.size() == 2);
     const ResourceId player = database.id("player.png");
     const ResourceId level = database.id("levels/one.yscene");
@@ -47,7 +52,7 @@ TEST_CASE("ResourceDatabase: files get ids that survive a rescan")
     CHECK(database.id("project.yqlora") == 0);
 
     ResourceDatabase again;
-    again.scan(root, "project.yqlora");
+    again.scan(root, kNotResources);
     CHECK(again.id("player.png") == player);
     CHECK(again.path(level) == std::filesystem::path("levels/one.yscene"));
 }

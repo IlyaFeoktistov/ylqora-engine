@@ -28,7 +28,8 @@ void scanDirectory(const fs::path& root, const fs::path& relative, ProjectFiles:
     for (const fs::directory_entry& item : fs::directory_iterator(root / relative, ec)) {
         const std::string name = toUtf8(item.path().filename());
         if (name.empty() || name.front() == '.' || item.path().extension() == ResourceDatabase::metaExtension()
-            || (relative.empty() && name == Project::fileName())) {
+            || (relative.empty()
+                && std::ranges::find(Project::reservedNames(), name) != Project::reservedNames().end())) {
             continue;
         }
         ProjectFiles::Entry entry;
@@ -86,13 +87,15 @@ bool ProjectFiles::isScene(const fs::path& path)
 bool ProjectFiles::canModify(const fs::path& path) const
 {
     const fs::path normal = path.lexically_normal();
-    if (normal.empty() || normal == "." || normal.is_absolute() || normal == Project::fileName()) {
+    if (normal.empty() || normal == "." || normal.is_absolute()) {
         return false;
     }
-    // ".." в начале - путь выходит из папки проекта.
+    // ".." в начале - путь выходит из папки проекта. Файл проекта и
+    // настройки правит не панель файлов.
     const auto first = *normal.begin();
+    const bool reserved = std::ranges::find(Project::reservedNames(), toUtf8(first)) != Project::reservedNames().end();
 
-    return first != ".." && !m_project.directory().empty();
+    return first != ".." && !reserved && !m_project.directory().empty();
 }
 
 std::optional<fs::path> ProjectFiles::createScene(const fs::path& folder, const SceneSerializer& serializer)

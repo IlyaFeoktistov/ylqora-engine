@@ -1,5 +1,6 @@
 #include "yqlora/reflection/TypeInfo.hpp"
 
+#include "yqlora/project/SettingsSection.hpp"
 #include "yqlora/scene/Component.hpp"
 #include "yqlora/scene/Node.hpp"
 #include "yqlora/scene/SceneSystem.hpp"
@@ -36,6 +37,11 @@ std::unique_ptr<Component> TypeInfo::createComponent() const
 std::unique_ptr<SceneSystem> TypeInfo::createSystem(Scene& scene) const
 {
     return m_createSystem ? m_createSystem(scene) : nullptr;
+}
+
+std::unique_ptr<SettingsSection> TypeInfo::createSettings() const
+{
+    return m_createSettings ? m_createSettings() : nullptr;
 }
 
 } // namespace yqlora

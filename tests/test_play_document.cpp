@@ -4,6 +4,7 @@
 #include <yqlora/editor/PlayMode.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
 #include <yqlora/editor/SceneDocument.hpp>
+#include <yqlora/project/GeneralSettings.hpp>
 #include <yqlora/project/Project.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Node3D.hpp>
@@ -68,19 +69,19 @@ TEST_CASE_FIXTURE(Fixture, "SceneDocument: a scene that cannot be read leaves th
 
     SceneDocument document{EngineServices::none(), serializer};
     const Scene& documentScene = document.scene();
-    REQUIRE(document.load(project, project.mainScene()));
-    CHECK(document.id() == project.mainScene());
-    CHECK_FALSE(document.modified());
+    const ResourceId startup = project.settings().get<GeneralSettings>().startupScene.id;
+    REQUIRE(document.load(project, startup));
+    CHECK(document.id() == startup);
     const NodeId root = documentScene.root()->id();
 
     // Файл, который не читается: сцена и её ID остаются прежними.
     const auto broken = project.directory() / "broken.yscene";
     std::ofstream(broken) << "not json";
-    project.resources().scan(project.directory(), Project::fileName());
+    project.resources().scan(project.directory(), Project::reservedNames());
     const ResourceId brokenId = project.resources().id("broken.yscene");
     REQUIRE(brokenId != 0);
     CHECK_FALSE(document.load(project, brokenId));
-    CHECK(document.id() == project.mainScene());
+    CHECK(document.id() == startup);
     CHECK(documentScene.root()->id() == root);
 
     document.reset(0);

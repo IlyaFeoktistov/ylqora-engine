@@ -2,10 +2,10 @@
 
 #include "yqlora/core/FileFormat.hpp"
 #include "yqlora/core/JsonFile.hpp"
-#include "yqlora/core/JsonId.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/core/Version.hpp"
+#include "yqlora/project/GeneralSettings.hpp"
 
 #include <array>
 #include <utility>
@@ -24,8 +24,9 @@ constexpr FileFormat kFormat{"Project", kFirstFormatVersion, kMigrations};
 
 // Ключи файла проекта.
 constexpr const char* kNameKey = "name";
-constexpr const char* kMainSceneKey = "mainScene";
 constexpr const char* kEngineVersionKey = "engine";
+
+constexpr std::array<std::string_view, 2> kReservedNames{Project::fileName(), ProjectSettings::directoryName()};
 
 std::optional<Json> readFile(const std::filesystem::path& directory)
 {
@@ -45,12 +46,17 @@ std::optional<Json> readFile(const std::filesystem::path& directory)
 
 } // namespace
 
+std::span<const std::string_view> Project::reservedNames()
+{
+    return kReservedNames;
+}
+
 int Project::formatVersion()
 {
     return kFormat.current();
 }
 
-std::optional<Project> Project::open(const std::filesystem::path& directory)
+std::optional<Project> Project::open(const std::filesystem::path& directory, const TypeRegistry& registry)
 {
     const auto json = readFile(directory);
     if (!json) {
@@ -65,15 +71,17 @@ std::optional<Project> Project::open(const std::filesystem::path& directory)
     Project project;
     project.m_name = (*json)[kNameKey].get<std::string>();
     project.m_directory = directory;
-    project.m_resources.scan(directory, fileName());
-    if (const auto mainScene = json->find(kMainSceneKey); mainScene != json->end()) {
-        project.m_mainScene = idFromJson(*mainScene).value_or(0);
-    }
+    project.m_settings.load(registry, directory);
+    project.m_resources.scan(directory, reservedNames());
 
     return project;
 }
 
-std::optional<Project> Project::create(const std::filesystem::path& directory, std::string name)
+std::optional<Project> Project::create(
+    const std::filesystem::path& directory,
+    std::string name,
+    const TypeRegistry& registry
+)
 {
     Project project;
     project.m_name = std::move(name);
@@ -81,7 +89,8 @@ std::optional<Project> Project::create(const std::filesystem::path& directory, s
     if (!project.save()) {
         return std::nullopt;
     }
-    project.m_resources.scan(directory, fileName());
+    project.m_settings.load(registry, directory);
+    project.m_resources.scan(directory, reservedNames());
 
     return project;
 }
@@ -117,15 +126,16 @@ bool Project::save() const
     Json json;
     kFormat.stamp(json);
     json[kNameKey] = m_name;
-    json[kMainSceneKey] = idToJson(m_mainScene);
     json[kEngineVersionKey] = engineVersion();
 
     return writeJsonFile(projectFile(), json);
 }
 
-std::optional<std::filesystem::path> Project::mainScenePath() const
+std::optional<std::filesystem::path> Project::startupScenePath() const
 {
-    return m_resources.path(m_mainScene);
+    const auto* general = m_settings.find(typeNameOf<GeneralSettings>());
+
+    return general ? m_resources.path(static_cast<const GeneralSettings*>(general)->startupScene.id) : std::nullopt;
 }
 
 } // namespace yqlora

@@ -32,6 +32,12 @@
         },
         "Transform3D": {
             "description": "Position, rotation and scale relative to the parent node."
+        },
+        "GeneralSettings": {
+            "description": "General information about the game: name, version, company, startup scene"
+        },
+        "SettingsSection": {
+            "description": "Base of every project settings section."
         }
     },
     "editor": {
@@ -45,14 +51,17 @@
             "closeProject": "Close project",
             "edit": "Edit",
             "undo": "Undo",
-            "redo": "Redo"
+            "redo": "Redo",
+            "project": "Project",
+            "projectSettings": "Project Settings"
         },
         "window": {
             "scene": "Scene",
             "game": "Game",
             "viewport": "Viewport",
             "inspector": "Inspector",
-            "files": "Files"
+            "files": "Files",
+            "projectSettings": "Project Settings"
         },
         "scene": {
             "empty": "The scene is empty"
@@ -126,6 +135,12 @@
             "pause": "Pause",
             "stop": "Stop",
             "noCamera": "The scene has no camera"
+        },
+        "settings": {
+            "nothing": "Open a project to change its settings",
+            "GeneralSettings": "General",
+            "projectVersion": "Project version:",
+            "projectVersionHint": "Version of the project file format. It changes only when the project is upgraded to a newer engine, never by hand."
         }
     },
     "projects": {
@@ -138,13 +153,6 @@
         "missing": "folder not found",
         "column": {
             "name": "Name",
-        "active": "Active",
-        "enabled": "Enabled",
-        "layer": "Layer",
-        "order": "Order",
-        "cullingMask": "Culling mask",
-        "clear": "Clear",
-        "background": "Background",
             "path": "Folder",
             "version": "Version"
         },
@@ -190,6 +198,17 @@
         "near": "Near plane",
         "far": "Far plane",
         "mesh": "Mesh",
-        "color": "Color"
+        "color": "Color",
+        "gameName": "Game name",
+        "company": "Company",
+        "startupScene": "Startup scene",
+        "active": "Active",
+        "enabled": "Enabled",
+        "layer": "Layer",
+        "order": "Order",
+        "cullingMask": "Culling mask",
+        "clear": "Clear",
+        "background": "Background",
+        "gameVersion": "Game version"
     }
 }

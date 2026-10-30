@@ -1,6 +1,7 @@
 #pragma once
 
 #include "yqlora/core/Export.hpp"
+#include "yqlora/project/SettingsSection.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/reflection/TypeInfo.hpp"
 #include "yqlora/reflection/TypeName.hpp"
@@ -31,7 +32,7 @@ namespace yqlora {
 template <typename Self>
 class BasicTypeBuilder {
 public:
-    // Свойство, уже описанное значениями (Property::forNode, forComponent).
+    // Свойство, уже описанное значениями (Property::forNode, forComponent, forSettings).
     Self& property(Property property)
     {
         m_info.m_properties.push_back(std::move(property));
@@ -199,8 +200,10 @@ public:
         };
         if constexpr (std::same_as<Root, Node>) {
             return property(Property::forNode(std::move(name), type, get, set, hint));
-        } else {
+        } else if constexpr (std::same_as<Root, Component>) {
             return property(Property::forComponent(std::move(name), type, get, set, hint));
+        } else {
+            return property(Property::forSettings(std::move(name), type, get, set, hint));
         }
     }
 
@@ -230,7 +233,7 @@ public:
         Result (Owner::*function)(Args...),
         std::initializer_list<ClassMethodParameter> parameters = {}
     )
-        requires(!std::same_as<Root, SceneSystem>)
+        requires(std::same_as<Root, Node> || std::same_as<Root, Component>)
     {
         return addMethod<Result, Args...>(std::move(name), function, parameters);
     }
@@ -242,7 +245,7 @@ public:
         Result (Owner::*function)(Args...) const,
         std::initializer_list<ClassMethodParameter> parameters = {}
     )
-        requires(!std::same_as<Root, SceneSystem>)
+        requires(std::same_as<Root, Node> || std::same_as<Root, Component>)
     {
         return addMethod<Result, Args...>(std::move(name), function, parameters);
     }

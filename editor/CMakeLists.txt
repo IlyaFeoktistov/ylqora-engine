@@ -10,6 +10,8 @@ add_library(yqlora_editor STATIC
     src/ResourceLabel.cpp
     src/SceneDocument.cpp
     src/SceneEditing.cpp
+    src/SettingsCommands.cpp
+    src/SettingsEditing.cpp
     src/ProjectSetup.cpp
     src/ProjectFiles.cpp
     src/ProjectList.cpp
@@ -47,12 +49,14 @@ add_library(yqlora_editor_ui STATIC
     ui/panels/GamePanel.cpp
     ui/panels/InspectorPanel.cpp
     ui/panels/ProjectManagerPanel.cpp
+    ui/panels/ProjectSettingsPanel.cpp
     ui/panels/SceneTreePanel.cpp
     ui/panels/ViewportPanel.cpp
     ui/style/Theme.cpp
     ui/widgets/Checkbox.cpp
     ui/widgets/PlayFrame.cpp
     ui/widgets/PropertyEditor.cpp
+    ui/widgets/PropertyTable.cpp
     ui/widgets/RenderView.cpp
 )
 add_library(yqlora::editor_ui ALIAS yqlora_editor_ui)

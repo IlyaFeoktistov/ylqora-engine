@@ -14,6 +14,8 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
+#include <utility>
+
 namespace yqlora::editor {
 
 namespace {
@@ -48,7 +50,6 @@ ProjectManagerPanel::ProjectManagerPanel(ProjectManager& manager, const Theme& t
 
 std::optional<Project> ProjectManagerPanel::draw(const EditorHost& host)
 {
-    m_toOpen.reset();
     const auto rows = m_manager.rows();
     if (m_selected >= static_cast<int>(rows.size())) {
         m_selected = -1;
@@ -106,7 +107,7 @@ std::optional<Project> ProjectManagerPanel::draw(const EditorHost& host)
     }
     ImGui::End();
 
-    return m_toOpen;
+    return std::exchange(m_toOpen, std::nullopt);
 }
 
 void ProjectManagerPanel::drawList()

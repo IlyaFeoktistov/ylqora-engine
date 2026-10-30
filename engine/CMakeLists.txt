@@ -53,7 +53,10 @@ add_library(yqlora SHARED
     src/scene/SceneSerializer.cpp
     src/scene/SceneTypes.cpp
     src/project/Project.cpp
+    src/project/ProjectSettings.cpp
+    src/project/ProjectTypes.cpp
     src/project/ProjectUpgrade.cpp
+    src/project/SettingsSection.cpp
     src/reflection/ComponentRules.cpp
     src/reflection/Method.cpp
     src/reflection/Property.cpp

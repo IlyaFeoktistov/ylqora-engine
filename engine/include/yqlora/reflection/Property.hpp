@@ -20,6 +20,7 @@ namespace yqlora {
 
 class Node;
 class Component;
+class SettingsSection;
 
 // Значение перечисления. В файлах сцен пишется именем, а не числом, поэтому
 // порядок значений в C++ можно менять.
@@ -183,9 +184,10 @@ enum class PropertyHint {
     Angle,  // градусы: при перетаскивании значение меняется медленнее
     Layer,  // int: один слой узла из списка
     Layers, // int: набор слоёв (LayerMask), флажок на каждый
+    Scene,  // ссылка на ресурс сцены: выбор из сцен проекта
 };
 
-// Свойство узла или компонента: имя, тип и доступ к значению. Доступ к
+// Свойство узла, компонента или раздела настроек проекта: имя, тип и доступ к значению. Доступ к
 // значению - функции над PropertyValue, поэтому свойство может объявить и
 // C++-класс (ClassTypeBuilder), и тип, описанный во время выполнения
 // (скрипт Luau, граф визуального скрипта).
@@ -195,6 +197,8 @@ public:
     using NodeSetter = std::function<void(Node&, const PropertyValue&)>;
     using ComponentGetter = std::function<PropertyValue(const Component&)>;
     using ComponentSetter = std::function<void(Component&, const PropertyValue&)>;
+    using SettingsGetter = std::function<PropertyValue(const SettingsSection&)>;
+    using SettingsSetter = std::function<void(SettingsSection&, const PropertyValue&)>;
 
     // Setter получает значение уже проверенного типа type.
     static Property forNode(
@@ -209,6 +213,13 @@ public:
         PropertyType type,
         ComponentGetter getter,
         ComponentSetter setter,
+        PropertyHint hint = PropertyHint::None
+    );
+    static Property forSettings(
+        std::string name,
+        PropertyType type,
+        SettingsGetter getter,
+        SettingsSetter setter,
         PropertyHint hint = PropertyHint::None
     );
 
@@ -236,10 +247,12 @@ public:
     // Объект должен быть того типа, для которого зарегистрировано свойство, или его наследником.
     PropertyValue get(const Node& node) const;
     PropertyValue get(const Component& component) const;
+    PropertyValue get(const SettingsSection& section) const;
 
     // false, если тип значения не совпадает с типом свойства.
     bool set(Node& node, const PropertyValue& value) const;
     bool set(Component& component, const PropertyValue& value) const;
+    bool set(SettingsSection& section, const PropertyValue& value) const;
 
     // Имена значений перечисления по порядку, см. enumNames.
     void setEnumNames(std::vector<std::string> names);
@@ -251,11 +264,13 @@ private:
     PropertyType m_type = PropertyType::Bool;
     PropertyHint m_hint = PropertyHint::None;
     std::vector<std::string> m_enumNames;
-    // Своё у узлов и у компонентов: объект одного вида не передать свойству другого.
+    // Своё у каждого вида объектов: объект одного вида не передать свойству другого.
     NodeGetter m_nodeGet;
     NodeSetter m_nodeSet;
     ComponentGetter m_componentGet;
     ComponentSetter m_componentSet;
+    SettingsGetter m_settingsGet;
+    SettingsSetter m_settingsSet;
 };
 
 } // namespace yqlora

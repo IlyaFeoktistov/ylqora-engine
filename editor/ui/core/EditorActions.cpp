@@ -30,24 +30,27 @@ void registerEditorActions(ActionRegistry& registry, EditorSession& session, Edi
     registry.add(actions::kCloseProject, "editor.menu.closeProject")
         .enabledWhen(hasProject)
         .onRun(std::move(handlers.closeProject));
+    registry.add(actions::kProjectSettings, "editor.menu.projectSettings")
+        .enabledWhen(hasProject)
+        .onRun(std::move(handlers.openProjectSettings));
     registry.add(actions::kQuit, "editor.menu.quit").onRun(std::move(handlers.quit));
 
     registry.add(actions::kUndo, "editor.menu.undo")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_Z)
         .enabledWhen([&session] {
-            return session.editing().canUndo();
+            return session.canUndo();
         })
         .onRun([&session] {
-            session.editing().undo();
+            session.undo();
         });
     registry.add(actions::kRedo, "editor.menu.redo")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_Y)
         .alternativeShortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z)
         .enabledWhen([&session] {
-            return session.editing().canRedo();
+            return session.canRedo();
         })
         .onRun([&session] {
-            session.editing().redo();
+            session.redo();
         });
 
     registry.add(actions::kTogglePlay, "editor.play.play")

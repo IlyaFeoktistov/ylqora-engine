@@ -5,6 +5,7 @@
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/project/ProjectUpgrade.hpp"
+#include "yqlora/scene/SceneSerializer.hpp"
 
 namespace yqlora::editor {
 
@@ -46,7 +47,7 @@ ProjectManager::OpenResult ProjectManager::open(std::size_t row)
     case FormatCompatibility::Unsupported: return {.status = OpenStatus::CannotOpen, .project = std::nullopt};
     }
 
-    auto project = Project::open(m_rows[row].directory);
+    auto project = Project::open(m_rows[row].directory, m_serializer.registry());
     if (!project) {
         // Папку убрали, пока менеджер был открыт. Только помечаем строку:
         // список не перестраивается, пока по нему, возможно, идёт цикл.
@@ -110,7 +111,7 @@ std::optional<Project> ProjectManager::upgrade(const std::filesystem::path& dire
     }
     refresh();
 
-    return Project::open(directory);
+    return Project::open(directory, m_serializer.registry());
 }
 
 void ProjectManager::markOpened(const std::filesystem::path& directory)

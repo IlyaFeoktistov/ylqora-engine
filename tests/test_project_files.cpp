@@ -47,7 +47,7 @@ std::vector<std::string> names(const ProjectFiles::Entry& entry)
 
 } // namespace
 
-TEST_CASE_FIXTURE(Fixture, "ProjectFiles: folders first, the project file and .meta are hidden")
+TEST_CASE_FIXTURE(Fixture, "ProjectFiles: folders first, the project file, settings and .meta are hidden")
 {
     REQUIRE(files.createFolder({}));
     REQUIRE(files.createScene({}, serializer));
@@ -72,7 +72,7 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: new scenes get free names and can be o
 
     EditorSession session(services, serializer);
     Scene& scene = session.scene();
-    REQUIRE(session.open(project));
+    REQUIRE(session.open(*Project::open(project.directory(), registry)));
     REQUIRE(session.openScene(*second));
     CHECK(session.document().id() == project.resources().id(*second));
     CHECK(session.scenePath() == *second);
@@ -90,6 +90,7 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: nothing outside the project can be tou
 {
     CHECK_FALSE(files.canModify(""));
     CHECK_FALSE(files.canModify("project.yqlora"));
+    CHECK_FALSE(files.canModify("settings/general.json"));
     CHECK_FALSE(files.canModify("../other"));
     CHECK_FALSE(files.canModify("a/../../other"));
     CHECK(files.canModify("main.yscene"));
@@ -104,7 +105,7 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: a renamed scene keeps its id, the sess
     Input input;
     EngineServices services{input, registry};
     EditorSession session(services, serializer);
-    REQUIRE(session.open(project));
+    REQUIRE(session.open(*Project::open(project.directory(), registry)));
     const ResourceId id = session.document().id();
     REQUIRE(id != 0);
 
@@ -116,9 +117,9 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: a renamed scene keeps its id, the sess
     REQUIRE(moved);
     CHECK(session.document().id() == id);
     CHECK(session.scenePath() == "level.yscene");
-    CHECK(session.project()->mainScenePath() == std::filesystem::path("level.yscene"));
+    CHECK(session.project()->startupScenePath() == std::filesystem::path("level.yscene"));
     CHECK(std::filesystem::exists(project.directory() / "level.yscene.meta"));
-    CHECK(Project::open(project.directory())->mainScenePath() == std::filesystem::path("level.yscene"));
+    CHECK(Project::open(project.directory(), registry)->startupScenePath() == std::filesystem::path("level.yscene"));
 
     CHECK(sessionFiles.remove(*folder));
     CHECK_FALSE(std::filesystem::exists(project.directory() / *folder));

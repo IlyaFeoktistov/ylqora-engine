@@ -18,36 +18,7 @@ namespace yqlora::editor {
 
 bool SceneEditing::execute(std::unique_ptr<Command> command)
 {
-    if (m_session.playing()) {
-        return command && command->apply(m_session);
-    }
-
-    return m_session.m_document.history().execute(m_session, std::move(command));
-}
-
-void SceneEditing::finishEdit()
-{
-    m_session.m_document.history().finishEdit();
-}
-
-bool SceneEditing::canUndo() const
-{
-    return !m_session.playing() && m_session.m_document.history().canUndo();
-}
-
-bool SceneEditing::canRedo() const
-{
-    return !m_session.playing() && m_session.m_document.history().canRedo();
-}
-
-bool SceneEditing::undo()
-{
-    return !m_session.playing() && m_session.m_document.history().undo(m_session);
-}
-
-bool SceneEditing::redo()
-{
-    return !m_session.playing() && m_session.m_document.history().redo(m_session);
+    return m_session.execute(std::move(command));
 }
 
 Node* SceneEditing::createNode(const TypeInfo& type, Node* parent)
@@ -161,9 +132,9 @@ bool SceneEditing::makeMainCamera(Camera3D& camera)
     }
 
     // Отдельный шаг истории, не слитый с правкой order в поле рядом.
-    finishEdit();
+    m_session.finishEdit();
     const bool done = setProperty(camera, **property, PropertyValue{*order});
-    finishEdit();
+    m_session.finishEdit();
 
     return done;
 }

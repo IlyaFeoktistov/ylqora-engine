@@ -53,6 +53,9 @@ EditorApp::EditorApp()
     m_panels.push_back(std::make_unique<FileSystemPanel>());
     m_panels.push_back(std::make_unique<ViewportPanel>());
     m_panels.push_back(std::make_unique<GamePanel>());
+    auto projectSettings = std::make_unique<ProjectSettingsPanel>();
+    m_projectSettings = projectSettings.get();
+    m_panels.push_back(std::move(projectSettings));
 }
 
 EditorContext EditorApp::context()
@@ -108,6 +111,10 @@ void EditorApp::onStart()
                         quit();
                     });
                 },
+            .openProjectSettings =
+                [this] {
+                    m_projectSettings->open();
+                },
         }
     );
 }
@@ -159,7 +166,7 @@ void EditorApp::onGui()
 
     // Ничего не тянут и не печатают: следующая правка будет отдельным шагом отмены.
     if (!ImGui::IsAnyItemActive() && !ImGuizmo::IsUsing()) {
-        m_session.editing().finishEdit();
+        m_session.finishEdit();
     }
 
     if (frame.mouseWrapping != m_mouseWrapping) {

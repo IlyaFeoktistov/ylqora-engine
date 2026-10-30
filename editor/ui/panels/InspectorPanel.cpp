@@ -1,7 +1,7 @@
 #include "panels/InspectorPanel.hpp"
 
 #include "style/Theme.hpp"
-#include "widgets/PropertyEditor.hpp"
+#include "widgets/PropertyTable.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/editor/Inspection.hpp"
@@ -11,7 +11,6 @@
 
 #include <imgui.h>
 
-#include <algorithm>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -21,41 +20,24 @@ namespace yqlora::editor {
 
 namespace {
 
-// Подпись и значение.
-constexpr int kColumnCount = 2;
-constexpr float kLabelShare = 0.3f;
-constexpr float kMinLabelWidth = 70.0f;
-constexpr float kMaxLabelWidth = 130.0f;
-
-// Возвращает true, если какое-то значение тянут мышью.
+// Свойства объекта сцены: правка идёт командой сцены, чтобы её можно было отменить.
 template <typename Object>
-bool drawPropertyTable(
+bool drawObjectProperties(
     EditorSession& session,
     const PropertyEditorContext& widgets,
     const TypeInfo& type,
     Object& object
 )
 {
-    const auto properties = session.registry().properties(type);
-    if (properties.empty() || !ImGui::BeginTable("properties", kColumnCount)) {
-        return false;
-    }
-    // Подписи узкой колонкой постоянной ширины, остальное место - значениям.
-    const float labelWidth = std::clamp(ImGui::GetContentRegionAvail().x * kLabelShare, kMinLabelWidth, kMaxLabelWidth);
-    ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, labelWidth);
-    ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
-
-    bool dragging = false;
-    for (const Property* property : properties) {
-        const PropertyResult result = drawProperty(*property, object, widgets);
-        if (result.changed) {
-            session.editing().setProperty(object, *property, result.value);
+    return drawPropertyTable(
+        session.registry(),
+        widgets,
+        type,
+        object,
+        [&session, &object](const Property& property, const PropertyValue& value) {
+            session.editing().setProperty(object, property, value);
         }
-        dragging = dragging || result.dragging;
-    }
-    ImGui::EndTable();
-
-    return dragging;
+    );
 }
 
 std::string joinTypeNames(const std::vector<const Component*>& components)
@@ -100,7 +82,7 @@ bool drawComponent(
 
     bool dragging = false;
     if (open && inspected.type) {
-        dragging = drawPropertyTable(session, widgets, *inspected.type, inspected.component);
+        dragging = drawObjectProperties(session, widgets, *inspected.type, inspected.component);
     } else if (open) {
         ImGui::TextDisabled("%s", tr("editor.inspector.missing").c_str());
     }
@@ -183,7 +165,7 @@ void InspectorPanel::draw(EditorContext& context)
     ImGui::TextDisabled("%s", inspection->type.name().c_str());
     ImGui::SetItemTooltip("%s", tr(inspection->type.descriptionKey()).c_str());
     drawCameraRole(session, *inspection);
-    bool dragging = drawPropertyTable(session, widgets, inspection->type, inspection->node);
+    bool dragging = drawObjectProperties(session, widgets, inspection->type, inspection->node);
 
     Component* toRemove = nullptr;
     for (const InspectedComponent& inspected : inspection->components) {

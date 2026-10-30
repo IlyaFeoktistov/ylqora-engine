@@ -3,9 +3,12 @@
 #include "style/Theme.hpp"
 #include "widgets/Checkbox.hpp"
 
+#include "yqlora/core/Utf8Path.hpp"
+#include "yqlora/editor/ProjectFiles.hpp"
 #include "yqlora/editor/ResourceLabel.hpp"
 
 #include "yqlora/i18n/Translate.hpp"
+#include "yqlora/project/SettingsSection.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/render/BuiltinMeshes.hpp"
 #include "yqlora/resource/ResourceDatabase.hpp"
@@ -122,6 +125,34 @@ bool meshCombo(ResourceRef& value, const ResourceDatabase* resources)
             const std::string name(mesh.name);
             if (ImGui::Selectable(name.c_str(), mesh.id == value.id)) {
                 value.id = mesh.id;
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    return changed;
+}
+
+// Без проекта выбирать не из чего.
+const std::map<ResourceId, std::filesystem::path> kNoResources;
+
+// "Нет" и сцены проекта по пути.
+bool sceneCombo(ResourceRef& value, const ResourceDatabase* resources)
+{
+    bool changed = false;
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (ImGui::BeginCombo("##value", resourceLabel(value, resources).c_str())) {
+        if (ImGui::Selectable(tr("editor.inspector.none").c_str(), value.id == 0)) {
+            value.id = 0;
+            changed = true;
+        }
+        for (const auto& [id, path] : resources ? resources->paths() : kNoResources) {
+            if (!ProjectFiles::isScene(path)) {
+                continue;
+            }
+            if (ImGui::Selectable(toUtf8(path).c_str(), id == value.id)) {
+                value.id = id;
                 changed = true;
             }
         }
@@ -336,6 +367,8 @@ void valueField(
     case PropertyType::Resource:
         if (property.hint() == PropertyHint::Mesh) {
             result.changed = meshCombo(std::get<ResourceRef>(value), context.resources) || result.changed;
+        } else if (property.hint() == PropertyHint::Scene) {
+            result.changed = sceneCombo(std::get<ResourceRef>(value), context.resources) || result.changed;
         } else {
             ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted(resourceLabel(std::get<ResourceRef>(value), context.resources).c_str());
@@ -373,6 +406,11 @@ PropertyResult drawProperty(const Property& property, Node& node, const Property
 PropertyResult drawProperty(const Property& property, Component& component, const PropertyEditorContext& context)
 {
     return drawPropertyRow(property, component, context);
+}
+
+PropertyResult drawProperty(const Property& property, SettingsSection& section, const PropertyEditorContext& context)
+{
+    return drawPropertyRow(property, section, context);
 }
 
 std::string propertyLabel(const std::string& name)

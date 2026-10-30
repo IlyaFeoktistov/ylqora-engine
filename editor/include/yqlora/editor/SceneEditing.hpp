@@ -22,7 +22,7 @@ class EditorSession;
 
 // Правка текущей сцены сессии командами с отменой: узлы, компоненты,
 // свойства, трансформы. Методы ниже execute - короткие пути к командам из
-// SceneCommands.hpp.
+// SceneCommands.hpp. Отмена и повтор - у сессии, история общая с настройками.
 class SceneEditing {
 public:
     explicit SceneEditing(EditorSession& session)
@@ -32,16 +32,6 @@ public:
 
     // Во время игры правка в историю не попадает: по Stop сцена всё равно вернётся как была.
     bool execute(std::unique_ptr<Command> command);
-
-    // Правка закончилась (отпустили мышь, ушли из поля ввода): следующая
-    // будет отдельным шагом истории.
-    void finishEdit();
-
-    // Во время игры истории нет.
-    bool canUndo() const;
-    bool canRedo() const;
-    bool undo();
-    bool redo();
 
     // Создаёт узел типа type ребёнком parent. В пустой сцене узел становится
     // корнем, а без parent - ребёнком корня. Имя уникально среди соседей.

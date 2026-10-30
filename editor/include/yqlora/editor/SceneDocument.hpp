@@ -1,6 +1,5 @@
 #pragma once
 
-#include "yqlora/editor/EditHistory.hpp"
 #include "yqlora/resource/ResourceId.hpp"
 #include "yqlora/scene/Scene.hpp"
 
@@ -16,8 +15,8 @@ class SceneSerializer;
 
 namespace yqlora::editor {
 
-// Редактируемая сцена как файл проекта: какая открыта, сохранена ли и история
-// правок с момента открытия.
+// Редактируемая сцена как файл проекта: какая открыта, откуда читается и
+// куда сохраняется. Историю правок ведёт сессия (EditorSession).
 class SceneDocument {
 public:
     // Сцена документа создаётся со службами владельца, они её переживают.
@@ -42,7 +41,7 @@ public:
     // Путь к файлу сцены от папки проекта. Пусто, если сцены нет.
     std::filesystem::path path(const Project& project) const;
 
-    // Пустая сцена, которая сохранится в ресурс id (0 - никуда), без истории.
+    // Пустая сцена, которая сохранится в ресурс id (0 - никуда).
     void reset(ResourceId id);
 
     // Читает сцену из ресурса id. Если файл не читается, остаётся прежняя.
@@ -50,27 +49,10 @@ public:
 
     bool save(const Project& project);
 
-    // Сцену меняли после открытия или последнего сохранения.
-    bool modified() const
-    {
-        return !m_history.atSaved();
-    }
-
-    EditHistory& history()
-    {
-        return m_history;
-    }
-
-    const EditHistory& history() const
-    {
-        return m_history;
-    }
-
 private:
     Scene m_scene;
     const SceneSerializer& m_serializer;
     ResourceId m_id = 0;
-    EditHistory m_history;
 };
 
 } // namespace yqlora::editor

@@ -4,6 +4,7 @@
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/editor/ProjectFiles.hpp"
+#include "yqlora/project/GeneralSettings.hpp"
 #include "yqlora/render/Camera3D.hpp"
 #include "yqlora/render/MeshRenderer.hpp"
 #include "yqlora/resource/BuiltinResources.hpp"
@@ -67,14 +68,16 @@ std::optional<Project> createProject(
     const std::filesystem::path mainScene = std::string(kMainSceneName) + std::string(SceneSerializer::fileExtension());
     Scene scene(EngineServices::none());
     buildStarterScene(scene);
-    auto project = Project::create(directory, name);
+    auto project = Project::create(directory, name, serializer.registry());
     if (!project || !serializer.save(scene, directory / mainScene)) {
         error = "projects.error.cannotCreate";
 
         return std::nullopt;
     }
-    project->setMainScene(project->resources().add(mainScene));
-    if (!project->save()) {
+    auto& general = project->settings().get<GeneralSettings>();
+    general.gameName = project->name();
+    general.startupScene = {project->resources().add(mainScene)};
+    if (!project->settings().save(general)) {
         error = "projects.error.cannotCreate";
 
         return std::nullopt;

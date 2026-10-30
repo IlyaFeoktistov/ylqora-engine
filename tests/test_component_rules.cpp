@@ -200,9 +200,9 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: component rules")
         CHECK_FALSE(session.editing().removeComponent(*node, body));
         CHECK(node->components().size() == 3);
 
-        REQUIRE(session.editing().undo());
+        REQUIRE(session.undo());
         CHECK(node->components().size() == 1);
-        REQUIRE(session.editing().redo());
+        REQUIRE(session.redo());
         CHECK(node->components().size() == 3);
     }
 

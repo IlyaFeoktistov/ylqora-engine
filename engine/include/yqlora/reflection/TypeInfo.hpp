@@ -17,14 +17,16 @@ class Component;
 class Node;
 class Scene;
 class SceneSystem;
+class SettingsSection;
 
 enum class TypeKind {
     Node,
     Component,
     System,
+    Settings,
 };
 
-// Описание типа узла или компонента: по нему редактор строит меню создания
+// Описание типа узла, компонента, системы сцены или раздела настроек: по нему редактор строит меню создания
 // и инспектор, а файлы сцен создают объекты по имени типа.
 class YQLORA_API TypeInfo {
 public:
@@ -54,7 +56,8 @@ public:
     // Встроенные компоненты (Transform) создаёт сам узел, поэтому они не создаваемые.
     bool creatable() const
     {
-        return m_createNode != nullptr || m_createComponent != nullptr || m_createSystem != nullptr;
+        return m_createNode != nullptr || m_createComponent != nullptr || m_createSystem != nullptr
+               || m_createSettings != nullptr;
     }
 
     // Встроенный компонент: его создаёт сам узел, снять и выключить его нельзя.
@@ -112,10 +115,18 @@ public:
         return m_executionOrder;
     }
 
+    // Имя файла раздела настроек без расширения: settings/<имя>.json в папке
+    // проекта. Пусто у остальных видов типов.
+    const std::string& settingsFile() const
+    {
+        return m_settingsFile;
+    }
+
     // nullptr, если это не узел (не компонент) или тип нельзя создать.
     std::unique_ptr<Node> createNode() const;
     std::unique_ptr<Component> createComponent() const;
     std::unique_ptr<SceneSystem> createSystem(Scene& scene) const;
+    std::unique_ptr<SettingsSection> createSettings() const;
 
 private:
     friend class TypeRegistry;
@@ -130,6 +141,8 @@ private:
     std::function<std::unique_ptr<Node>()> m_createNode;
     std::function<std::unique_ptr<Component>()> m_createComponent;
     std::function<std::unique_ptr<SceneSystem>(Scene&)> m_createSystem;
+    std::function<std::unique_ptr<SettingsSection>()> m_createSettings;
+    std::string m_settingsFile;
     std::vector<Property> m_properties;
     std::vector<Method> m_methods;
     std::string m_requiredNode;

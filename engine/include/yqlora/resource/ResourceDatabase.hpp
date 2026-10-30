@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <map>
 #include <optional>
+#include <span>
 #include <string_view>
 
 namespace yqlora {
@@ -22,8 +23,9 @@ public:
 
     // Обходит папку проекта. Файлу без .meta создаёт .meta с новым ID. Если
     // ID повторяется (файл скопировали вместе с .meta), копия получает новый.
-    // Скрытые файлы и пропущенные имена (например, файл проекта) не ресурсы.
-    void scan(const std::filesystem::path& root, std::string_view skipName = {});
+    // Скрытые файлы и пропущенные имена в корне (файл проекта, папка
+    // настроек) не ресурсы.
+    void scan(const std::filesystem::path& root, std::span<const std::string_view> skipNames = {});
 
     // Новый файл в проекте: .meta с новым ID. Если файл уже известен, его ID.
     ResourceId add(const std::filesystem::path& path);
@@ -43,6 +45,12 @@ public:
     std::size_t size() const
     {
         return m_paths.size();
+    }
+
+    // Все ресурсы проекта: ID и путь от папки проекта, по порядку ID.
+    const std::map<ResourceId, std::filesystem::path>& paths() const
+    {
+        return m_paths;
     }
 
 private:

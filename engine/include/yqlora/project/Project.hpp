@@ -2,15 +2,18 @@
 
 #include "yqlora/core/Export.hpp"
 #include "yqlora/core/FormatCompatibility.hpp"
+#include "yqlora/project/ProjectSettings.hpp"
 #include "yqlora/resource/ResourceDatabase.hpp"
-#include "yqlora/resource/ResourceId.hpp"
 
 #include <filesystem>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 
 namespace yqlora {
+
+class TypeRegistry;
 
 // Что известно о проекте без его открытия: для списка проектов.
 struct ProjectInfo {
@@ -22,9 +25,9 @@ struct ProjectInfo {
     FormatCompatibility compatibility = FormatCompatibility::Unsupported;
 };
 
-// Проект - папка с файлом project.yqlora, сценами и ресурсами игры. Нужен и
-// редактору, и запуску игры без редактора. Здесь только формат файла проекта;
-// проверка имени, стартовая сцена и удаление папки - дело редактора.
+// Проект - папка с файлом project.yqlora, настройками, сценами и ресурсами
+// игры. Нужен и редактору, и запуску игры без редактора. Здесь только формат
+// файлов проекта; проверка имени, стартовая сцена и удаление папки - дело редактора.
 class YQLORA_API Project {
 public:
     static constexpr std::string_view fileName()
@@ -32,15 +35,24 @@ public:
         return "project.yqlora";
     }
 
+    // Имена в корне папки проекта, которые не ресурсы игры: файл проекта и папка настроек.
+    static std::span<const std::string_view> reservedNames();
+
     // Версия формата проекта. Растёт при любой смене формата проекта или сцены.
     static int formatVersion();
 
-    // Читает файл проекта и обходит его ресурсы (см. ResourceDatabase::scan).
-    // nullopt, если файла нет, он испорчен или его формат не текущий.
-    static std::optional<Project> open(const std::filesystem::path& directory);
+    // Читает файл проекта и его настройки (разделы из registry), обходит
+    // ресурсы (см. ResourceDatabase::scan). nullopt, если файла нет, он
+    // испорчен или его формат не текущий. Реестр должен пережить проект.
+    static std::optional<Project> open(const std::filesystem::path& directory, const TypeRegistry& registry);
 
-    // Пишет файл нового проекта в существующую папку. nullopt, если записать не удалось.
-    static std::optional<Project> create(const std::filesystem::path& directory, std::string name);
+    // Пишет файл нового проекта в существующую папку, настройки - по
+    // умолчанию. nullopt, если записать не удалось.
+    static std::optional<Project> create(
+        const std::filesystem::path& directory,
+        std::string name,
+        const TypeRegistry& registry
+    );
 
     // Сведения из файла проекта, без обхода ресурсов. nullopt, если это не проект.
     static std::optional<ProjectInfo> readInfo(const std::filesystem::path& directory);
@@ -66,19 +78,19 @@ public:
         return m_directory / fileName();
     }
 
-    // Сцена, которая открывается вместе с проектом и запускается в игре.
-    ResourceId mainScene() const
+    ProjectSettings& settings()
     {
-        return m_mainScene;
+        return m_settings;
     }
 
-    void setMainScene(ResourceId scene)
+    const ProjectSettings& settings() const
     {
-        m_mainScene = scene;
+        return m_settings;
     }
 
-    // Путь к главной сцене от папки проекта. nullopt, если её нет.
-    std::optional<std::filesystem::path> mainScenePath() const;
+    // Путь к стартовой сцене (GeneralSettings::startupScene) от папки
+    // проекта. nullopt, если её нет.
+    std::optional<std::filesystem::path> startupScenePath() const;
 
     ResourceDatabase& resources()
     {
@@ -93,7 +105,7 @@ public:
 private:
     std::string m_name;
     std::filesystem::path m_directory;
-    ResourceId m_mainScene = 0;
+    ProjectSettings m_settings;
     ResourceDatabase m_resources;
 };
 

@@ -21,7 +21,6 @@ void SceneDocument::reset(ResourceId id)
 {
     m_scene.setRoot(nullptr);
     m_id = id;
-    m_history.clear();
 }
 
 bool SceneDocument::load(const Project& project, ResourceId id)
@@ -31,7 +30,6 @@ bool SceneDocument::load(const Project& project, ResourceId id)
         return false;
     }
     m_id = id;
-    m_history.clear();
 
     return true;
 }
@@ -39,12 +37,8 @@ bool SceneDocument::load(const Project& project, ResourceId id)
 bool SceneDocument::save(const Project& project)
 {
     const std::filesystem::path file = path(project);
-    if (file.empty() || !m_serializer.save(m_scene, project.directory() / file)) {
-        return false;
-    }
-    m_history.markSaved();
 
-    return true;
+    return !file.empty() && m_serializer.save(m_scene, project.directory() / file);
 }
 
 } // namespace yqlora::editor

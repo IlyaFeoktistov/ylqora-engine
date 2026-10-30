@@ -5,6 +5,7 @@
 #include "core/EditorPanel.hpp"
 #include "dialogs/UnsavedChangesDialog.hpp"
 #include "panels/ProjectManagerPanel.hpp"
+#include "panels/ProjectSettingsPanel.hpp"
 #include "style/Theme.hpp"
 
 #include "yqlora/core/Application.hpp"
@@ -53,6 +54,8 @@ private:
     EditorSession m_session{services(), m_serializer};
     ActionRegistry m_actions;
     std::vector<std::unique_ptr<EditorPanel>> m_panels;
+    // Лежит в m_panels; отдельно - чтобы открывать его из меню.
+    ProjectSettingsPanel* m_projectSettings = nullptr;
     UnsavedChangesDialog m_unsaved;
     // Курсор переносится у края окна: летит камера или тянут значение в инспекторе.
     bool m_mouseWrapping = false;
