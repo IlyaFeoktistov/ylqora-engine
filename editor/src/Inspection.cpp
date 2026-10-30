@@ -3,9 +3,30 @@
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/reflection/ComponentRules.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
+#include "yqlora/render/Camera3D.hpp"
+#include "yqlora/render/RenderSystem.hpp"
 #include "yqlora/scene/Node.hpp"
+#include "yqlora/scene/Scene.hpp"
 
 namespace yqlora::editor {
+
+namespace {
+
+std::optional<CameraRole> cameraRole(const Scene& scene, const Node& node)
+{
+    const auto* camera = dynamic_cast<const Camera3D*>(&node);
+    const RenderSystem* render = scene.system<RenderSystem>();
+    if (!camera || !render) {
+        return std::nullopt;
+    }
+    if (!camera->activeInHierarchy()) {
+        return CameraRole::Inactive;
+    }
+
+    return render->mainCamera() == camera ? CameraRole::Main : CameraRole::Secondary;
+}
+
+} // namespace
 
 std::optional<Inspection> inspect(EditorSession& session)
 {
@@ -16,7 +37,13 @@ std::optional<Inspection> inspect(EditorSession& session)
         return std::nullopt;
     }
 
-    Inspection result{.node = *node, .type = *type, .components = {}, .addable = attachableTypes(registry, *node)};
+    Inspection result{
+        .node = *node,
+        .type = *type,
+        .components = {},
+        .addable = attachableTypes(registry, *node),
+        .camera = cameraRole(session.scene(), *node),
+    };
     for (const auto& component : node->components()) {
         result.components.push_back({
             .component = *component,

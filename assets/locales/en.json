@@ -63,7 +63,13 @@
             "noComponents": "No components to add yet",
             "none": "None",
             "missing": "Missing",
-            "requiredBy": "Cannot be removed, required by:"
+            "requiredBy": "Cannot be removed, required by:",
+            "camera": {
+                "main": "Main camera",
+                "makeMain": "Make main",
+                "inactive": "Camera is inactive and does not draw",
+                "rule": "The main camera is the active camera with the lowest order; the game is seen through it. The button sets this camera's order one below the main camera's."
+            }
         },
         "viewport": {
             "cameraPreview": "Preview of the selected camera"

@@ -26,6 +26,13 @@ not part of this.
   stored anywhere, neither in `Scene` nor in the scene file; to change it,
   change the order or deactivate a camera. A camera that leaves the scene
   drops out of the list by itself.
+- **Choosing the main camera in the editor**: the inspector of a camera says
+  "Main camera" for the main one and "Inactive" for a camera whose node is
+  off; the others get a "Make main" button. It sets the camera's order one
+  below the main camera's (`orderToBecomeMain`), one undoable step. There is
+  deliberately no "main" flag next to the order: two sources would contradict
+  each other (two flagged cameras, none flagged), and the order still decides
+  which camera draws over which **[done]**.
 - The editor's own camera (no game camera, or not playing) is drawn as one
   view with the background from the editor theme.
 - **Camera preview** in the editor, as in Unity: while a camera is selected, a

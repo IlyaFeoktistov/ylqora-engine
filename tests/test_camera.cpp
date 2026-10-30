@@ -73,6 +73,21 @@ TEST_CASE_FIXTURE(Fixture, "RenderSystem: active cameras by order, the first one
     CHECK(render.mainCamera() == nullptr);
 }
 
+TEST_CASE_FIXTURE(Fixture, "RenderSystem: order to become main is one below the main camera")
+{
+    auto& root = scene.createRoot<Node3D>();
+    auto& world = root.addChild<Camera3D>("World");
+    auto& arms = root.addChild<Camera3D>("Arms");
+    const RenderSystem& render = *scene.system<RenderSystem>();
+
+    // При равном order главная - кто раньше вошёл, поэтому нужен строго меньший.
+    CHECK(orderToBecomeMain(render, arms) == -1);
+    CHECK(orderToBecomeMain(render, world) == std::nullopt);
+
+    arms.setActive(false);
+    CHECK(orderToBecomeMain(render, arms) == std::nullopt);
+}
+
 TEST_CASE_FIXTURE(Fixture, "Extract: one view per camera with its clear, background and mask")
 {
     auto& root = scene.createRoot<Node3D>();

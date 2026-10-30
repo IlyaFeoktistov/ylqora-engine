@@ -7,6 +7,7 @@
 #include "yqlora/editor/Inspection.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
+#include "yqlora/render/Camera3D.hpp"
 
 #include <imgui.h>
 
@@ -111,6 +112,24 @@ bool drawComponent(
     return dragging;
 }
 
+void drawCameraRole(EditorSession& session, const Inspection& inspection)
+{
+    if (!inspection.camera) {
+        return;
+    }
+
+    switch (*inspection.camera) {
+    case CameraRole::Main: ImGui::TextDisabled("%s", tr("editor.inspector.camera.main").c_str()); break;
+    case CameraRole::Secondary:
+        if (ImGui::Button(tr("editor.inspector.camera.makeMain").c_str(), ImVec2(-FLT_MIN, 0.0f))) {
+            session.editing().makeMainCamera(static_cast<Camera3D&>(inspection.node));
+        }
+        break;
+    case CameraRole::Inactive: ImGui::TextDisabled("%s", tr("editor.inspector.camera.inactive").c_str()); break;
+    }
+    ImGui::SetItemTooltip("%s", tr("editor.inspector.camera.rule").c_str());
+}
+
 void drawAddComponent(EditorSession& session, const Inspection& inspection)
 {
     const bool any = !inspection.addable.empty();
@@ -163,6 +182,7 @@ void InspectorPanel::draw(EditorContext& context)
     };
     ImGui::TextDisabled("%s", inspection->type.name().c_str());
     ImGui::SetItemTooltip("%s", tr(inspection->type.descriptionKey()).c_str());
+    drawCameraRole(session, *inspection);
     bool dragging = drawPropertyTable(session, widgets, inspection->type, inspection->node);
 
     Component* toRemove = nullptr;

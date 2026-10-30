@@ -1,12 +1,15 @@
+#include "EngineRegistry.hpp"
+
 #include <doctest/doctest.h>
 
 #include <yqlora/core/EngineServices.hpp>
-#include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/editor/EditorSession.hpp>
+#include <yqlora/editor/Inspection.hpp>
 #include <yqlora/input/Input.hpp>
 #include <yqlora/platform/InputFeeder.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/render/Camera3D.hpp>
+#include <yqlora/render/RenderSystem.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 
@@ -23,7 +26,6 @@ struct TestComponent final : Component {
 struct Fixture {
     Fixture()
     {
-        registerEngineTypes(registry);
         registry.registerComponent<TestComponent>();
     }
 
@@ -32,7 +34,7 @@ struct Fixture {
         return *registry.find(name);
     }
 
-    TypeRegistry registry;
+    test::EngineRegistry registry;
     SceneSerializer serializer{registry};
     Input input;
     EngineServices services{input, registry};
@@ -162,4 +164,26 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: the game sees input only while its wi
 
     // Ввод игры свой: редактируемая сцена по-прежнему видит службы редактора.
     CHECK(&gameInput != &scene.services().input());
+}
+
+TEST_CASE_FIXTURE(Fixture, "SceneEditing: making a camera main changes its order and can be undone")
+{
+    Node* root = session.editing().createNode(type("Node3D"), nullptr);
+    auto* world = static_cast<Camera3D*>(session.editing().createNode(type("Camera3D"), root));
+    auto* arms = static_cast<Camera3D*>(session.editing().createNode(type("Camera3D"), root));
+    const RenderSystem* render = session.scene().system<RenderSystem>();
+    REQUIRE(render);
+    REQUIRE(render->mainCamera() == world);
+
+    session.selection().select(arms->id());
+    CHECK(inspect(session)->camera == CameraRole::Secondary);
+
+    REQUIRE(session.editing().makeMainCamera(*arms));
+    CHECK(render->mainCamera() == arms);
+    CHECK(inspect(session)->camera == CameraRole::Main);
+    CHECK_FALSE(session.editing().makeMainCamera(*arms));
+
+    REQUIRE(session.editing().undo());
+    CHECK(arms->order() == 0);
+    CHECK(render->mainCamera() == world);
 }

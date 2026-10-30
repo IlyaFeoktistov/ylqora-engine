@@ -3,6 +3,7 @@
 #include "yqlora/core/Export.hpp"
 #include "yqlora/scene/SceneSystem.hpp"
 
+#include <optional>
 #include <vector>
 
 namespace yqlora {
@@ -34,5 +35,10 @@ private:
 
     std::vector<const Camera3D*> m_cameras;
 };
+
+// Порядок, с которым camera станет главной: на единицу меньше, чем у первой
+// камеры. Отдельного флага "главная" нет, чтобы он не спорил с порядком.
+// nullopt, если камера уже главная, выключена или порядка меньше нет.
+YQLORA_API std::optional<int> orderToBecomeMain(const RenderSystem& render, const Camera3D& camera);
 
 } // namespace yqlora

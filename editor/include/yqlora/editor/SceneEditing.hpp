@@ -9,6 +9,7 @@
 #include <span>
 
 namespace yqlora {
+class Camera3D;
 class Component;
 class Node;
 class Node3D;
@@ -67,6 +68,10 @@ public:
     bool setProperty(Component& component, const Property& property, const PropertyValue& value);
 
     bool setTransform(Node3D& node, const TransformValues& values);
+
+    // Делает камеру главной, меняя её order (см. orderToBecomeMain).
+    // false, если камера уже главная или выключена.
+    bool makeMainCamera(Camera3D& camera);
 
 private:
     EditorSession& m_session;

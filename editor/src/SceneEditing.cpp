@@ -4,8 +4,11 @@
 #include "yqlora/editor/SceneCommands.hpp"
 #include "yqlora/reflection/ComponentRules.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
+#include "yqlora/render/Camera3D.hpp"
+#include "yqlora/render/RenderSystem.hpp"
 #include "yqlora/scene/Node3D.hpp"
 #include "yqlora/scene/NodeTree.hpp"
+#include "yqlora/scene/Scene.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -140,6 +143,29 @@ bool SceneEditing::setProperty(Component& component, const Property& property, c
 bool SceneEditing::setTransform(Node3D& node, const TransformValues& values)
 {
     return execute(std::make_unique<SetTransformCommand>(node.id(), values));
+}
+
+bool SceneEditing::makeMainCamera(Camera3D& camera)
+{
+    const RenderSystem* render = m_session.scene().system<RenderSystem>();
+    const TypeInfo* type = m_session.registry().find(camera.typeName());
+    const auto order = render ? orderToBecomeMain(*render, camera) : std::nullopt;
+    if (!type || !order) {
+        return false;
+    }
+
+    const auto properties = m_session.registry().properties(*type);
+    const auto property = std::ranges::find(properties, kCameraOrderProperty, &Property::name);
+    if (property == properties.end()) {
+        return false;
+    }
+
+    // Отдельный шаг истории, не слитый с правкой order в поле рядом.
+    finishEdit();
+    const bool done = setProperty(camera, **property, PropertyValue{*order});
+    finishEdit();
+
+    return done;
 }
 
 } // namespace yqlora::editor

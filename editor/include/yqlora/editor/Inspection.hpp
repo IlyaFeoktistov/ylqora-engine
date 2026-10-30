@@ -15,6 +15,14 @@ namespace yqlora::editor {
 
 class EditorSession;
 
+// Место камеры среди камер сцены. Главная - первая по order (см. RenderSystem).
+enum class CameraRole {
+    Main,
+    Secondary,
+    // Узел выключен: камера не рисует и главной стать не может.
+    Inactive,
+};
+
 struct InspectedComponent {
     Component& component;
     // nullptr, если тип компонента не зарегистрирован.
@@ -33,6 +41,8 @@ struct Inspection {
     std::vector<InspectedComponent> components;
     // См. attachableTypes в ComponentRules.hpp.
     std::vector<const TypeInfo*> addable;
+    // nullopt, если узел не камера.
+    std::optional<CameraRole> camera;
 };
 
 // nullopt, если ничего не выбрано или тип узла не зарегистрирован.

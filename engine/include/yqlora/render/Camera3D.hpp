@@ -113,4 +113,7 @@ private:
     Vec4 m_background{0.08f, 0.09f, 0.12f, 1.0f};
 };
 
+// Имя свойства order в реестре: по нему редактор меняет порядок командой с отменой.
+inline constexpr char kCameraOrderProperty[] = "order";
+
 } // namespace yqlora
