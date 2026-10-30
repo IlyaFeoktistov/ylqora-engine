@@ -30,10 +30,17 @@ never go into the project.
    upgrade window, as for scenes.
 4. **Edits are undone with Ctrl+Z**, through the same edit history as scene
    edits. The history therefore holds commands on the project, not only on
-   the scene: it belongs to `EditorSession`, not to the scene document. A
-   settings edit is written to its file at once and does not make the scene
-   unsaved; opening another scene clears the history, settings edits
-   included (as in Godot) **[done]**.
+   the scene: it belongs to `EditorSession`, not to the scene document.
+   Opening another scene clears the history, settings edits included
+   **[done]**.
+6. **Saved with the project, not on every edit.** An edit applies at once
+   (in Play too) but reaches the file only on Save (Ctrl+S), which writes the
+   scene and every modified section. A section is modified while its values
+   differ from its file (`ProjectSettings::modified`), so an edit undone back
+   to the old value leaves nothing to save. The title shows "*" when the
+   scene or a section is unsaved; closing the project or quitting asks about
+   both, opening another scene asks only about the scene, unsaved settings
+   stay **[done]**.
 5. **Input goes through actions from the start.** Scripts ask for
    `input.action("Jump")`, not for a key, so rebinding never touches game code.
 

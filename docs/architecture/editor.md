@@ -15,6 +15,13 @@ Status marks: see [README](README.md).
   selection, the edit history (undo and redo of the scene and of the project
   settings), `SceneEditing` and `SettingsEditing`.
 - `SceneDocument` is the edited scene and its file.
+- **Unsaved changes** follow one rule for the scene and the project
+  settings: a thing is unsaved while it differs from its file, however it
+  was changed, through the history or not. The scene document keeps the
+  scene as written to its file and compares after every edit, undo and redo,
+  twice a second otherwise, and right before asking about unsaved changes;
+  the settings compare their sections the same way. The one question is
+  `EditorSession::modified()`; the history is only undo and redo **[done]**.
 - `PlayMode` is the Play copy of the scene with its own services.
 - Panels in `editor/ui` get an `EditorContext` every frame.
 

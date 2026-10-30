@@ -110,10 +110,22 @@ public:
     bool undo();
     bool redo();
 
-    // Сцену меняли после открытия или последнего сохранения.
+    // Сцена отличается от своего файла (см. SceneDocument::modified). Для
+    // заголовка окна хватает значения, которое сессия обновляет после правок
+    // и раз в kModifiedCheckSeconds; перед вопросом о несохранённом стоит
+    // вызвать refreshModified.
     bool sceneModified() const
     {
-        return !m_history.atSaved();
+        return m_document.modified();
+    }
+
+    // Есть несохранённое: сцена или разделы настроек проекта.
+    bool modified() const;
+
+    // Сравнить сцену с файлом сейчас.
+    void refreshModified()
+    {
+        m_document.refreshModified();
     }
 
     // Типы, которые знает сессия: те же, что у её сериализатора.
@@ -135,8 +147,9 @@ public:
     // Открывает другую сцену проекта. Если файл не читается, остаётся прежняя.
     bool openScene(const std::filesystem::path& path);
 
-    // Сохраняет сцену в её файл. Во время игры нельзя: в сцене состояние игры.
-    bool saveScene();
+    // Сохраняет проект: сцену в её файл и изменённые разделы настроек. Во
+    // время игры нельзя: в сцене состояние игры.
+    bool save();
 
     bool playing() const
     {
@@ -158,6 +171,7 @@ public:
     // input - ввод приложения, игра видит его, только пока окно игры в фокусе.
     void update(float deltaSeconds, const Input& input)
     {
+        updateModified(deltaSeconds);
         m_play.update(deltaSeconds, input);
         // Сцену документа правят между кадрами: мировые матрицы одним проходом.
         m_document.scene().updateTransforms();
@@ -180,6 +194,8 @@ private:
     // Во время игры правка сцены в историю не попадает: по Stop сцена вернётся
     // как была. Правка настроек попадает всегда, она переживает Stop.
     bool execute(std::unique_ptr<Command> command);
+    // Сцену сравнивают с файлом не каждый кадр: см. sceneModified.
+    void updateModified(float deltaSeconds);
 
     EngineServices& m_services;
     const SceneSerializer& m_serializer;
@@ -190,6 +206,7 @@ private:
     // Выделение до Play: к нему возвращаемся, если после игры выбранных узлов не осталось.
     Selection m_selectionBeforePlay;
     EditHistory m_history;
+    float m_sinceModifiedCheck = 0.0f;
     SceneEditing m_editing{*this};
     SettingsEditing m_settingsEditing{*this};
 };

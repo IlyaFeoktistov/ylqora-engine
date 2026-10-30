@@ -11,7 +11,7 @@ class EditorSession;
 // в лог, закрытие проекта и выход с вопросом о несохранённых изменениях,
 // окно настроек проекта.
 struct EditorActionHandlers {
-    std::function<void()> saveScene;
+    std::function<void()> save;
     std::function<void()> closeProject;
     std::function<void()> quit;
     std::function<void()> openProjectSettings;

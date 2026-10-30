@@ -3,7 +3,7 @@
 namespace yqlora::editor::actions {
 
 // ID действий редактора: по ним действия регистрируются и вызываются из меню и кнопок.
-inline constexpr const char* kSaveScene = "scene.save";
+inline constexpr const char* kSave = "project.save";
 inline constexpr const char* kCloseProject = "project.close";
 inline constexpr const char* kProjectSettings = "project.settings";
 inline constexpr const char* kQuit = "app.quit";

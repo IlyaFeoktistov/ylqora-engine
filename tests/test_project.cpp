@@ -134,13 +134,13 @@ TEST_CASE("EditorSession: open, change, save and reopen a project")
 
     EditorSession session(services, serializer);
     Scene& scene = session.scene();
-    CHECK_FALSE(session.saveScene()); // проект ещё не открыт
+    CHECK_FALSE(session.save()); // проект ещё не открыт
 
     REQUIRE(session.open(*Project::open(project->directory(), registry)));
     REQUIRE(scene.root());
     session.selection().select(scene.root()->id());
     scene.root()->setName("Renamed");
-    REQUIRE(session.saveScene());
+    REQUIRE(session.save());
 
     session.close();
     CHECK(scene.empty());

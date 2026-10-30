@@ -80,7 +80,7 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: new scenes get free names and can be o
 
     // Сохраняется в открытую сцену, а не в главную.
     session.editing().createNode(*registry.find("Node3D"), nullptr);
-    REQUIRE(session.saveScene());
+    REQUIRE(session.save());
     Scene check{EngineServices::none()};
     REQUIRE(serializer.load(check, project.directory() / *second));
     CHECK_FALSE(check.empty());

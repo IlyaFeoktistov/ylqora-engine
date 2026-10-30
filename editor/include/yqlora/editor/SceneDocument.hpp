@@ -4,6 +4,7 @@
 #include "yqlora/scene/Scene.hpp"
 
 #include <filesystem>
+#include <string>
 
 namespace yqlora {
 
@@ -49,10 +50,23 @@ public:
 
     bool save(const Project& project);
 
+    // Отличается ли сцена от своего файла: как бы её ни поменяли, через
+    // историю или нет. Значение с последнего refreshModified: сравнение -
+    // запись всей сцены, для каждого кадра дорого.
+    bool modified() const
+    {
+        return m_modified;
+    }
+
+    void refreshModified();
+
 private:
     Scene m_scene;
     const SceneSerializer& m_serializer;
     ResourceId m_id = 0;
+    // Сцена, как она записана в файле (или пустая после reset).
+    std::string m_savedText;
+    bool m_modified = false;
 };
 
 } // namespace yqlora::editor

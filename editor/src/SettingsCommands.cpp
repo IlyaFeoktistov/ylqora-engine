@@ -1,6 +1,5 @@
 #include "yqlora/editor/SettingsCommands.hpp"
 
-#include "yqlora/core/Log.hpp"
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/project/ProjectSettings.hpp"
 
@@ -10,17 +9,16 @@ namespace yqlora::editor {
 
 namespace {
 
-// Ставит значение и пишет файл раздела. false, если раздела нет или значение не того типа.
-bool setAndSave(EditorSession& session, const std::string& name, const Property& property, const PropertyValue& value)
+// Ставит значение; в файл раздел попадёт, когда проект сохранят. false,
+// если раздела нет или значение не того типа.
+bool setValue(EditorSession& session, const std::string& name, const Property& property, const PropertyValue& value)
 {
     ProjectSettings* settings = session.project() ? &session.project()->settings() : nullptr;
     SettingsSection* section = settings ? settings->find(name) : nullptr;
     if (!section || !property.set(*section, value)) {
         return false;
     }
-    if (!settings->save(*section)) {
-        log::error("Project settings '{}' are not saved", name);
-    }
+    settings->markChanged();
 
     return true;
 }
@@ -48,13 +46,13 @@ bool SetSettingsPropertyCommand::apply(EditorSession& session)
         m_previous = m_property.get(*section);
     }
 
-    return setAndSave(session, m_section, m_property, m_value);
+    return setValue(session, m_section, m_property, m_value);
 }
 
 void SetSettingsPropertyCommand::revert(EditorSession& session)
 {
     if (m_previous) {
-        setAndSave(session, m_section, m_property, *m_previous);
+        setValue(session, m_section, m_property, *m_previous);
     }
 }
 

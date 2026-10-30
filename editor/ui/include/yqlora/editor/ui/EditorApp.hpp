@@ -46,7 +46,7 @@ private:
     void closeProject();
     // Сначала спросит про несохранённые изменения в текущей сцене.
     void openScene(const std::filesystem::path& path);
-    void saveScene();
+    void save();
     void updateTitle();
 
     EditorHost m_host{*this};

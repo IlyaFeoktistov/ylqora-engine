@@ -9,9 +9,9 @@
 namespace yqlora::editor {
 
 // Свойство раздела настроек проекта. Раздел задан именем типа: так команда
-// не держит указателей на объекты проекта. Значение сразу пишется в файл
-// раздела, поэтому сцену правка не делает несохранённой. Правки одного
-// свойства сливаются, пока не вызван finishEdit.
+// не держит указателей на объекты проекта. Правка действует сразу, в файл
+// раздела попадает при сохранении проекта (EditorSession::save); сцену она
+// не трогает. Правки одного свойства сливаются, пока не вызван finishEdit.
 class SetSettingsPropertyCommand final : public Command {
 public:
     SetSettingsPropertyCommand(std::string section, const Property& property, PropertyValue value);

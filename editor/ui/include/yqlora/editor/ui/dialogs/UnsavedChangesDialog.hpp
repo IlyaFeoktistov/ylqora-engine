@@ -9,9 +9,12 @@ class EditorSession;
 // Вопрос "Сохранить изменения в сцене?" перед тем, как их можно потерять.
 class UnsavedChangesDialog {
 public:
-    // Если изменений нет, then выполняется сразу, иначе после ответа
-    // "Сохранить" или "Не сохранять". По "Отмене" не выполняется.
-    void request(const EditorSession& session, std::function<void()> then);
+    // modified - есть ли несохранённое, что важно для этого шага: при
+    // смене сцены - только сцена (настройки проекта остаются), при закрытии
+    // проекта - всё (EditorSession::modified). Если нет, then выполняется
+    // сразу, иначе после ответа "Сохранить" (сохраняется весь проект) или
+    // "Не сохранять". По "Отмене" не выполняется.
+    void request(bool modified, std::function<void()> then);
     void draw(EditorSession& session);
 
 private:

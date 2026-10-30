@@ -4,14 +4,14 @@
 
 #include <cstddef>
 #include <memory>
-#include <optional>
 #include <vector>
 
 namespace yqlora::editor {
 
-// История правок сцены и настроек проекта для отмены и повтора. Помнит, в
-// каком месте истории сцена сохранена: по нему видно, есть ли несохранённые
-// изменения. Правки настроек (Command::changesScene) сцену не меняют.
+// История правок сцены и настроек проекта для отмены и повтора. Сохранено
+// ли что-то, она не решает: сцена и настройки сравнивают себя со своими
+// файлами сами (SceneDocument::modified, ProjectSettings::modified), поэтому
+// правка в обход истории тоже видна.
 class EditHistory {
 public:
     // Отменённые команды после текущего места отбрасываются. Пока не вызван
@@ -36,27 +36,13 @@ public:
     bool undo(EditorSession& session);
     bool redo(EditorSession& session);
 
-    // Забывает все команды, нынешнее состояние считается сохранённым.
+    // Забывает все команды.
     void clear();
 
-    void markSaved()
-    {
-        m_saved = m_position;
-    }
-
-    // Сцена такая же, как при сохранении: между сохранённым и текущим местом
-    // истории нет команд, меняющих сцену.
-    bool atSaved() const;
-
 private:
-    // Ни одна команда в [from, to) не меняет сцену.
-    bool sceneUnchanged(std::size_t from, std::size_t to) const;
-
     std::vector<std::unique_ptr<Command>> m_commands;
     // Команды с этого места отменены.
     std::size_t m_position = 0;
-    // nullopt, если до сохранённого состояния уже не дойти.
-    std::optional<std::size_t> m_saved = 0;
     bool m_editOpen = false;
 };
 

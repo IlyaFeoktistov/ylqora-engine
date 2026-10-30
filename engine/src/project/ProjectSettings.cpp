@@ -32,6 +32,7 @@ void ProjectSettings::load(const TypeRegistry& registry, const std::filesystem::
     m_registry = &registry;
     m_directory = projectDirectory / directoryName();
     m_sections.clear();
+    m_saved.clear();
 
     for (const auto& type : registry.types()) {
         if (type->kind() != TypeKind::Settings) {
@@ -51,6 +52,7 @@ void ProjectSettings::load(const TypeRegistry& registry, const std::filesystem::
                 propertiesFromJson(registry, *type, *section, *values);
             }
         }
+        m_saved.push_back(valuesText(*section));
         m_sections.push_back(std::move(section));
     }
 }
@@ -68,8 +70,41 @@ bool ProjectSettings::save(const SettingsSection& section)
     nlohmann::json json;
     kFormat.stamp(json);
     json[kValuesKey] = propertiesToJson(*m_registry, *type, section);
+    if (!writeJsonFile(file(section), json)) {
+        return false;
+    }
+    const auto it = std::ranges::find(m_sections, &section, &std::unique_ptr<SettingsSection>::get);
+    if (it != m_sections.end()) {
+        m_saved[static_cast<std::size_t>(it - m_sections.begin())] = json[kValuesKey].dump();
+    }
 
-    return writeJsonFile(file(section), json);
+    return true;
+}
+
+bool ProjectSettings::modified(const SettingsSection& section) const
+{
+    const auto it = std::ranges::find(m_sections, &section, &std::unique_ptr<SettingsSection>::get);
+
+    return it != m_sections.end() && m_saved[static_cast<std::size_t>(it - m_sections.begin())] != valuesText(section);
+}
+
+bool ProjectSettings::modified() const
+{
+    return std::ranges::any_of(m_sections, [this](const auto& section) {
+        return modified(*section);
+    });
+}
+
+bool ProjectSettings::saveModified()
+{
+    bool saved = true;
+    for (const auto& section : m_sections) {
+        if (modified(*section)) {
+            saved = save(*section) && saved;
+        }
+    }
+
+    return saved;
 }
 
 bool ProjectSettings::upgradeFiles(const std::filesystem::path& projectDirectory)
@@ -111,6 +146,13 @@ const SettingsSection* ProjectSettings::find(std::string_view typeName) const
     const auto it = std::ranges::find(m_sections, typeName, &SettingsSection::typeName);
 
     return it != m_sections.end() ? it->get() : nullptr;
+}
+
+std::string ProjectSettings::valuesText(const SettingsSection& section) const
+{
+    const TypeInfo* type = m_registry->find(section.typeName());
+
+    return type ? propertiesToJson(*m_registry, *type, section).dump() : std::string();
 }
 
 std::filesystem::path ProjectSettings::file(const SettingsSection& section) const

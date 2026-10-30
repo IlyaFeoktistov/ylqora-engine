@@ -6,6 +6,7 @@
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/LayerUsage.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
+#include <yqlora/editor/SceneEditing.hpp>
 #include <yqlora/input/Input.hpp>
 #include <yqlora/input/InputSettings.hpp>
 #include <yqlora/project/GeneralSettings.hpp>
@@ -124,24 +125,35 @@ TEST_CASE_FIXTURE(Fixture, "ProjectSettings: every registered section, read from
     CHECK(reopened.resources().id("settings/physics.json") == 0);
 }
 
-TEST_CASE_FIXTURE(Fixture, "SettingsEditing: changes are written at once, undone with the scene history")
+TEST_CASE_FIXTURE(
+    Fixture,
+    "SettingsEditing: changes apply at once, reach the file on save, undo with the scene history"
+)
 {
     Input input;
     EngineServices services{input, registry};
     EditorSession session(services, serializer);
     REQUIRE(session.open(open()));
     auto& general = session.project()->settings().get<GeneralSettings>();
+    CHECK_FALSE(session.modified());
 
     REQUIRE(session.settingsEditing().setProperty(general, property("company"), PropertyValue{std::string("Studio")}));
     CHECK(general.company == "Studio");
-    CHECK(open().settings().get<GeneralSettings>().company == "Studio");
+    // В файле пока прежнее: проект изменён, а сцена - нет.
+    CHECK(open().settings().get<GeneralSettings>().company.empty());
     CHECK_FALSE(session.sceneModified());
+    CHECK(session.modified());
 
+    // Отмена до прежнего значения - сохранять нечего.
     REQUIRE(session.undo());
     CHECK(general.company.empty());
-    CHECK(open().settings().get<GeneralSettings>().company.empty());
+    CHECK_FALSE(session.modified());
     REQUIRE(session.redo());
     CHECK(general.company == "Studio");
+
+    REQUIRE(session.save());
+    CHECK_FALSE(session.modified());
+    CHECK(open().settings().get<GeneralSettings>().company == "Studio");
 }
 
 TEST_CASE_FIXTURE(Fixture, "SettingsEditing: the startup scene is chosen with undo")
@@ -156,6 +168,7 @@ TEST_CASE_FIXTURE(Fixture, "SettingsEditing: the startup scene is chosen with un
 
     REQUIRE(session.settingsEditing().setStartupScene("level.yscene"));
     CHECK(session.project()->startupScenePath() == std::filesystem::path("level.yscene"));
+    REQUIRE(session.save());
     CHECK(open().startupScenePath() == std::filesystem::path("level.yscene"));
     CHECK_FALSE(session.settingsEditing().setStartupScene("missing.yscene"));
 
@@ -358,4 +371,37 @@ TEST_CASE_FIXTURE(Fixture, "InputSettings: actions with nested bindings are save
     const Property& bindings = properties.front()->fields()[2];
     CHECK(bindings.elementType() == PropertyType::Record);
     CHECK(bindings.fields()[0].hint() == PropertyHint::InputControl);
+}
+
+TEST_CASE_FIXTURE(
+    Fixture,
+    "EditorSession: the scene is unsaved while it differs from its file, edited through history or not"
+)
+{
+    Input input;
+    EngineServices services{input, registry};
+    EditorSession session(services, serializer);
+    REQUIRE(session.open(open()));
+    CHECK_FALSE(session.modified());
+
+    // Правка командой видна сразу.
+    Node* node = session.editing().createNode(*registry.find("Node3D"), nullptr);
+    REQUIRE(node);
+    CHECK(session.sceneModified());
+    // Отменили до сохранённого - сохранять нечего.
+    REQUIRE(session.undo());
+    CHECK_FALSE(session.sceneModified());
+
+    // Правка в обход истории видна после сверки с файлом.
+    session.scene().root()->setName("Renamed");
+    session.refreshModified();
+    CHECK(session.sceneModified());
+    CHECK(session.modified());
+
+    REQUIRE(session.save());
+    CHECK_FALSE(session.sceneModified());
+    session.scene().root()->setName("Renamed again");
+    CHECK_FALSE(session.sceneModified());
+    session.update(1.0f, input);
+    CHECK(session.sceneModified());
 }

@@ -15,7 +15,8 @@ namespace yqlora::editor {
 class EditorSession;
 
 // Правка настроек открытого проекта командами с отменой, в той же истории,
-// что и правка сцены. Значения сразу пишутся в файлы разделов.
+// что и правка сцены. В файлы разделов значения попадают при сохранении
+// проекта вместе со сценой.
 class SettingsEditing {
 public:
     explicit SettingsEditing(EditorSession& session)

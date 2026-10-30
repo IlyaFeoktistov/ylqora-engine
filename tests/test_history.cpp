@@ -52,23 +52,6 @@ struct AddCommand final : Command {
     int amount;
 };
 
-// Команда не над сценой, как правка настроек проекта.
-struct OutsideSceneCommand final : Command {
-    bool apply(EditorSession& /*session*/) override
-    {
-        return true;
-    }
-
-    void revert(EditorSession& /*session*/) override
-    {
-    }
-
-    bool changesScene() const override
-    {
-        return false;
-    }
-};
-
 struct TestComponent final : Component {
     YQLORA_TYPE(TestComponent, Component)
 };
@@ -144,70 +127,6 @@ TEST_CASE_FIXTURE(Fixture, "EditHistory: commands of one edit merge until finish
     history.undo(session);
     CHECK(counter == 0);
     CHECK_FALSE(history.canUndo());
-}
-
-TEST_CASE_FIXTURE(Fixture, "EditHistory: the saved state is found by its place in history")
-{
-    EditHistory history;
-    int counter = 0;
-    CHECK(history.atSaved());
-
-    history.execute(session, std::make_unique<AddCommand>(counter, 1));
-    CHECK_FALSE(history.atSaved());
-    history.markSaved();
-    CHECK(history.atSaved());
-
-    history.undo(session);
-    CHECK_FALSE(history.atSaved());
-    history.redo(session);
-    CHECK(history.atSaved());
-}
-
-TEST_CASE_FIXTURE(Fixture, "EditHistory: the saved state can become unreachable")
-{
-    EditHistory history;
-    int counter = 0;
-
-    // Сохранили посреди правки, а потом она слилась дальше.
-    history.execute(session, std::make_unique<AddCommand>(counter, 1));
-    history.markSaved();
-    history.execute(session, std::make_unique<AddCommand>(counter, 1));
-    history.undo(session);
-    history.redo(session);
-    CHECK_FALSE(history.atSaved());
-
-    // Отменили сохранённую команду и сделали другую вместо неё.
-    history.finishEdit();
-    history.execute(session, std::make_unique<AddCommand>(counter, 1));
-    history.markSaved();
-    history.undo(session);
-    history.execute(session, std::make_unique<AddCommand>(counter, 5));
-    history.undo(session);
-    history.redo(session);
-    CHECK_FALSE(history.atSaved());
-}
-
-TEST_CASE_FIXTURE(Fixture, "EditHistory: commands outside the scene do not make it unsaved")
-{
-    EditHistory history;
-    int counter = 0;
-
-    history.execute(session, std::make_unique<OutsideSceneCommand>());
-    CHECK(history.atSaved());
-    history.undo(session);
-    CHECK(history.atSaved());
-
-    // Отменённая правка вне сцены отброшена новой: сохранённое место не теряется.
-    history.execute(session, std::make_unique<AddCommand>(counter, 1));
-    history.markSaved();
-    history.finishEdit();
-    history.execute(session, std::make_unique<OutsideSceneCommand>());
-    history.undo(session);
-    history.execute(session, std::make_unique<OutsideSceneCommand>());
-    CHECK(history.atSaved());
-    history.undo(session);
-    history.undo(session);
-    CHECK_FALSE(history.atSaved());
 }
 
 TEST_CASE_FIXTURE(Fixture, "Undo: a created node goes away and comes back with the same id and place")

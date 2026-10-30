@@ -104,7 +104,7 @@ void drawMainMenu(const MainMenuContext& context)
     }
     if (ImGui::BeginMenu(tr("editor.menu.file").c_str())) {
         if (context.session.project()) {
-            context.actions.menuItem(actions::kSaveScene);
+            context.actions.menuItem(actions::kSave);
             context.actions.menuItem(actions::kCloseProject);
             ImGui::Separator();
         }

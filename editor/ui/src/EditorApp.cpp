@@ -105,19 +105,21 @@ void EditorApp::onStart()
         m_actions,
         m_session,
         {
-            .saveScene =
+            .save =
                 [this] {
-                    saveScene();
+                    save();
                 },
             .closeProject =
                 [this] {
-                    m_unsaved.request(m_session, [this] {
+                    m_session.refreshModified();
+                    m_unsaved.request(m_session.modified(), [this] {
                         closeProject();
                     });
                 },
             .quit =
                 [this] {
-                    m_unsaved.request(m_session, [this] {
+                    m_session.refreshModified();
+                    m_unsaved.request(m_session.modified(), [this] {
                         quit();
                     });
                 },
@@ -251,10 +253,10 @@ void EditorApp::closeProject()
     m_projects->refresh();
 }
 
-void EditorApp::saveScene()
+void EditorApp::save()
 {
-    if (m_session.saveScene()) {
-        log::info("Scene saved: {}", toUtf8(m_session.scenePath()));
+    if (m_session.save()) {
+        log::info("Project saved: {}", toUtf8(m_session.scenePath()));
     }
 }
 
@@ -263,7 +265,9 @@ void EditorApp::openScene(const std::filesystem::path& path)
     if (path == m_session.scenePath()) {
         return;
     }
-    m_unsaved.request(m_session, [this, path] {
+    // Настройки проекта при смене сцены не теряются: спрашиваем только про сцену.
+    m_session.refreshModified();
+    m_unsaved.request(m_session.sceneModified(), [this, path] {
         if (!m_session.openScene(path)) {
             log::error("Cannot open scene '{}'", toUtf8(path));
         }

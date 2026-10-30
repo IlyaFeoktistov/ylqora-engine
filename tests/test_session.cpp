@@ -127,7 +127,7 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: Stop returns the scene as it was befo
     CHECK(cube->transform().position() == Vec3(1.0f, 0.0f, 0.0f));
     CHECK(session.sceneModified() == modifiedBefore);
     CHECK_FALSE(session.canUndo());
-    CHECK_FALSE(session.saveScene());
+    CHECK_FALSE(session.save());
 
     session.setPaused(true);
     CHECK_FALSE(session.playMode().running());

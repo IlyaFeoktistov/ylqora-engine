@@ -10,9 +10,9 @@
 
 namespace yqlora::editor {
 
-void UnsavedChangesDialog::request(const EditorSession& session, std::function<void()> then)
+void UnsavedChangesDialog::request(bool modified, std::function<void()> then)
 {
-    if (!session.sceneModified()) {
+    if (!modified) {
         then();
 
         return;
@@ -36,7 +36,7 @@ void UnsavedChangesDialog::draw(EditorSession& session)
 
     if (ImGui::Button(tr("editor.unsaved.save").c_str())) {
         // Не сохранилось - остаёмся, чтобы изменения не пропали.
-        if (session.saveScene()) {
+        if (session.save()) {
             std::exchange(m_then, nullptr)();
         }
         ImGui::CloseCurrentPopup();

@@ -20,13 +20,13 @@ void registerEditorActions(ActionRegistry& registry, EditorSession& session, Edi
         return session.playing();
     };
 
-    registry.add(actions::kSaveScene, "editor.menu.save")
+    registry.add(actions::kSave, "editor.menu.save")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_S)
         // Во время игры в сцене её состояние, а не то, что правили: сохранять нечего.
         .enabledWhen([&session] {
             return session.project() && !session.playing();
         })
-        .onRun(std::move(handlers.saveScene));
+        .onRun(std::move(handlers.save));
     registry.add(actions::kCloseProject, "editor.menu.closeProject")
         .enabledWhen(hasProject)
         .onRun(std::move(handlers.closeProject));

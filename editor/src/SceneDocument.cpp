@@ -9,6 +9,7 @@ namespace yqlora::editor {
 SceneDocument::SceneDocument(const EngineServices& services, const SceneSerializer& serializer)
     : m_scene(services)
     , m_serializer(serializer)
+    , m_savedText(serializer.toJson(m_scene))
 {
 }
 
@@ -21,6 +22,8 @@ void SceneDocument::reset(ResourceId id)
 {
     m_scene.setRoot(nullptr);
     m_id = id;
+    m_savedText = m_serializer.toJson(m_scene);
+    m_modified = false;
 }
 
 bool SceneDocument::load(const Project& project, ResourceId id)
@@ -30,6 +33,8 @@ bool SceneDocument::load(const Project& project, ResourceId id)
         return false;
     }
     m_id = id;
+    m_savedText = m_serializer.toJson(m_scene);
+    m_modified = false;
 
     return true;
 }
@@ -38,7 +43,18 @@ bool SceneDocument::save(const Project& project)
 {
     const std::filesystem::path file = path(project);
 
-    return !file.empty() && m_serializer.save(m_scene, project.directory() / file);
+    if (file.empty() || !m_serializer.save(m_scene, project.directory() / file)) {
+        return false;
+    }
+    m_savedText = m_serializer.toJson(m_scene);
+    m_modified = false;
+
+    return true;
+}
+
+void SceneDocument::refreshModified()
+{
+    m_modified = m_serializer.toJson(m_scene) != m_savedText;
 }
 
 } // namespace yqlora::editor

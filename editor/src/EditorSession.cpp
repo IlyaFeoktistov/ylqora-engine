@@ -19,6 +19,14 @@
 
 namespace yqlora::editor {
 
+namespace {
+
+// Как часто сцену сравнивают с файлом без правок в истории: заметить
+// изменение в обход истории, не записывая сцену каждый кадр.
+constexpr float kModifiedCheckSeconds = 0.5f;
+
+} // namespace
+
 EditorSession::EditorSession(EngineServices& services, const SceneSerializer& serializer)
     : m_services(services)
     , m_serializer(serializer)
@@ -80,14 +88,18 @@ bool EditorSession::openScene(const std::filesystem::path& path)
     return true;
 }
 
-bool EditorSession::saveScene()
+bool EditorSession::modified() const
+{
+    return sceneModified() || (m_project && m_project->settings().modified());
+}
+
+bool EditorSession::save()
 {
     if (!m_project || playing() || !m_document.save(*m_project)) {
         return false;
     }
-    m_history.markSaved();
 
-    return true;
+    return m_project->settings().saveModified();
 }
 
 bool EditorSession::canUndo() const
@@ -102,12 +114,31 @@ bool EditorSession::canRedo() const
 
 bool EditorSession::undo()
 {
-    return !playing() && m_history.undo(*this);
+    if (playing() || !m_history.undo(*this)) {
+        return false;
+    }
+    m_document.refreshModified();
+
+    return true;
 }
 
 bool EditorSession::redo()
 {
-    return !playing() && m_history.redo(*this);
+    if (playing() || !m_history.redo(*this)) {
+        return false;
+    }
+    m_document.refreshModified();
+
+    return true;
+}
+
+void EditorSession::updateModified(float deltaSeconds)
+{
+    m_sinceModifiedCheck += deltaSeconds;
+    if (m_sinceModifiedCheck >= kModifiedCheckSeconds) {
+        m_sinceModifiedCheck = 0.0f;
+        m_document.refreshModified();
+    }
 }
 
 bool EditorSession::execute(std::unique_ptr<Command> command)
@@ -115,8 +146,12 @@ bool EditorSession::execute(std::unique_ptr<Command> command)
     if (playing() && command && command->changesScene()) {
         return command->apply(*this);
     }
+    if (!m_history.execute(*this, std::move(command))) {
+        return false;
+    }
+    m_document.refreshModified();
 
-    return m_history.execute(*this, std::move(command));
+    return true;
 }
 
 void EditorSession::play()
@@ -165,7 +200,7 @@ std::string windowTitle(const EditorSession& session)
         return {};
     }
     std::string title = session.project()->name() + " - " + toUtf8(session.scenePath().filename());
-    if (session.sceneModified()) {
+    if (session.modified()) {
         title += " *";
     }
 
