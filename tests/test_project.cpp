@@ -241,6 +241,12 @@ TEST_CASE("Project: upgrading a current project rewrites it and keeps it working
         == project->settings().get<GeneralSettings>().startupScene
     );
 
+    // Испорченный файл раздела настроек: перевод отказывается и ничего не трогает.
+    std::ofstream(project->directory() / "settings" / "broken.json") << "not json";
+    CHECK_FALSE(upgradeProject(project->directory(), serializer));
+    std::filesystem::remove(project->directory() / "settings" / "broken.json");
+    REQUIRE(upgradeProject(project->directory(), serializer));
+
     // Испорченная сцена: перевод отказывается и ничего не трогает.
     std::ofstream(project->directory() / "broken.yscene") << "not json";
     CHECK_FALSE(upgradeProject(project->directory(), serializer));

@@ -9,6 +9,8 @@
 
 #include <algorithm>
 #include <array>
+#include <utility>
+#include <vector>
 
 namespace yqlora {
 
@@ -67,6 +69,33 @@ bool ProjectSettings::save(const SettingsSection& section) const
     json[kValuesKey] = propertiesToJson(*m_registry, *type, section);
 
     return writeJsonFile(file(section), json);
+}
+
+bool ProjectSettings::upgradeFiles(const std::filesystem::path& projectDirectory)
+{
+    std::vector<std::pair<std::filesystem::path, nlohmann::json>> files;
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(projectDirectory / directoryName(), ec)) {
+        if (!entry.is_regular_file(ec) || entry.path().extension() != fileExtension()) {
+            continue;
+        }
+        auto json = readJsonFile(entry.path());
+        if (!json || !json->is_object() || !kFormat.migrate(*json)) {
+            log::error("Project upgrade: settings '{}' are not read, nothing is changed", toUtf8(entry.path()));
+
+            return false;
+        }
+        files.emplace_back(entry.path(), std::move(*json));
+    }
+    for (const auto& [path, json] : files) {
+        if (!writeJsonFile(path, json)) {
+            log::error("Project upgrade: cannot write settings '{}'", toUtf8(path));
+
+            return false;
+        }
+    }
+
+    return true;
 }
 
 SettingsSection* ProjectSettings::find(std::string_view typeName)

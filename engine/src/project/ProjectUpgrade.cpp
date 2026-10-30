@@ -37,6 +37,9 @@ bool upgradeProject(const std::filesystem::path& directory, const SceneSerialize
             }
         }
     }
+    if (!ProjectSettings::upgradeFiles(directory)) {
+        return false;
+    }
     for (const auto& [path, scene] : scenes) {
         if (!serializer.save(*scene, path)) {
             log::error("Project upgrade: cannot write scene '{}'", toUtf8(path));
@@ -45,6 +48,8 @@ bool upgradeProject(const std::filesystem::path& directory, const SceneSerialize
         }
     }
 
+    // Файл проекта последним: пока он старый, проект снова предложат перевести,
+    // а повторный перевод уже переведённых файлов ничего не меняет.
     return Project::upgradeFile(directory);
 }
 

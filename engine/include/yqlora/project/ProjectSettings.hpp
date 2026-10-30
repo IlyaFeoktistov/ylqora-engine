@@ -44,6 +44,11 @@ public:
     // Пишет файл одного раздела.
     bool save(const SettingsSection& section) const;
 
+    // Переводит файлы всех разделов в папке проекта на текущий формат, и тех,
+    // кого нет в реестре. Сначала все переводятся в памяти: если один не
+    // читается, ничего не пишется. Вызывает upgradeProject.
+    static bool upgradeFiles(const std::filesystem::path& projectDirectory);
+
     // nullptr, если такого раздела нет.
     SettingsSection* find(std::string_view typeName);
     const SettingsSection* find(std::string_view typeName) const;
