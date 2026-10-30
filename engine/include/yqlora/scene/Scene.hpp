@@ -3,23 +3,18 @@
 #include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
+#include "yqlora/scene/ComponentIndex.hpp"
+#include "yqlora/scene/ComponentLifecycle.hpp"
 #include "yqlora/scene/GameTime.hpp"
-#include "yqlora/scene/LifecyclePhase.hpp"
 #include "yqlora/scene/Node.hpp"
-#include "yqlora/scene/PhaseList.hpp"
-#include "yqlora/scene/SceneSystem.hpp"
+#include "yqlora/scene/SceneSystems.hpp"
+#include "yqlora/scene/TreeChangeQueue.hpp"
 
-#include <array>
 #include <concepts>
-#include <map>
 #include <memory>
 #include <ranges>
 #include <span>
-#include <string>
 #include <string_view>
-#include <typeindex>
-#include <unordered_map>
-#include <vector>
 
 namespace yqlora {
 
@@ -90,7 +85,7 @@ public:
     // включённые в нём (и узлы, созданные в нём), участвуют со следующего.
     bool inFrame() const
     {
-        return m_inFrame;
+        return m_lifecycle.inFrame();
     }
 
     // Компоненты в дереве сцены ровно этого типа (без наследников), в порядке
@@ -111,9 +106,7 @@ public:
     template <std::derived_from<SceneSystem> T>
     T* system() const
     {
-        const auto it = m_systemsByType.find(std::type_index(typeid(T)));
-
-        return it != m_systemsByType.end() ? static_cast<T*>(it->second) : nullptr;
+        return m_systems.get<T>();
     }
 
     // Мировые матрицы изменённых узлов, см. SceneSystem::updateTransforms.
@@ -149,47 +142,23 @@ private:
     void enterComponent(Component& component);
     void exitComponent(Component& component);
 
-    // Компонент начал участвовать в игре: в списки фаз и в очередь onEnable.
+    // Участие компонента в игре, см. ComponentLifecycle.
     void activate(Component& component);
-    // Перестал: из списков и очереди, onDisable, если onEnable он получил.
     void deactivate(Component& component);
-    // onDisable и onStop, если компонент их ждёт.
     void stopComponent(Component& component);
 
-    // Изменение дерева, отложенное до конца кадра. Узлы заданы по ID: к
-    // моменту применения узел мог уйти вместе с уничтоженной веткой.
-    struct TreeChange {
-        NodeId node = 0;
-        // 0 - уничтожить узел, иначе - новый родитель.
-        NodeId parent = 0;
-        KeepWorld keepWorld = KeepWorld::No;
-    };
-
-    void applyTreeChange(const TreeChange& change);
     void destroyNow(Node& node);
 
-    void startPending();
-    // onEnable и onStart, если компонент участвует и ещё их не получил.
-    void start(Component& component);
-    void runPhase(LifecyclePhase phase, float seconds);
-
     const EngineServices& m_services;
-    // Раньше дерева: компоненты обращаются к системам, пока выходят из сцены.
-    std::vector<std::unique_ptr<SceneSystem>> m_systems;
-    std::unordered_map<std::type_index, SceneSystem*> m_systemsByType;
     GameTime m_time;
-    std::array<PhaseList, kLifecyclePhaseCount> m_phases;
-    // Участвуют и ещё не получили onEnable или onStart.
-    std::vector<Component*> m_starting;
-    // Очередь, которую сейчас обходит startPending; выключенный по ходу
-    // обхода заменяется на nullptr.
-    std::vector<Component*> m_startBatch;
-    // Включены во время кадра: попадут в списки фаз в его конце.
-    std::vector<Component*> m_joining;
-    std::vector<TreeChange> m_treeChanges;
-    bool m_inFrame = false;
+    ComponentLifecycle m_lifecycle{m_services};
+    ComponentIndex m_components;
+    TreeChangeQueue m_treeChanges;
     std::unique_ptr<Node> m_root;
-    std::map<std::string, std::vector<Component*>, std::less<>> m_components;
+    // Создаются последними: конструктор системы может обратиться к сцене.
+    // Дерево к их уничтожению уже пусто (см. ~Scene), так что компоненты,
+    // выходя из сцены, системы ещё застают.
+    SceneSystems m_systems{*this, m_services.registry()};
 };
 
 } // namespace yqlora

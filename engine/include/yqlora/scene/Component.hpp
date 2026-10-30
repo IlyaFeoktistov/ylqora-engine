@@ -109,7 +109,7 @@ protected:
 
 private:
     friend class Node;
-    friend class Scene;
+    friend class ComponentLifecycle;
     // Для регистрации самого Component: его фазы защищённые.
     friend struct PhaseDetector;
 

@@ -220,7 +220,7 @@ the hand; a wagon hooked to a train must not move in the world.
 - Nodes without a transform (`Node`) and parents that are not `Node3D` have
   nothing to recompute: the flag changes nothing there.
 
-## Inside the scene [next]
+## Inside the scene [done]
 
 `Scene` keeps the tree and the order of `advance`; the work is done by parts
 it owns. Its public interface stays as it is.

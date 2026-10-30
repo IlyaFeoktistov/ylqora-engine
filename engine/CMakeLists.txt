@@ -38,12 +38,16 @@ add_library(yqlora SHARED
     src/scene/Node.cpp
     src/scene/NodeTree.cpp
     src/scene/Component.cpp
+    src/scene/ComponentIndex.cpp
+    src/scene/ComponentLifecycle.cpp
     src/scene/Transform3D.cpp
     src/scene/Node3D.cpp
     src/scene/PhaseList.cpp
     src/scene/Scene.cpp
     src/scene/SceneSystem.cpp
+    src/scene/SceneSystems.cpp
     src/scene/TransformSystem3D.cpp
+    src/scene/TreeChangeQueue.cpp
     src/scene/SceneSerializer.cpp
     src/scene/SceneTypes.cpp
     src/project/Project.cpp
