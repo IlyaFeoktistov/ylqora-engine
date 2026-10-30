@@ -14,13 +14,13 @@
 
 ```
 Владелец (игра / редактор / тест)
- └─ EngineServices     общее у процесса: ввод, проект, реестр типов, запросы сцен
-     └─ Scene          своё у каждой сцены
-         ├─ GameTime        игровое время, шкала времени, фиксированный шаг
-         ├─ systems         рендер, физика, звук... (подключаемые)
-         ├─ phase lists     кого вызывать в fixedUpdate / update / lateUpdate
-         └─ дерево узлов
-             └─ Component → owner()->scene() → services(), time(), system<T>()
+ `- EngineServices     общее у процесса: ввод, проект, реестр типов, запросы сцен
+     `- Scene          своё у каждой сцены
+         |- GameTime        игровое время, шкала времени, фиксированный шаг
+         |- systems         рендер, физика, звук... (подключаемые)
+         |- phase lists     кого вызывать в fixedUpdate / update / lateUpdate
+         `- дерево узлов
+             `- Component -> owner()->scene() -> services(), time(), system<T>()
 ```
 
 ### Службы движка [done]

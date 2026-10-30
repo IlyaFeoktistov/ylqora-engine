@@ -19,6 +19,12 @@ Status marks: **[done]** implemented, **[next]** the next stage of work
 | [Code editor](code-editor.md) | the Scripts tab: Luau with highlighting and hints, later shaders |
 | [Plugins](plugins.md) | ready-made scripts, scenes and resources from the plugin repository, the plugin manager |
 | [Project settings](project-settings.md) | settings of a game kept in its project |
+| [Project and file formats](project.md) | the project folder, JSON files, format versions, upgrading a project |
+| [Resources](resources.md) | resource IDs, `.meta` files, built-in resources |
+| [Localization](localization.md) | language files, keys, `tr()`, translation rules |
+
+How the code is written (layout, design rules, style, commits) is in
+[CONTRIBUTING](../../CONTRIBUTING.md).
 
 ## Code layout
 

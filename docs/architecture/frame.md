@@ -14,13 +14,13 @@ sees.
 
 ```
 Owner (game / editor / test)
- └─ EngineServices     shared by the process: input, project, type registry, scene requests
-     └─ Scene          owned by every scene
-         ├─ GameTime        game time, time scale, fixed step
-         ├─ systems         render, physics, audio... (pluggable)
-         ├─ phase lists     components to call in fixedUpdate / update / lateUpdate
-         └─ node tree
-             └─ Component → owner()->scene() → services(), time(), system<T>()
+ `- EngineServices     shared by the process: input, project, type registry, scene requests
+     `- Scene          owned by every scene
+         |- GameTime        game time, time scale, fixed step
+         |- systems         render, physics, audio... (pluggable)
+         |- phase lists     components to call in fixedUpdate / update / lateUpdate
+         `- node tree
+             `- Component -> owner()->scene() -> services(), time(), system<T>()
 ```
 
 ### Engine services [done]
