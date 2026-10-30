@@ -1,9 +1,11 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineServices.hpp>
 #include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/ProjectFiles.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
+#include <yqlora/input/Input.hpp>
 #include <yqlora/project/Project.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Scene.hpp>
@@ -64,7 +66,11 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: new scenes get free names and can be o
     CHECK(*first == "New Scene.yscene");
     CHECK(*second == "New Scene 2.yscene");
 
-    EditorSession session(EngineServices::none(), serializer);
+    Input input;
+
+    EngineServices services{input, registry};
+
+    EditorSession session(services, serializer);
     Scene& scene = session.scene();
     REQUIRE(session.open(project));
     REQUIRE(session.openScene(*second));
@@ -73,7 +79,7 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: new scenes get free names and can be o
     CHECK(scene.empty());
 
     // Сохраняется в открытую сцену, а не в главную.
-    session.createNode(*registry.find("Node3D"), nullptr);
+    session.editing().createNode(*registry.find("Node3D"), nullptr);
     REQUIRE(session.saveScene());
     Scene check{EngineServices::none()};
     REQUIRE(serializer.load(check, project.directory() / *second));
@@ -95,7 +101,9 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: nothing outside the project can be tou
 
 TEST_CASE_FIXTURE(Fixture, "ProjectFiles: a renamed scene keeps its id, the session and project follow it")
 {
-    EditorSession session(EngineServices::none(), serializer);
+    Input input;
+    EngineServices services{input, registry};
+    EditorSession session(services, serializer);
     REQUIRE(session.open(project));
     const ResourceId id = session.document().id();
     REQUIRE(id != 0);

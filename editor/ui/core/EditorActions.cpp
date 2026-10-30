@@ -35,19 +35,19 @@ void registerEditorActions(ActionRegistry& registry, EditorSession& session, Edi
     registry.add(actions::kUndo, "editor.menu.undo")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_Z)
         .enabledWhen([&session] {
-            return session.canUndo();
+            return session.editing().canUndo();
         })
         .onRun([&session] {
-            session.undo();
+            session.editing().undo();
         });
     registry.add(actions::kRedo, "editor.menu.redo")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_Y)
         .alternativeShortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z)
         .enabledWhen([&session] {
-            return session.canRedo();
+            return session.editing().canRedo();
         })
         .onRun([&session] {
-            session.redo();
+            session.editing().redo();
         });
 
     registry.add(actions::kTogglePlay, "editor.play.play")

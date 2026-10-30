@@ -48,7 +48,7 @@ bool drawPropertyTable(
     for (const Property* property : properties) {
         const PropertyResult result = drawProperty(*property, object, widgets);
         if (result.changed) {
-            session.setProperty(object, *property, result.value);
+            session.editing().setProperty(object, *property, result.value);
         }
         dragging = dragging || result.dragging;
     }
@@ -128,7 +128,7 @@ void drawAddComponent(EditorSession& session, const Inspection& inspection)
     if (ImGui::BeginPopup("AddComponent")) {
         for (const TypeInfo* type : inspection.addable) {
             if (ImGui::Selectable(type->name().c_str())) {
-                session.addComponent(inspection.node, *type);
+                session.editing().addComponent(inspection.node, *type);
             }
             ImGui::SetItemTooltip("%s", tr(type->descriptionKey()).c_str());
         }
@@ -170,7 +170,7 @@ void InspectorPanel::draw(EditorContext& context)
         dragging = drawComponent(session, widgets, inspected, toRemove) || dragging;
     }
     if (toRemove) {
-        session.removeComponent(inspection->node, *toRemove);
+        session.editing().removeComponent(inspection->node, *toRemove);
     }
 
     drawAddComponent(session, *inspection);

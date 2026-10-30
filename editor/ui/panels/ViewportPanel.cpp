@@ -9,7 +9,7 @@
 #include "style/Theme.hpp"
 #include "widgets/PlayFrame.hpp"
 
-#include "yqlora/core/Application.hpp"
+#include "core/EditorHost.hpp"
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/editor/EditorSettings.hpp"
 #include "yqlora/i18n/Translate.hpp"
@@ -62,7 +62,7 @@ void ViewportPanel::draw(EditorContext& context)
     ImGui::PopStyleVar();
 
     const ImVec2 size = ImGui::GetContentRegionAvail();
-    if (!visible || !m_view.resize(context.app, size)) {
+    if (!visible || !m_view.resize(context.host.renderer(), size)) {
         ImGui::End();
         setFlying(false);
 
@@ -80,7 +80,7 @@ void ViewportPanel::draw(EditorContext& context)
     const bool overPreview = previewed && preview.hovered();
     const bool sceneHovered = hovered && !overToggle && !overPreview;
 
-    m_camera.update(context.app.input(), context.deltaSeconds, sceneHovered && !m_mouseOverGizmo);
+    m_camera.update(context.host.input(), context.deltaSeconds, sceneHovered && !m_mouseOverGizmo);
     setFlying(m_camera.flying());
     context.mouseWrapping = context.mouseWrapping || m_camera.flying();
 
@@ -89,7 +89,7 @@ void ViewportPanel::draw(EditorContext& context)
         .session = session,
         .camera = m_camera,
         .theme = context.theme,
-        .view = m_camera.cameraData(aspect, context.app.depthRange()),
+        .view = m_camera.cameraData(aspect, context.host.depthRange()),
         .origin = origin,
         .size = size,
         .mouseFree = sceneHovered && !m_camera.flying(),
@@ -108,14 +108,14 @@ void ViewportPanel::draw(EditorContext& context)
 
 void ViewportPanel::renderScene(EditorContext& context, float aspect, const GizmoContext& gizmoContext)
 {
-    Application& app = context.app;
-    FrameData frame = extractFrame(context.session.scene(), aspect, app.depthRange());
+    const EditorHost& host = context.host;
+    FrameData frame = extractFrame(context.session.scene(), aspect, host.depthRange());
     frame.views = {{
-        .camera = m_camera.cameraData(aspect, app.depthRange()),
+        .camera = m_camera.cameraData(aspect, host.depthRange()),
         .background = context.theme.colors().viewportBackground,
     }};
     m_gizmos.prepareFrame(frame, gizmoContext);
-    m_view.render(app, frame);
+    m_view.render(host.renderer(), frame);
 }
 
 bool ViewportPanel::Rect::hovered() const
@@ -171,8 +171,8 @@ bool ViewportPanel::drawPreviewToggle(EditorContext& context, const ImVec2& orig
 
 void ViewportPanel::drawCameraPreview(EditorContext& context, const Camera3D& camera, const Rect& rect)
 {
-    Application& app = context.app;
-    if (!m_preview.resize(app, rect.size)) {
+    const EditorHost& host = context.host;
+    if (!m_preview.resize(host.renderer(), rect.size)) {
         return;
     }
     const ImVec2 max(rect.min.x + rect.size.x, rect.min.y + rect.size.y);
@@ -187,9 +187,9 @@ void ViewportPanel::drawCameraPreview(EditorContext& context, const Camera3D& ca
 
     // Только эта камера, как её увидит игра: без гизмо и без остальных камер.
     const float aspect = rect.size.x / rect.size.y;
-    FrameData frame = extractFrame(context.session.scene(), aspect, app.depthRange());
-    frame.views = {cameraView(camera, aspect, app.depthRange())};
-    m_preview.render(app, frame);
+    FrameData frame = extractFrame(context.session.scene(), aspect, host.depthRange());
+    frame.views = {cameraView(camera, aspect, host.depthRange())};
+    m_preview.render(host.renderer(), frame);
 }
 
 void ViewportPanel::setFlying(bool flying)

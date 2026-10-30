@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineServices.hpp>
 #include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/Inspection.hpp>
@@ -169,8 +170,10 @@ TEST_CASE_FIXTURE(Fixture, "ComponentRules: dependents of a component")
 TEST_CASE_FIXTURE(Fixture, "EditorSession: component rules")
 {
     SceneSerializer serializer{registry};
-    EditorSession session{EngineServices::none(), serializer};
-    Node* node = session.createNode(type("Node3D"), nullptr);
+    Input input;
+    EngineServices services{input, registry};
+    EditorSession session{services, serializer};
+    Node* node = session.editing().createNode(type("Node3D"), nullptr);
     REQUIRE(node);
 
     const auto offers = [&](std::string_view name) {
@@ -185,7 +188,7 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: component rules")
 
     SUBCASE("a required component is added in the same history step")
     {
-        Component* collider = session.addComponent(*node, type("BoxCollider"));
+        Component* collider = session.editing().addComponent(*node, type("BoxCollider"));
         REQUIRE(collider);
         REQUIRE(node->components().size() == 3);
         CHECK(node->components()[1]->typeName() == "Body");
@@ -194,24 +197,24 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: component rules")
         // Тело нужно коллайдеру: снять нельзя.
         Component& body = *node->components()[1];
         CHECK(dependentsOf(registry, *node, body) == std::vector<const Component*>{collider});
-        CHECK_FALSE(session.removeComponent(*node, body));
+        CHECK_FALSE(session.editing().removeComponent(*node, body));
         CHECK(node->components().size() == 3);
 
-        REQUIRE(session.undo());
+        REQUIRE(session.editing().undo());
         CHECK(node->components().size() == 1);
-        REQUIRE(session.redo());
+        REQUIRE(session.editing().redo());
         CHECK(node->components().size() == 3);
     }
 
     SUBCASE("no second component of a type and none that does not fit")
     {
-        REQUIRE(session.addComponent(*node, type("MeshRenderer")));
+        REQUIRE(session.editing().addComponent(*node, type("MeshRenderer")));
         CHECK_FALSE(offers("MeshRenderer"));
-        CHECK_FALSE(session.addComponent(*node, type("MeshRenderer")));
+        CHECK_FALSE(session.editing().addComponent(*node, type("MeshRenderer")));
 
-        Node* plain = session.createNode(type("Node"), node);
+        Node* plain = session.editing().createNode(type("Node"), node);
         REQUIRE(plain);
-        CHECK_FALSE(session.addComponent(*plain, type("MeshRenderer")));
+        CHECK_FALSE(session.editing().addComponent(*plain, type("MeshRenderer")));
         CHECK(plain->components().empty());
     }
 }
@@ -243,12 +246,14 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: component rules on load")
 TEST_CASE_FIXTURE(Fixture, "Inspection: what the inspector shows for the selected node")
 {
     SceneSerializer serializer{registry};
-    EditorSession session{EngineServices::none(), serializer};
+    Input input;
+    EngineServices services{input, registry};
+    EditorSession session{services, serializer};
     CHECK_FALSE(inspect(session));
 
-    Node* node = session.createNode(type("Node3D"), nullptr);
+    Node* node = session.editing().createNode(type("Node3D"), nullptr);
     REQUIRE(node);
-    REQUIRE(session.addComponent(*node, type("BoxCollider")));
+    REQUIRE(session.editing().addComponent(*node, type("BoxCollider")));
 
     const auto inspection = inspect(session);
     REQUIRE(inspection);

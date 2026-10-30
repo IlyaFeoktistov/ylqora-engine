@@ -132,7 +132,7 @@ bool ManipulatorGizmo::drawManipulator(GizmoContext& context)
     );
     if (moved) {
         if (const auto values = node->localValuesForWorld(world)) {
-            context.session.setTransform(*node, *values);
+            context.session.editing().setTransform(*node, *values);
         }
     }
 

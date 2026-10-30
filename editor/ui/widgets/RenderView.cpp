@@ -1,11 +1,10 @@
 #include "widgets/RenderView.hpp"
 
-#include "yqlora/core/Application.hpp"
 #include "yqlora/render/Renderer.hpp"
 
 namespace yqlora::editor {
 
-bool RenderView::resize(Application& app, const ImVec2& size)
+bool RenderView::resize(Renderer& renderer, const ImVec2& size)
 {
     // Окно в точках, текстура в пикселях: на экранах с масштабом их больше.
     const ImVec2 scale = ImGui::GetIO().DisplayFramebufferScale;
@@ -15,7 +14,7 @@ bool RenderView::resize(Application& app, const ImVec2& size)
         return false;
     }
     if (!m_target) {
-        m_target = app.renderer().createRenderTarget(width, height);
+        m_target = renderer.createRenderTarget(width, height);
     }
     m_target->resize(width, height);
 
@@ -53,10 +52,10 @@ void RenderView::image(ImDrawList& list, const ImVec2& min, const ImVec2& max) c
     );
 }
 
-void RenderView::render(Application& app, const FrameData& frame)
+void RenderView::render(Renderer& renderer, const FrameData& frame)
 {
     if (m_target) {
-        app.renderer().render(frame, *m_target);
+        renderer.render(frame, *m_target);
     }
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/Actions.hpp"
+#include "core/EditorHost.hpp"
 #include "core/EditorPanel.hpp"
 #include "dialogs/UnsavedChangesDialog.hpp"
 #include "panels/ProjectManagerPanel.hpp"
@@ -42,6 +43,7 @@ private:
     void saveScene();
     void updateTitle();
 
+    EditorHost m_host{*this};
     Theme m_theme;
     SceneSerializer m_serializer{registry()};
     std::unique_ptr<ProjectManager> m_projects;
@@ -54,8 +56,6 @@ private:
     UnsavedChangesDialog m_unsaved;
     // Курсор переносится у края окна: летит камера или тянут значение в инспекторе.
     bool m_mouseWrapping = false;
-    // Что сейчас в заголовке окна, чтобы не менять его каждый кадр.
-    std::string m_title;
     float m_deltaSeconds = 0.0f;
     bool m_layoutChecked = false;
     // Языки с названиями. Названия читаются из файлов, поэтому один раз при старте.

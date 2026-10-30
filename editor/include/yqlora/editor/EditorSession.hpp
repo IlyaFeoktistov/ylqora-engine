@@ -3,6 +3,7 @@
 #include "yqlora/editor/Command.hpp"
 #include "yqlora/editor/PlayMode.hpp"
 #include "yqlora/editor/SceneDocument.hpp"
+#include "yqlora/editor/SceneEditing.hpp"
 #include "yqlora/editor/Selection.hpp"
 #include "yqlora/project/Project.hpp"
 #include "yqlora/reflection/Property.hpp"
@@ -12,6 +13,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <string>
 
 namespace yqlora {
 
@@ -35,7 +37,8 @@ namespace yqlora::editor {
 // открытии сцены); файл сцены и историю ведёт SceneDocument, игру - PlayMode.
 class EditorSession {
 public:
-    EditorSession(const EngineServices& services, const SceneSerializer& serializer);
+    // Открытый проект сессия ставит в services: его видят сцены редактора.
+    EditorSession(EngineServices& services, const SceneSerializer& serializer);
 
     const std::optional<Project>& project() const
     {
@@ -79,6 +82,12 @@ public:
         return m_selection;
     }
 
+    // Правка текущей сцены командами с отменой.
+    SceneEditing& editing()
+    {
+        return m_editing;
+    }
+
     // Типы, которые знает сессия: те же, что у её сериализатора.
     const TypeRegistry& registry() const;
 
@@ -98,30 +107,6 @@ public:
 
     // Делает сцену главной: она откроется вместе с проектом.
     bool setMainScene(const std::filesystem::path& path);
-
-    // Во время игры правка в историю не попадает: по Stop сцена всё равно вернётся как была.
-    bool execute(std::unique_ptr<Command> command);
-
-    // Правка закончилась (отпустили мышь, ушли из поля ввода): следующая
-    // будет отдельным шагом истории.
-    void finishEdit()
-    {
-        m_document.history().finishEdit();
-    }
-
-    // Во время игры истории нет.
-    bool canUndo() const
-    {
-        return !playing() && m_document.history().canUndo();
-    }
-
-    bool canRedo() const
-    {
-        return !playing() && m_document.history().canRedo();
-    }
-
-    bool undo();
-    bool redo();
 
     bool playing() const
     {
@@ -157,35 +142,11 @@ public:
     Node* findNode(NodeId id);
     Node* selectedNode();
 
-    // Правки ниже - короткие пути к командам из SceneCommands.hpp.
-
-    // Создаёт узел типа type ребёнком parent. В пустой сцене узел становится
-    // корнем, а без parent - ребёнком корня. Имя уникально среди соседей.
-    // Новый узел выбирается. nullptr, если тип не узел или его нельзя создать.
-    Node* createNode(const TypeInfo& type, Node* parent);
-
-    // Удаляет узел со всеми детьми. Выделение внутри удалённой ветки
-    // сбрасывается, чтобы на него не осталось висячих указателей.
-    bool deleteNode(NodeId id);
-
-    // Удаляет несколько узлов одним шагом истории. Узлы внутри других
-    // удаляемых веток пропускаются: они уходят вместе с веткой.
-    bool deleteNodes(std::span<const NodeId> ids);
-
-    // Добавляет компонент вместе с недостающими обязательными одним шагом
-    // истории. nullptr, если тип нельзя создать или он не подходит узлу
-    // (см. canAttach и missingRequirements в ComponentRules.hpp).
-    Component* addComponent(Node& node, const TypeInfo& type);
-
-    // Снимает компонент, если его можно снять (canDetach в ComponentRules.hpp).
-    bool removeComponent(Node& node, Component& component);
-
-    bool setProperty(Node& node, const Property& property, const PropertyValue& value);
-    bool setProperty(Component& component, const Property& property, const PropertyValue& value);
-
-    bool setTransform(Node3D& node, const TransformValues& values);
-
 private:
+    // Правка ведёт историю документа.
+    friend class SceneEditing;
+
+    EngineServices& m_services;
     const SceneSerializer& m_serializer;
     std::optional<Project> m_project;
     SceneDocument m_document;
@@ -193,6 +154,11 @@ private:
     Selection m_selection;
     // Выделение до Play: к нему возвращаемся, если после игры выбранных узлов не осталось.
     Selection m_selectionBeforePlay;
+    SceneEditing m_editing{*this};
 };
+
+// Уточнение заголовка окна: проект и открытая сцена, "*" у несохранённой.
+// Пусто, если проект не открыт.
+std::string windowTitle(const EditorSession& session);
 
 } // namespace yqlora::editor

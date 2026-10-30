@@ -6,7 +6,7 @@
 #include "style/Icons.hpp"
 #include "style/Theme.hpp"
 
-#include "yqlora/core/Application.hpp"
+#include "core/EditorHost.hpp"
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Language.hpp"
 #include "yqlora/i18n/Translate.hpp"
@@ -68,9 +68,9 @@ void drawLanguageMenu(const MainMenuContext& context)
         return;
     }
     for (const auto& [code, name] : context.languages) {
-        const bool current = code == context.app.language().localization().language();
+        const bool current = code == context.host.language().localization().language();
         if (ImGui::MenuItem(name.c_str(), nullptr, current) && !current) {
-            context.app.language().set(code);
+            context.host.language().set(code);
         }
     }
     ImGui::EndMenu();

@@ -2,6 +2,7 @@
 
 #include <yqlora/editor/EditorCamera.hpp>
 #include <yqlora/editor/Picking.hpp>
+#include <yqlora/editor/ResourceLabel.hpp>
 #include <yqlora/editor/Selection.hpp>
 #include <yqlora/platform/InputFeeder.hpp>
 #include <yqlora/render/Camera3D.hpp>
@@ -183,4 +184,12 @@ TEST_CASE("EditorCamera: lookAlong turns the view without moving")
     // Ровно вниз нельзя: наклон ограничен, но камера смотрит почти вниз.
     camera.lookAlong({0.0f, -1.0f, 0.0f});
     CHECK(camera.forward().y < -0.99f);
+}
+
+TEST_CASE("ResourceLabel: built-in meshes by name, an empty reference and a missing resource")
+{
+    // Без активной локализации tr() возвращает сам ключ.
+    CHECK(editor::resourceLabel(ResourceRef{}, nullptr) == "editor.inspector.none");
+    CHECK(editor::resourceLabel(ResourceRef{builtin::kCubeMesh}, nullptr) == "cube");
+    CHECK(editor::resourceLabel(ResourceRef{builtin::kFirstProjectId}, nullptr) == "editor.inspector.missing");
 }

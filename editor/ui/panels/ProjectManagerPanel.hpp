@@ -6,14 +6,9 @@
 #include <optional>
 #include <string>
 
-namespace yqlora {
-
-class Application;
-
-} // namespace yqlora
-
 namespace yqlora::editor {
 
+class EditorHost;
 class Theme;
 
 // Экран при запуске: список проектов, создание, добавление существующего,
@@ -24,12 +19,12 @@ public:
     ProjectManagerPanel(ProjectManager& manager, const Theme& theme);
 
     // Возвращает проект, если в этом кадре его решили открыть.
-    std::optional<Project> draw(Application& app);
+    std::optional<Project> draw(const EditorHost& host);
 
 private:
     void drawList();
-    void drawCreateDialog(Application& app);
-    void drawImportDialog(Application& app);
+    void drawCreateDialog(const EditorHost& host);
+    void drawImportDialog(const EditorHost& host);
     void drawRemoveDialog();
     // Проект старого формата: спросить, переводить ли его на текущий.
     void drawUpgradeDialog();

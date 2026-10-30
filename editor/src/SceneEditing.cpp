@@ -1,0 +1,145 @@
+#include "yqlora/editor/SceneEditing.hpp"
+
+#include "yqlora/editor/EditorSession.hpp"
+#include "yqlora/editor/SceneCommands.hpp"
+#include "yqlora/reflection/ComponentRules.hpp"
+#include "yqlora/reflection/TypeRegistry.hpp"
+#include "yqlora/scene/Node3D.hpp"
+#include "yqlora/scene/NodeTree.hpp"
+
+#include <algorithm>
+#include <optional>
+#include <vector>
+
+namespace yqlora::editor {
+
+bool SceneEditing::execute(std::unique_ptr<Command> command)
+{
+    if (m_session.playing()) {
+        return command && command->apply(m_session);
+    }
+
+    return m_session.m_document.history().execute(m_session, std::move(command));
+}
+
+void SceneEditing::finishEdit()
+{
+    m_session.m_document.history().finishEdit();
+}
+
+bool SceneEditing::canUndo() const
+{
+    return !m_session.playing() && m_session.m_document.history().canUndo();
+}
+
+bool SceneEditing::canRedo() const
+{
+    return !m_session.playing() && m_session.m_document.history().canRedo();
+}
+
+bool SceneEditing::undo()
+{
+    return !m_session.playing() && m_session.m_document.history().undo(m_session);
+}
+
+bool SceneEditing::redo()
+{
+    return !m_session.playing() && m_session.m_document.history().redo(m_session);
+}
+
+Node* SceneEditing::createNode(const TypeInfo& type, Node* parent)
+{
+    auto command = std::make_unique<CreateNodeCommand>(type, parent ? parent->id() : 0);
+    const NodeId created = command->created();
+    if (created == 0 || !execute(std::move(command))) {
+        return nullptr;
+    }
+
+    return m_session.findNode(created);
+}
+
+bool SceneEditing::deleteNode(NodeId id)
+{
+    return execute(std::make_unique<DeleteNodeCommand>(id));
+}
+
+bool SceneEditing::deleteNodes(std::span<const NodeId> ids)
+{
+    const auto insideAnother = [&](NodeId id) {
+        const Node* node = m_session.findNode(id);
+
+        return node && std::ranges::any_of(ids, [&](NodeId other) {
+                   const Node* branch = other != id ? m_session.findNode(other) : nullptr;
+
+                   return branch && isInBranch(*branch, *node);
+               });
+    };
+
+    std::vector<std::unique_ptr<Command>> commands;
+    for (const NodeId id : ids) {
+        if (!insideAnother(id)) {
+            commands.push_back(std::make_unique<DeleteNodeCommand>(id));
+        }
+    }
+
+    return execute(std::make_unique<CompositeCommand>(std::move(commands)));
+}
+
+Component* SceneEditing::addComponent(Node& node, const TypeInfo& type)
+{
+    const TypeRegistry& registry = m_session.registry();
+    const auto missing = canAttach(registry, type, node) ? missingRequirements(registry, type, node) : std::nullopt;
+    if (!missing) {
+        return nullptr;
+    }
+
+    std::vector<std::unique_ptr<Command>> commands;
+    for (const TypeInfo* required : *missing) {
+        commands.push_back(std::make_unique<AddComponentCommand>(node.id(), *required));
+    }
+    commands.push_back(std::make_unique<AddComponentCommand>(node.id(), type));
+    if (!execute(std::make_unique<CompositeCommand>(std::move(commands)))) {
+        return nullptr;
+    }
+
+    return node.components().back().get();
+}
+
+bool SceneEditing::removeComponent(Node& node, Component& component)
+{
+    const auto index = componentIndex(node, component);
+
+    return index && canDetach(m_session.registry(), node, component)
+           && execute(std::make_unique<RemoveComponentCommand>(node.id(), *index));
+}
+
+bool SceneEditing::setProperty(Node& node, const Property& property, const PropertyValue& value)
+{
+    return execute(
+        std::make_unique<SetPropertyCommand>(
+            PropertyTarget{.node = node.id(), .component = std::nullopt},
+            property,
+            value
+        )
+    );
+}
+
+bool SceneEditing::setProperty(Component& component, const Property& property, const PropertyValue& value)
+{
+    Node* node = component.owner();
+    const auto index = node ? componentIndex(*node, component) : std::nullopt;
+    if (!index) {
+        return false;
+    }
+
+    return execute(
+        std::make_unique<SetPropertyCommand>(PropertyTarget{.node = node->id(), .component = index}, property, value)
+    );
+}
+
+bool SceneEditing::setTransform(Node3D& node, const TransformValues& values)
+{
+    return execute(std::make_unique<SetTransformCommand>(node.id(), values));
+}
+
+} // namespace yqlora::editor

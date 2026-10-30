@@ -3,7 +3,7 @@
 #include "style/Theme.hpp"
 #include "widgets/PlayFrame.hpp"
 
-#include "yqlora/core/Application.hpp"
+#include "core/EditorHost.hpp"
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/render/FrameBuilder.hpp"
@@ -38,7 +38,7 @@ void GamePanel::draw(EditorContext& context)
     m_wasPlaying = playing;
 
     const ImVec2 size = ImGui::GetContentRegionAvail();
-    if (!visible || !m_view.resize(context.app, size)) {
+    if (!visible || !m_view.resize(context.host.renderer(), size)) {
         ImGui::End();
 
         return;
@@ -51,7 +51,7 @@ void GamePanel::draw(EditorContext& context)
     const Scene& scene = session.scene();
     const RenderSystem* render = scene.system<RenderSystem>();
     if (render && render->mainCamera()) {
-        m_view.render(context.app, extractFrame(scene, size.x / size.y, context.app.depthRange()));
+        m_view.render(context.host.renderer(), extractFrame(scene, size.x / size.y, context.host.depthRange()));
     } else {
         // Без камеры игре не через что показываться.
         const std::string text = tr("editor.play.noCamera");

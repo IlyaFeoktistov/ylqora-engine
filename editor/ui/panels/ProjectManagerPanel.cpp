@@ -4,8 +4,8 @@
 #include "style/Theme.hpp"
 #include "widgets/Checkbox.hpp"
 
+#include "core/EditorHost.hpp"
 #include "yqlora/core/AppPaths.hpp"
-#include "yqlora/core/Application.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/core/Version.hpp"
 #include "yqlora/i18n/Translate.hpp"
@@ -46,7 +46,7 @@ ProjectManagerPanel::ProjectManagerPanel(ProjectManager& manager, const Theme& t
 {
 }
 
-std::optional<Project> ProjectManagerPanel::draw(Application& app)
+std::optional<Project> ProjectManagerPanel::draw(const EditorHost& host)
 {
     m_toOpen.reset();
     const auto rows = m_manager.rows();
@@ -98,8 +98,8 @@ std::optional<Project> ProjectManagerPanel::draw(Application& app)
         drawList();
         ImGui::TextDisabled("%s %s", tr("projects.engineVersion").c_str(), std::string(engineVersion()).c_str());
 
-        drawCreateDialog(app);
-        drawImportDialog(app);
+        drawCreateDialog(host);
+        drawImportDialog(host);
         drawRemoveDialog();
         drawUpgradeDialog();
         drawCannotOpenDialog();
@@ -161,7 +161,7 @@ void ProjectManagerPanel::drawList()
     ImGui::EndTable();
 }
 
-void ProjectManagerPanel::drawCreateDialog(Application& app)
+void ProjectManagerPanel::drawCreateDialog(const EditorHost& host)
 {
     const std::string title = tr("projects.new") + "###CreateProject";
     if (m_openCreate) {
@@ -181,7 +181,7 @@ void ProjectManagerPanel::drawCreateDialog(Application& app)
     ImGui::InputText(tr("projects.location").c_str(), &m_location);
     ImGui::SameLine();
     if (ImGui::Button(tr("projects.browse").c_str())) {
-        app.showFolderDialog(fromUtf8(m_location), [this](std::optional<std::filesystem::path> folder) {
+        host.showFolderDialog(fromUtf8(m_location), [this](std::optional<std::filesystem::path> folder) {
             if (folder) {
                 m_location = toUtf8(*folder);
             }
@@ -206,7 +206,7 @@ void ProjectManagerPanel::drawCreateDialog(Application& app)
     ImGui::EndPopup();
 }
 
-void ProjectManagerPanel::drawImportDialog(Application& app)
+void ProjectManagerPanel::drawImportDialog(const EditorHost& host)
 {
     const std::string title = tr("projects.import") + "###ImportProject";
     if (m_openImport) {
@@ -221,7 +221,7 @@ void ProjectManagerPanel::drawImportDialog(Application& app)
     ImGui::InputText(tr("projects.importPath").c_str(), &m_importPath);
     ImGui::SameLine();
     if (ImGui::Button(tr("projects.browse").c_str())) {
-        app.showFolderDialog(platform::documentsPath(), [this](std::optional<std::filesystem::path> folder) {
+        host.showFolderDialog(platform::documentsPath(), [this](std::optional<std::filesystem::path> folder) {
             if (folder) {
                 m_importPath = toUtf8(*folder);
             }

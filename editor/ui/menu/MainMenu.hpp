@@ -5,21 +5,16 @@
 #include <string>
 #include <utility>
 
-namespace yqlora {
-
-class Application;
-
-} // namespace yqlora
-
 namespace yqlora::editor {
 
 class ActionRegistry;
+class EditorHost;
 class EditorPanel;
 class EditorSession;
 class Theme;
 
 struct MainMenuContext {
-    Application& app;
+    const EditorHost& host;
     EditorSession& session;
     const ActionRegistry& actions;
     std::span<const std::unique_ptr<EditorPanel>> panels;

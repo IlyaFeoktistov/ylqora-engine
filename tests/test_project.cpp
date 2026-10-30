@@ -1,10 +1,12 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineServices.hpp>
 #include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/core/Version.hpp>
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/ProjectList.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
+#include <yqlora/input/Input.hpp>
 #include <yqlora/project/Project.hpp>
 #include <yqlora/project/ProjectUpgrade.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
@@ -122,7 +124,11 @@ TEST_CASE("EditorSession: open, change, save and reopen a project")
     const auto project = createProject(freshDirectory("session"), "Game", serializer, error);
     REQUIRE(project);
 
-    EditorSession session(EngineServices::none(), serializer);
+    Input input;
+
+    EngineServices services{input, registry};
+
+    EditorSession session(services, serializer);
     Scene& scene = session.scene();
     CHECK_FALSE(session.saveScene()); // проект ещё не открыт
 
@@ -151,7 +157,11 @@ TEST_CASE("EditorSession: a project with a broken scene opens with an empty scen
     REQUIRE(project);
     std::filesystem::remove(project->directory() / *project->mainScenePath());
 
-    EditorSession session(EngineServices::none(), serializer);
+    Input input;
+
+    EngineServices services{input, registry};
+
+    EditorSession session(services, serializer);
     Scene& scene = session.scene();
     scene.createRoot<Node>("FromBefore");
     CHECK_FALSE(session.open(*project));

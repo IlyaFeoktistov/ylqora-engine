@@ -92,7 +92,7 @@ void AddNodeDialog::draw(EditorSession& session, const TypeRegistry& registry)
     }
 
     if (create && selected && isCreatableNode(*selected)) {
-        session.createNode(*selected, session.findNode(m_parent));
+        session.editing().createNode(*selected, session.findNode(m_parent));
         ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();

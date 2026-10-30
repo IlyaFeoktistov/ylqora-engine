@@ -3,7 +3,8 @@
 #include "style/Theme.hpp"
 #include "widgets/Checkbox.hpp"
 
-#include "yqlora/core/Utf8Path.hpp"
+#include "yqlora/editor/ResourceLabel.hpp"
+
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/render/BuiltinMeshes.hpp"
@@ -105,24 +106,6 @@ void vectorFields(float* values, int count, float speed, const EditorColors& col
         floatField("##value", values[i], fieldWidth, "%.2f", result);
         ImGui::PopID();
     }
-}
-
-// Ресурс по имени: у встроенных - имя меша, у ресурсов проекта - путь к файлу.
-std::string resourceLabel(ResourceRef value, const ResourceDatabase* resources)
-{
-    if (value.id == 0) {
-        return tr("editor.inspector.none");
-    }
-    for (const BuiltinMesh& mesh : builtinMeshes()) {
-        if (mesh.id == value.id) {
-            return std::string(mesh.name);
-        }
-    }
-    if (const auto path = resources ? resources->path(value.id) : std::nullopt) {
-        return toGenericUtf8(*path);
-    }
-
-    return tr("editor.inspector.missing");
 }
 
 // "Нет" и встроенные меши; меши из файлов проекта добавятся с их загрузкой.

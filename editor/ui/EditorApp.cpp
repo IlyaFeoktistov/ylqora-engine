@@ -58,7 +58,7 @@ EditorApp::EditorApp()
 EditorContext EditorApp::context()
 {
     return {
-        .app = *this,
+        .host = m_host,
         .session = m_session,
         .registry = registry(),
         .serializer = m_serializer,
@@ -123,7 +123,7 @@ void EditorApp::onGui()
 {
     ImGuizmo::BeginFrame();
     drawMainMenu({
-        .app = *this,
+        .host = m_host,
         .session = m_session,
         .actions = m_actions,
         .panels = m_panels,
@@ -134,7 +134,7 @@ void EditorApp::onGui()
     m_unsaved.draw(m_session);
 
     if (!m_session.project()) {
-        if (auto project = m_projectManager->draw(*this)) {
+        if (auto project = m_projectManager->draw(m_host)) {
             openProject(std::move(*project));
         }
 
@@ -159,7 +159,7 @@ void EditorApp::onGui()
 
     // Ничего не тянут и не печатают: следующая правка будет отдельным шагом отмены.
     if (!ImGui::IsAnyItemActive() && !ImGuizmo::IsUsing()) {
-        m_session.finishEdit();
+        m_session.editing().finishEdit();
     }
 
     if (frame.mouseWrapping != m_mouseWrapping) {
@@ -177,7 +177,6 @@ void EditorApp::openProject(Project project)
 {
     const std::filesystem::path directory = project.directory();
     m_session.open(std::move(project));
-    services().setProject(&*m_session.project());
     EditorContext frame = context();
     for (const auto& panel : m_panels) {
         panel->onProjectOpened(frame);
@@ -189,7 +188,6 @@ void EditorApp::openProject(Project project)
 
 void EditorApp::closeProject()
 {
-    services().setProject(nullptr);
     m_session.close();
     m_mouseWrapping = false;
     setMouseWrapping(false);
@@ -218,17 +216,7 @@ void EditorApp::openScene(const std::filesystem::path& path)
 
 void EditorApp::updateTitle()
 {
-    std::string title;
-    if (m_session.project()) {
-        title = m_session.project()->name() + " - " + toUtf8(m_session.scenePath().filename());
-        if (m_session.document().modified()) {
-            title += " *";
-        }
-    }
-    if (title != m_title) {
-        m_title = title;
-        setTitleDetail(title);
-    }
+    setTitleDetail(windowTitle(m_session));
 }
 
 } // namespace yqlora::editor

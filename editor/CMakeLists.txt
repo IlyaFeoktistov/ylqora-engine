@@ -7,7 +7,9 @@ add_library(yqlora_editor STATIC
     src/EditorSettings.cpp
     src/Inspection.cpp
     src/PlayMode.cpp
+    src/ResourceLabel.cpp
     src/SceneDocument.cpp
+    src/SceneEditing.cpp
     src/ProjectSetup.cpp
     src/ProjectFiles.cpp
     src/ProjectList.cpp
@@ -31,6 +33,7 @@ add_library(yqlora_editor_ui STATIC
     ui/core/Actions.cpp
     ui/core/DefaultLayout.cpp
     ui/core/EditorActions.cpp
+    ui/core/EditorHost.cpp
     ui/dialogs/AddNodeDialog.cpp
     ui/dialogs/UnsavedChangesDialog.cpp
     ui/gizmos/AxisGizmo.cpp

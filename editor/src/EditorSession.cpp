@@ -2,7 +2,9 @@
 
 #include "yqlora/editor/SceneCommands.hpp"
 
+#include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/Log.hpp"
+#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/reflection/ComponentRules.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/Node3D.hpp"
@@ -16,8 +18,9 @@
 
 namespace yqlora::editor {
 
-EditorSession::EditorSession(const EngineServices& services, const SceneSerializer& serializer)
-    : m_serializer(serializer)
+EditorSession::EditorSession(EngineServices& services, const SceneSerializer& serializer)
+    : m_services(services)
+    , m_serializer(serializer)
     , m_document(services, serializer)
     , m_play(serializer)
 {
@@ -32,6 +35,7 @@ bool EditorSession::open(Project project)
 {
     stop();
     m_project = std::move(project);
+    m_services.setProject(&*m_project);
     m_selection.clear();
     // От прошлого проекта ничего не должно остаться, даже если главная сцена
     // не прочитается: тогда проект открывается с пустой сценой.
@@ -49,6 +53,7 @@ void EditorSession::close()
 {
     stop();
     m_document.reset(0);
+    m_services.setProject(nullptr);
     m_project.reset();
     m_selection.clear();
 }
@@ -120,25 +125,6 @@ void EditorSession::stop()
     }
 }
 
-bool EditorSession::execute(std::unique_ptr<Command> command)
-{
-    if (playing()) {
-        return command && command->apply(*this);
-    }
-
-    return m_document.history().execute(*this, std::move(command));
-}
-
-bool EditorSession::undo()
-{
-    return !playing() && m_document.history().undo(*this);
-}
-
-bool EditorSession::redo()
-{
-    return !playing() && m_document.history().redo(*this);
-}
-
 Node* EditorSession::findNode(NodeId id)
 {
     Scene& current = scene();
@@ -151,99 +137,17 @@ Node* EditorSession::selectedNode()
     return findNode(m_selection.selected());
 }
 
-Node* EditorSession::createNode(const TypeInfo& type, Node* parent)
+std::string windowTitle(const EditorSession& session)
 {
-    auto command = std::make_unique<CreateNodeCommand>(type, parent ? parent->id() : 0);
-    const NodeId created = command->created();
-    if (created == 0 || !execute(std::move(command))) {
-        return nullptr;
+    if (!session.project()) {
+        return {};
+    }
+    std::string title = session.project()->name() + " - " + toUtf8(session.scenePath().filename());
+    if (session.document().modified()) {
+        title += " *";
     }
 
-    return findNode(created);
-}
-
-bool EditorSession::deleteNode(NodeId id)
-{
-    return execute(std::make_unique<DeleteNodeCommand>(id));
-}
-
-bool EditorSession::deleteNodes(std::span<const NodeId> ids)
-{
-    const auto insideAnother = [&](NodeId id) {
-        const Node* node = findNode(id);
-
-        return node && std::ranges::any_of(ids, [&](NodeId other) {
-                   const Node* branch = other != id ? findNode(other) : nullptr;
-
-                   return branch && isInBranch(*branch, *node);
-               });
-    };
-
-    std::vector<std::unique_ptr<Command>> commands;
-    for (const NodeId id : ids) {
-        if (!insideAnother(id)) {
-            commands.push_back(std::make_unique<DeleteNodeCommand>(id));
-        }
-    }
-
-    return execute(std::make_unique<CompositeCommand>(std::move(commands)));
-}
-
-Component* EditorSession::addComponent(Node& node, const TypeInfo& type)
-{
-    const TypeRegistry& registry = this->registry();
-    const auto missing = canAttach(registry, type, node) ? missingRequirements(registry, type, node) : std::nullopt;
-    if (!missing) {
-        return nullptr;
-    }
-
-    std::vector<std::unique_ptr<Command>> commands;
-    for (const TypeInfo* required : *missing) {
-        commands.push_back(std::make_unique<AddComponentCommand>(node.id(), *required));
-    }
-    commands.push_back(std::make_unique<AddComponentCommand>(node.id(), type));
-    if (!execute(std::make_unique<CompositeCommand>(std::move(commands)))) {
-        return nullptr;
-    }
-
-    return node.components().back().get();
-}
-
-bool EditorSession::removeComponent(Node& node, Component& component)
-{
-    const auto index = componentIndex(node, component);
-
-    return index && canDetach(registry(), node, component)
-           && execute(std::make_unique<RemoveComponentCommand>(node.id(), *index));
-}
-
-bool EditorSession::setProperty(Node& node, const Property& property, const PropertyValue& value)
-{
-    return execute(
-        std::make_unique<SetPropertyCommand>(
-            PropertyTarget{.node = node.id(), .component = std::nullopt},
-            property,
-            value
-        )
-    );
-}
-
-bool EditorSession::setProperty(Component& component, const Property& property, const PropertyValue& value)
-{
-    Node* node = component.owner();
-    const auto index = node ? componentIndex(*node, component) : std::nullopt;
-    if (!index) {
-        return false;
-    }
-
-    return execute(
-        std::make_unique<SetPropertyCommand>(PropertyTarget{.node = node->id(), .component = index}, property, value)
-    );
-}
-
-bool EditorSession::setTransform(Node3D& node, const TransformValues& values)
-{
-    return execute(std::make_unique<SetTransformCommand>(node.id(), values));
+    return title;
 }
 
 } // namespace yqlora::editor

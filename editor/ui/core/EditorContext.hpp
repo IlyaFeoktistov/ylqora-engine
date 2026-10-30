@@ -5,7 +5,6 @@
 
 namespace yqlora {
 
-class Application;
 class SceneSerializer;
 class TypeRegistry;
 
@@ -14,13 +13,14 @@ class TypeRegistry;
 namespace yqlora::editor {
 
 class ActionRegistry;
+class EditorHost;
 class EditorSession;
 class EditorSettings;
 class Theme;
 
 // Всё, с чем работают панели редактора. Собирается заново каждый кадр.
 struct EditorContext {
-    Application& app;
+    const EditorHost& host;
     EditorSession& session;
     const TypeRegistry& registry;
     const SceneSerializer& serializer;

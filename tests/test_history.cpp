@@ -1,8 +1,10 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineServices.hpp>
 #include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/editor/EditHistory.hpp>
 #include <yqlora/editor/EditorSession.hpp>
+#include <yqlora/input/Input.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/render/Camera3D.hpp>
 #include <yqlora/scene/Scene.hpp>
@@ -81,7 +83,9 @@ struct Fixture {
 
     TypeRegistry registry;
     SceneSerializer serializer{registry};
-    EditorSession session{EngineServices::none(), serializer};
+    Input input;
+    EngineServices services{input, registry};
+    EditorSession session{services, serializer};
     Scene& scene = session.scene();
 };
 
@@ -168,24 +172,24 @@ TEST_CASE_FIXTURE(Fixture, "EditHistory: the saved state can become unreachable"
 
 TEST_CASE_FIXTURE(Fixture, "Undo: a created node goes away and comes back with the same id and place")
 {
-    Node* root = session.createNode(type("Node3D"), nullptr);
-    session.createNode(type("Node3D"), root);
-    Node* cube = session.createNode(type("Camera3D"), root);
+    Node* root = session.editing().createNode(type("Node3D"), nullptr);
+    session.editing().createNode(type("Node3D"), root);
+    Node* cube = session.editing().createNode(type("Camera3D"), root);
     const NodeId cubeId = cube->id();
     REQUIRE(session.document().modified());
 
-    REQUIRE(session.undo());
+    REQUIRE(session.editing().undo());
     CHECK(session.findNode(cubeId) == nullptr);
     CHECK(root->children().size() == 1);
 
-    REQUIRE(session.redo());
+    REQUIRE(session.editing().redo());
     Node* again = session.findNode(cubeId);
     REQUIRE(again);
     CHECK(root->children()[1].get() == again);
     CHECK(session.selection().selected() == cubeId);
 
     // Отменили всё: сцена снова пуста и не изменена.
-    while (session.undo()) {
+    while (session.editing().undo()) {
     }
     CHECK(scene.empty());
     CHECK_FALSE(session.document().modified());
@@ -193,17 +197,17 @@ TEST_CASE_FIXTURE(Fixture, "Undo: a created node goes away and comes back with t
 
 TEST_CASE_FIXTURE(Fixture, "Undo: a deleted branch returns to its place with the selection")
 {
-    Node* root = session.createNode(type("Node3D"), nullptr);
-    Node* first = session.createNode(type("Node3D"), root);
-    session.createNode(type("Node3D"), root);
-    auto* camera = static_cast<Camera3D*>(session.createNode(type("Camera3D"), first));
+    Node* root = session.editing().createNode(type("Node3D"), nullptr);
+    Node* first = session.editing().createNode(type("Node3D"), root);
+    session.editing().createNode(type("Node3D"), root);
+    auto* camera = static_cast<Camera3D*>(session.editing().createNode(type("Camera3D"), first));
     session.selection().select(camera->id());
     const NodeId firstId = first->id();
 
-    REQUIRE(session.deleteNode(firstId));
+    REQUIRE(session.editing().deleteNode(firstId));
     CHECK(session.selection().selected() == 0);
 
-    REQUIRE(session.undo());
+    REQUIRE(session.editing().undo());
     REQUIRE(session.findNode(firstId));
     CHECK(root->children()[0]->id() == firstId);
     CHECK(session.selection().selected() == camera->id());
@@ -211,13 +215,13 @@ TEST_CASE_FIXTURE(Fixture, "Undo: a deleted branch returns to its place with the
 
 TEST_CASE_FIXTURE(Fixture, "Undo: deleting the root and undoing it brings the whole scene back")
 {
-    Node* root = session.createNode(type("Node3D"), nullptr);
-    session.createNode(type("Node3D"), root);
+    Node* root = session.editing().createNode(type("Node3D"), nullptr);
+    session.editing().createNode(type("Node3D"), root);
     const NodeId rootId = root->id();
 
-    REQUIRE(session.deleteNode(rootId));
+    REQUIRE(session.editing().deleteNode(rootId));
     CHECK(scene.empty());
-    REQUIRE(session.undo());
+    REQUIRE(session.editing().undo());
     REQUIRE(scene.root());
     CHECK(scene.root()->id() == rootId);
     CHECK(scene.root()->children().size() == 1);
@@ -225,78 +229,78 @@ TEST_CASE_FIXTURE(Fixture, "Undo: deleting the root and undoing it brings the wh
 
 TEST_CASE_FIXTURE(Fixture, "Undo: components come back to their place in the list")
 {
-    Node* node = session.createNode(type("Node3D"), nullptr);
-    Component* a = session.addComponent(*node, type("TestComponent"));
-    session.addComponent(*node, type("TestComponent"));
+    Node* node = session.editing().createNode(type("Node3D"), nullptr);
+    Component* a = session.editing().addComponent(*node, type("TestComponent"));
+    session.editing().addComponent(*node, type("TestComponent"));
     REQUIRE(node->components().size() == 3);
 
-    REQUIRE(session.removeComponent(*node, *a));
+    REQUIRE(session.editing().removeComponent(*node, *a));
     CHECK(node->components().size() == 2);
-    REQUIRE(session.undo());
+    REQUIRE(session.editing().undo());
     REQUIRE(node->components().size() == 3);
     CHECK(node->components()[1].get() == a);
 
-    session.undo();
-    session.undo();
+    session.editing().undo();
+    session.editing().undo();
     CHECK(node->components().size() == 1);
-    session.redo();
+    session.editing().redo();
     CHECK(node->components()[1].get() == a);
 }
 
 TEST_CASE_FIXTURE(Fixture, "Undo: dragging a value is one step, the next drag is another")
 {
-    auto* node = static_cast<Node3D*>(session.createNode(type("Node3D"), nullptr));
+    auto* node = static_cast<Node3D*>(session.editing().createNode(type("Node3D"), nullptr));
     Component& transform = node->transform();
     const Property& position = property("Transform3D", "position");
-    session.finishEdit();
+    session.editing().finishEdit();
 
-    session.setProperty(transform, position, Vec3(1.0f, 0.0f, 0.0f));
-    session.setProperty(transform, position, Vec3(2.0f, 0.0f, 0.0f));
-    session.finishEdit();
-    session.setProperty(transform, position, Vec3(3.0f, 0.0f, 0.0f));
+    session.editing().setProperty(transform, position, Vec3(1.0f, 0.0f, 0.0f));
+    session.editing().setProperty(transform, position, Vec3(2.0f, 0.0f, 0.0f));
+    session.editing().finishEdit();
+    session.editing().setProperty(transform, position, Vec3(3.0f, 0.0f, 0.0f));
     CHECK(node->transform().position() == Vec3(3.0f, 0.0f, 0.0f));
 
-    session.undo();
+    session.editing().undo();
     CHECK(node->transform().position() == Vec3(2.0f, 0.0f, 0.0f));
-    session.undo();
+    session.editing().undo();
     CHECK(node->transform().position() == Vec3(0.0f, 0.0f, 0.0f));
 
     // Имя - свойство самого узла.
-    session.setProperty(*node, property("Node", "name"), std::string("Player"));
+    session.editing().setProperty(*node, property("Node", "name"), std::string("Player"));
     CHECK(node->name() == "Player");
-    session.undo();
+    session.editing().undo();
     CHECK(node->name() == "Node3D");
 }
 
 TEST_CASE_FIXTURE(Fixture, "Undo: the manipulator moves a node in one step")
 {
-    auto* node = static_cast<Node3D*>(session.createNode(type("Node3D"), nullptr));
-    session.finishEdit();
+    auto* node = static_cast<Node3D*>(session.editing().createNode(type("Node3D"), nullptr));
+    session.editing().finishEdit();
 
-    session.setTransform(*node, {.position = {1.0f, 0.0f, 0.0f}});
-    session.setTransform(*node, {.position = {2.0f, 0.0f, 0.0f}, .rotationDegrees = {0.0f, 90.0f, 0.0f}});
+    session.editing().setTransform(*node, {.position = {1.0f, 0.0f, 0.0f}});
+    session.editing().setTransform(*node, {.position = {2.0f, 0.0f, 0.0f}, .rotationDegrees = {0.0f, 90.0f, 0.0f}});
     CHECK(node->transform().rotationDegrees() == Vec3(0.0f, 90.0f, 0.0f));
 
-    session.undo();
+    session.editing().undo();
     CHECK(node->transform().position() == Vec3(0.0f));
     CHECK(node->transform().rotationDegrees() == Vec3(0.0f));
 }
 
 TEST_CASE_FIXTURE(Fixture, "Undo: history survives Play and Stop")
 {
-    Node* root = session.createNode(type("Node3D"), nullptr);
-    Node* child = session.createNode(type("Node3D"), root);
+    Node* root = session.editing().createNode(type("Node3D"), nullptr);
+    Node* child = session.editing().createNode(type("Node3D"), root);
     const NodeId childId = child->id();
 
     session.play();
-    CHECK_FALSE(session.canUndo());
-    CHECK_FALSE(session.undo());
+    CHECK_FALSE(session.editing().canUndo());
+    CHECK_FALSE(session.editing().undo());
     session.stop();
 
     // После Stop снова редактируемая сцена, история продолжается с того же места.
-    REQUIRE(session.undo());
+    REQUIRE(session.editing().undo());
     CHECK(session.findNode(childId) == nullptr);
-    REQUIRE(session.redo());
+    REQUIRE(session.editing().redo());
     CHECK(session.findNode(childId));
 }
 
@@ -318,10 +322,10 @@ TEST_CASE("Selection: several nodes, the last selected is the main one")
 
 TEST_CASE_FIXTURE(Fixture, "Undo: deleting several nodes is one step and brings the selection back")
 {
-    Node* root = session.createNode(type("Node3D"), nullptr);
-    Node* a = session.createNode(type("Node3D"), root);
-    Node* inner = session.createNode(type("Node3D"), a);
-    Node* b = session.createNode(type("Node3D"), root);
+    Node* root = session.editing().createNode(type("Node3D"), nullptr);
+    Node* a = session.editing().createNode(type("Node3D"), root);
+    Node* inner = session.editing().createNode(type("Node3D"), a);
+    Node* b = session.editing().createNode(type("Node3D"), root);
     const NodeId aId = a->id();
     const NodeId innerId = inner->id();
     const NodeId bId = b->id();
@@ -333,11 +337,11 @@ TEST_CASE_FIXTURE(Fixture, "Undo: deleting several nodes is one step and brings 
     const std::vector<NodeId> nodes(before.nodes().begin(), before.nodes().end());
 
     // inner лежит в удаляемой ветке a и уходит вместе с ней.
-    REQUIRE(session.deleteNodes(nodes));
+    REQUIRE(session.editing().deleteNodes(nodes));
     CHECK(root->children().empty());
     CHECK(session.selection().empty());
 
-    REQUIRE(session.undo());
+    REQUIRE(session.editing().undo());
     CHECK(root->children().size() == 2);
     CHECK(session.findNode(innerId));
     CHECK(session.selection() == before);

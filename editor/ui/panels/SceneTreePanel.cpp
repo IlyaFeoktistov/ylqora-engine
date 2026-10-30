@@ -63,7 +63,7 @@ void SceneTreePanel::draw(EditorContext& context)
     if (m_deleteRequested) {
         // Копия: удаление меняет сам выбор.
         const std::vector<NodeId> nodes(selection.nodes().begin(), selection.nodes().end());
-        session.deleteNodes(nodes);
+        session.editing().deleteNodes(nodes);
         m_deleteRequested = false;
     }
     m_lastSelected = selection.selected();
