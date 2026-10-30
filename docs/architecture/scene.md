@@ -45,13 +45,13 @@ How to choose:
 
 ```
 Node                     no position: a group, a root, a holder of scripts
-├── Node3D               built-in Transform3D (cannot be removed)
-│   ├── Camera3D
-│   └── DirectionalLight3D, PointLight3D, SpotLight3D      [planned, step 5]
-├── Control              built-in RectTransform, anchors   [planned, step 8]
-│   └── Label, Button, ...
-└── Node2D               built-in Transform2D              [planned, after MVP]
-    └── Camera2D, ...
+|-- Node3D               built-in Transform3D (cannot be removed)
+|   |-- Camera3D
+|   `-- DirectionalLight3D, PointLight3D, SpotLight3D      [planned, step 5]
+|-- Control              built-in RectTransform, anchors   [planned, step 8]
+|   `-- Label, Button, ...
+`-- Node2D               built-in Transform2D              [planned, after MVP]
+    `-- Camera2D, ...
 ```
 
 - `Node2D` does not derive from `Node3D` and vice versa: the transforms have
@@ -141,7 +141,7 @@ A spatial node creates its transform in the constructor (`Transform3D` for
   default in code (`.executionOrder(-100)`); the project settings can override
   it per type, like Script Execution Order in Unity (see
   [project settings](project-settings.md)). One rule: the setting if present,
-  else the default from code.
+  else the default from code (`executionOrderOf`) **[done]**.
 - A component added during a phase is called from the next phase on; a removed
   one is skipped at once and dropped from the list after the phase, so the
   lists never change under an iteration.

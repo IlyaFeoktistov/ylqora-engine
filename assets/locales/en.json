@@ -44,6 +44,9 @@
         },
         "LayerSettings": {
             "description": "Names of the 32 node layers used by camera masks and physics."
+        },
+        "ExecutionOrderSettings": {
+            "description": "Order of component types inside the frame phases, overrides the order from code."
         }
     },
     "editor": {
@@ -155,7 +158,8 @@
             "clearLayerTitle": "Clear layer name",
             "clearLayerQuestion": "These layers still have nodes:",
             "clearLayerKeeps": "The nodes stay on their layers, the layer just has no name.",
-            "clearLayer": "Clear name"
+            "clearLayer": "Clear name",
+            "ExecutionOrderSettings": "Execution Order"
         }
     },
     "projects": {
@@ -227,6 +231,8 @@
         "gameVersion": "Game version",
         "fixedStep": "Fixed step, s",
         "maxFrame": "Longest frame, s",
-        "names": "Names"
+        "names": "Names",
+        "entries": "Types",
+        "type": "Type"
     }
 }

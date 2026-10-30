@@ -3,6 +3,7 @@
 #include "yqlora/core/Export.hpp"
 #include "yqlora/project/SettingsSection.hpp"
 #include "yqlora/reflection/Property.hpp"
+#include "yqlora/reflection/Record.hpp"
 #include "yqlora/reflection/TypeInfo.hpp"
 #include "yqlora/reflection/TypeName.hpp"
 #include "yqlora/scene/Component.hpp"
@@ -207,9 +208,7 @@ public:
                 return Property::forSettings(std::move(name), type, get, set, hint);
             }
         }();
-        if constexpr (kIsListProperty<Value>) {
-            built.setElementType(propertyTypeOf<typename Value::value_type>());
-        }
+        describeValue<Value>(built);
 
         return property(std::move(built));
     }

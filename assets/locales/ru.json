@@ -44,6 +44,9 @@
         },
         "LayerSettings": {
             "description": "Имена 32 слоёв узлов для масок камер и физики."
+        },
+        "ExecutionOrderSettings": {
+            "description": "Порядок типов компонентов внутри фаз кадра, переопределяет порядок из кода."
         }
     },
     "editor": {
@@ -155,7 +158,8 @@
             "clearLayerTitle": "Убрать имя слоя",
             "clearLayerQuestion": "На этих слоях есть узлы:",
             "clearLayerKeeps": "Узлы останутся на своих слоях, у слоя просто не будет имени.",
-            "clearLayer": "Убрать имя"
+            "clearLayer": "Убрать имя",
+            "ExecutionOrderSettings": "Порядок выполнения"
         }
     },
     "projects": {
@@ -227,6 +231,8 @@
         "gameVersion": "Версия игры",
         "fixedStep": "Фиксированный шаг, с",
         "maxFrame": "Самый длинный кадр, с",
-        "names": "Имена"
+        "names": "Имена",
+        "entries": "Типы",
+        "type": "Тип"
     }
 }

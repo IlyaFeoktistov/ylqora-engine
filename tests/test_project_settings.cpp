@@ -9,6 +9,8 @@
 #include <yqlora/input/Input.hpp>
 #include <yqlora/project/GeneralSettings.hpp>
 #include <yqlora/project/Project.hpp>
+#include <yqlora/scene/ExecutionOrder.hpp>
+#include <yqlora/scene/ExecutionOrderSettings.hpp>
 #include <yqlora/scene/LayerSettings.hpp>
 #include <yqlora/scene/Node3D.hpp>
 #include <yqlora/scene/Scene.hpp>
@@ -179,4 +181,53 @@ TEST_CASE_FIXTURE(Fixture, "LayerUsage: nodes on a layer are found in every scen
     const std::vector<std::string> before{"Default", "A", "", "B"};
     const std::vector<std::string> after{"Default", "", "", "B"};
     CHECK(clearedLayers(before, after) == std::vector<int>{1});
+}
+
+TEST_CASE_FIXTURE(Fixture, "ExecutionOrderSettings: records are saved and override the order from code")
+{
+    Project project = open();
+    auto& order = project.settings().get<ExecutionOrderSettings>();
+    order.entries = {{.type = "MeshRenderer", .order = -50}, {.type = "Unloaded", .order = 7}};
+    REQUIRE(project.settings().save(order));
+
+    // Записи читаются из файла поле за полем; тип, которого нет в реестре, хранится как есть.
+    Project reopened = open();
+    const auto& loaded = reopened.settings().get<ExecutionOrderSettings>().entries;
+    REQUIRE(loaded.size() == 2);
+    CHECK(loaded[0].type == "MeshRenderer");
+    CHECK(loaded[0].order == -50);
+    CHECK(loaded[1].type == "Unloaded");
+
+    Input input;
+    EngineServices services{input, registry};
+    const TypeInfo& renderer = *registry.find("MeshRenderer");
+    const TypeInfo& transform = *registry.find("Transform3D");
+    CHECK(executionOrderOf(services, renderer) == renderer.executionOrder());
+    services.setProject(&reopened);
+    CHECK(executionOrderOf(services, renderer) == -50);
+    CHECK(executionOrderOf(services, transform) == transform.executionOrder());
+    services.setProject(nullptr);
+}
+
+TEST_CASE_FIXTURE(Fixture, "Property: a list of records knows its fields and checks them")
+{
+    const auto properties = registry.properties(*registry.find<ExecutionOrderSettings>());
+    const Property& entries = *properties.front();
+    CHECK(entries.type() == PropertyType::List);
+    CHECK(entries.elementType() == PropertyType::Record);
+    REQUIRE(entries.fields().size() == 2);
+    CHECK(entries.fields()[0].name() == "type");
+    CHECK(entries.fields()[0].hint() == PropertyHint::ComponentType);
+    CHECK(entries.fields()[1].type() == PropertyType::Int);
+    CHECK(entries.defaultElement() == PropertyValue{RecordValue{{PropertyValue{std::string()}, PropertyValue{0}}}});
+
+    ExecutionOrderSettings section;
+    const RecordValue good{{PropertyValue{std::string("A")}, PropertyValue{3}}};
+    const RecordValue wrongField{{PropertyValue{std::string("A")}, PropertyValue{3.0f}}};
+    const RecordValue missingField{{PropertyValue{std::string("A")}}};
+    CHECK_FALSE(entries.set(section, ListValue{{PropertyValue{wrongField}}}));
+    CHECK_FALSE(entries.set(section, ListValue{{PropertyValue{missingField}}}));
+    REQUIRE(entries.set(section, ListValue{{PropertyValue{good}}}));
+    CHECK(section.orderOf("A") == 3);
+    CHECK(section.orderOf("B") == std::nullopt);
 }

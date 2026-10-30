@@ -73,6 +73,7 @@ PropertyValue defaultPropertyValue(PropertyType type)
     case PropertyType::Node: return NodeRef{};
     case PropertyType::Resource: return ResourceRef{};
     case PropertyType::List: return ListValue{};
+    case PropertyType::Record: return RecordValue{};
     }
 
     return false;
@@ -85,18 +86,62 @@ void Property::setElementType(PropertyType type)
     m_elementType = type;
 }
 
+void Property::setRecord(std::vector<Property> fields, RecordValue defaults)
+{
+    assert(
+        (m_type == PropertyType::Record || (m_type == PropertyType::List && m_elementType == PropertyType::Record))
+        && "setRecord: the property is not a record or a list of records"
+    );
+    assert(fields.size() == defaults.fields.size() && "setRecord: a default for every field");
+    m_fields = std::move(fields);
+    m_recordDefaults = std::move(defaults);
+}
+
+Property Property::field(std::string name, PropertyType type, PropertyHint hint)
+{
+    Property property;
+    property.m_name = std::move(name);
+    property.m_type = type;
+    property.m_hint = hint;
+
+    return property;
+}
+
+PropertyValue Property::defaultElement() const
+{
+    const PropertyType type = m_type == PropertyType::List ? m_elementType : m_type;
+
+    return type == PropertyType::Record ? PropertyValue(m_recordDefaults) : defaultPropertyValue(type);
+}
+
 bool Property::accepts(const PropertyValue& value) const
 {
-    if (static_cast<PropertyType>(value.index()) != m_type) {
+    return acceptsAs(m_type, value);
+}
+
+bool Property::acceptsAs(PropertyType type, const PropertyValue& value) const
+{
+    if (static_cast<PropertyType>(value.index()) != type) {
         return false;
     }
-    if (m_type != PropertyType::List) {
-        return true;
+    if (type == PropertyType::List) {
+        return std::ranges::all_of(std::get<ListValue>(value).items, [this](const PropertyValue& item) {
+            return acceptsAs(m_elementType, item);
+        });
+    }
+    if (type == PropertyType::Record) {
+        const auto& fields = std::get<RecordValue>(value).fields;
+        if (fields.size() != m_fields.size()) {
+            return false;
+        }
+        for (std::size_t i = 0; i < fields.size(); ++i) {
+            if (!m_fields[i].accepts(fields[i])) {
+                return false;
+            }
+        }
     }
 
-    return std::ranges::all_of(std::get<ListValue>(value).items, [this](const PropertyValue& item) {
-        return static_cast<PropertyType>(item.index()) == m_elementType;
-    });
+    return true;
 }
 
 PropertyValue Property::get(const Node& node) const

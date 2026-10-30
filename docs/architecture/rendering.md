@@ -7,6 +7,64 @@ render frame are in [the frame pipeline](frame.md).
 
 Status marks: see [README](README.md).
 
+## Render pipeline
+
+How a frame gets from the scene to the screen. The renderer reads only the
+snapshot made by Extract, never the scene.
+
+### Today [done]
+
+```
+ SCENE (simulated, world matrices ready)
+   RenderSystem: active cameras sorted by order
+   MeshRenderer: enabled components, their mesh, colour, node layer
+   Node3D: world matrices
+        |
+        |  extractFrame(scene, aspect, depthRange)        render/FrameBuilder
+        v
+ FrameData (snapshot, nothing points back into the scene)
+   views[]      one per camera: view and projection, clear mode,
+                background, culling mask
+   drawItems[]  mesh, world matrix, colour, layer, node id
+   editor       grid on/off, selected nodes          (editor only)
+        |
+        |  Renderer::render(frame)          -> window back buffer
+        |  Renderer::render(frame, target)  -> RenderTarget (a texture)
+        v
+ OpenGLRenderer::drawScene                           backends/opengl
+   for each view, in camera order:
+     clear        colour and depth / depth only / nothing
+     MeshPass     draw items whose layer is in the view mask, through
+                  the view camera, one fixed directional light
+   GridPass       editor only, over the last view
+   OutlinePass    editor only, outline of the selected nodes
+        |
+        v
+ UiRenderer (ImGui), then present (swap buffers)
+```
+
+- **The game** (`Application`, game mode) does it once per frame in the
+  `extract` and `render` stages of `FrameLoop` (see [frame](frame.md)), into
+  the window.
+- **The editor** has no scene of its own to draw in those stages. Each scene
+  window (Viewport, Game, the camera preview) calls `extractFrame` with its
+  own aspect and renders into its own `RenderTarget` during the interface
+  stage; ImGui then shows the texture. The Viewport adds the editor camera
+  view and the overlay (grid, outline).
+
+### With the RHI [planned, RHI]
+
+```
+ Extract   -> FrameData (also lights, materials)
+ Prepare   -> per view: culling by bounds and layer mask, sorting
+              (opaque front to back, transparent back to front)
+ Graph     -> passes declare what they read and write, the graph orders them:
+              shadows -> opaque -> sky -> transparent -> post-processing -> HUD
+              (+ editor passes: grid, outline; FrameData::editor goes away)
+ RHI       -> one interface over OpenGL, Vulkan, D3D12
+ Present
+```
+
 ## Cameras and rendering [done]
 
 Prepared for several cameras (for example the player's arms drawn by a second

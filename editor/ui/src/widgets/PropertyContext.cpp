@@ -20,6 +20,7 @@ PropertyEditorContext propertyEditorContext(const EditorContext& context)
         .colors = context.theme.colors(),
         .metrics = context.theme.metrics(),
         .scene = session.scene(),
+        .registry = session.registry(),
         .resources = project ? &project->resources() : nullptr,
         .layerNames = layers ? std::span<const std::string>(layers->names()) : std::span<const std::string>(),
         .editLayers = [open = context.openProjectSettings] {

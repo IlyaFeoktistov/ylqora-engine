@@ -43,13 +43,13 @@
 
 ```
 Node                     без положения: группа, корень, носитель скриптов
-├── Node3D               встроенный Transform3D (снять нельзя)
-│   ├── Camera3D
-│   └── DirectionalLight3D, PointLight3D, SpotLight3D      [planned, step 5]
-├── Control              встроенный RectTransform, якоря   [planned, step 8]
-│   └── Label, Button, ...
-└── Node2D               встроенный Transform2D            [planned, after MVP]
-    └── Camera2D, ...
+|-- Node3D               встроенный Transform3D (снять нельзя)
+|   |-- Camera3D
+|   `-- DirectionalLight3D, PointLight3D, SpotLight3D      [planned, step 5]
+|-- Control              встроенный RectTransform, якоря   [planned, step 8]
+|   `-- Label, Button, ...
+`-- Node2D               встроенный Transform2D            [planned, after MVP]
+    `-- Camera2D, ...
 ```
 
 - `Node2D` не наследует `Node3D` и наоборот: у трансформов разный смысл. Общие
@@ -138,7 +138,8 @@ registry.registerComponent<AudioSource>()
   значение по умолчанию в коде (`.executionOrder(-100)`); настройки проекта
   могут переопределить его для типа, как Script Execution Order в Unity (см.
   [настройки проекта](project-settings.ru.md)). Одно правило: значение из
-  настроек, если оно есть, иначе значение по умолчанию из кода.
+  настроек, если оно есть, иначе значение по умолчанию из кода
+  (`executionOrderOf`) **[done]**.
 - Компонент, добавленный во время фазы, вызывается со следующей фазы;
   снятый пропускается сразу и убирается из списка после фазы, так что списки
   никогда не меняются под обходом.

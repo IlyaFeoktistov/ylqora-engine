@@ -4,7 +4,7 @@
 
 Settings of a game that live in its project folder, are shared by everyone who
 works on it and go to version control: input actions, time step, graphics API,
-physics, build targets. In the editor: **Project → Project Settings**.
+physics, build targets. In the editor: **Project -> Project Settings**.
 
 Status marks as in [README](README.md): **[done]**, **[next]** (before C++
 scripts), **[planned, step N]**.
@@ -44,7 +44,7 @@ never go into the project.
 | General | game name, version, company, startup scene **[done]**; icon | **[planned, step 4]** for the icon, with textures |
 | Time | fixed time step, longest frame; read every frame by the scene and the frame loop, so an edit applies at once, in Play too | **[done]** |
 | Input | actions and axes, their bindings to keys, mouse buttons, gamepad | **[next]** |
-| Execution Order | order of component types inside every lifecycle phase, overriding the default from code (see [scene](scene.md)) | **[next]** |
+| Execution Order | order of component types inside every lifecycle phase, overriding the default from code (see [scene](scene.md)); a type is picked from the registered components that use the frame phases, rows of unloaded types are kept. A component takes its order when it enters the phase lists, so an edit applies to components entering after it (every component on Play) | **[done]** |
 | Layers | names of the 32 node layers used by camera masks and physics | **[done]** |
 | Graphics | graphics API per platform (OpenGL; Vulkan and D3D12 come with the RHI), vsync | **[next]** |
 | Scripts | C++ build: compiler, configuration; Luau later | **[planned, step 3]** |
@@ -135,8 +135,15 @@ As Tags and Layers in Unity:
 - List properties (actions, bindings, layers): `PropertyType::List` with an
   element type, any property type except a list; `std::vector<T>` fields
   register as lists, JSON writes them as arrays, the inspector as rows with
-  add and remove **[done]**. Records (an action with a name, a kind and its
-  bindings) come as one more element type with the input actions.
+  add and remove **[done]**.
+- Records: a C++ struct stored whole (`PropertyType::Record`, `RecordValue`
+  with the field values in order). Its fields are described once next to the
+  struct with `YQLORA_RECORD` (`reflection/Record.hpp`); from that the
+  property gets the field descriptions (`Property::fields`), JSON writes an
+  object by field names (a missing field takes the default from `T{}`), the
+  inspector draws the fields as a small table. A record field may itself be a
+  list or a record; lists of records are how Execution Order and the input
+  actions are stored **[done]**.
 - A binding property type (key, mouse button, gamepad input) with its editor
   widget: press to capture.
 - The settings kind (`TypeKind::Settings`) and its builder **[done]**.

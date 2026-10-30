@@ -48,6 +48,30 @@ std::optional<PropertyValue> listFromJson(const Json& json, const Property& prop
     return list;
 }
 
+// Объект с полями по именам. Недостающее поле - значение по умолчанию, лишние
+// не читаются: поле в структуре можно добавить или убрать, файлы читаются.
+std::optional<PropertyValue> recordFromJson(const Json& json, const Property& property)
+{
+    if (!json.is_object()) {
+        return std::nullopt;
+    }
+    const auto& fields = property.fields();
+    RecordValue record = std::get<RecordValue>(property.defaultElement());
+    for (std::size_t i = 0; i < fields.size(); ++i) {
+        const auto it = json.find(fields[i].name());
+        if (it == json.end()) {
+            continue;
+        }
+        auto value = valueFromJson(*it, fields[i]);
+        if (!value) {
+            return std::nullopt;
+        }
+        record.fields[i] = std::move(*value);
+    }
+
+    return record;
+}
+
 } // namespace
 
 Json valueToJson(const Property& property, const PropertyValue& value)
@@ -68,6 +92,14 @@ Json valueToJson(const Property& property, const PropertyValue& value)
                 return v.value;
             } else if constexpr (std::is_same_v<T, NodeRef> || std::is_same_v<T, ResourceRef>) {
                 return idToJson(v.id);
+            } else if constexpr (std::is_same_v<T, RecordValue>) {
+                Json object = Json::object();
+                const auto& fields = property.fields();
+                for (std::size_t i = 0; i < fields.size() && i < v.fields.size(); ++i) {
+                    object[fields[i].name()] = valueToJson(fields[i], v.fields[i]);
+                }
+
+                return object;
             } else if constexpr (std::is_same_v<T, ListValue>) {
                 Json items = Json::array();
                 for (const PropertyValue& item : v.items) {
@@ -128,6 +160,7 @@ std::optional<PropertyValue> fromJson(const Json& json, PropertyType type, const
         }
         break;
     case PropertyType::List: return listFromJson(json, property);
+    case PropertyType::Record: return recordFromJson(json, property);
     }
 
     return std::nullopt;

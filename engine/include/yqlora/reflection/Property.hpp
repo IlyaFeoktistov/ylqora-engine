@@ -44,11 +44,12 @@ struct ResourceRef {
 };
 
 struct ListValue;
+struct RecordValue;
 
 // Значение свойства, которое умеют показывать инспектор и сохранять файлы сцен.
 // Порядок типов совпадает с PropertyType.
 using PropertyValue = std::
-    variant<bool, int, float, std::string, Vec2, Vec3, Vec4, EnumValue, NodeRef, ResourceRef, ListValue>;
+    variant<bool, int, float, std::string, Vec2, Vec3, Vec4, EnumValue, NodeRef, ResourceRef, ListValue, RecordValue>;
 
 // Список значений одного типа (Property::elementType). Элементы - тоже
 // PropertyValue, поэтому список может хранить значения любого типа свойства.
@@ -56,9 +57,20 @@ struct ListValue {
     std::vector<PropertyValue> items;
 };
 
+// Запись: значения полей по порядку их описания (Property::fields, см. Record.hpp).
+struct RecordValue {
+    std::vector<PropertyValue> fields;
+};
+
+// После обеих структур: сравнение значений требует, чтобы все типы PropertyValue были полными.
 inline bool operator==(const ListValue& a, const ListValue& b)
 {
     return a.items == b.items;
+}
+
+inline bool operator==(const RecordValue& a, const RecordValue& b)
+{
+    return a.fields == b.fields;
 }
 
 enum class PropertyType {
@@ -73,9 +85,10 @@ enum class PropertyType {
     Node,
     Resource,
     List,
+    Record,
 };
 
-static_assert(std::variant_size_v<PropertyValue> == 11, "PropertyType must list every PropertyValue type");
+static_assert(std::variant_size_v<PropertyValue> == 12, "PropertyType must list every PropertyValue type");
 
 // Как значение типа C++ хранится в PropertyValue. Обычно как есть,
 // а любое перечисление C++ - как EnumValue.
@@ -227,19 +240,21 @@ constexpr PropertyType propertyTypeOf()
 }
 
 // Значение по умолчанию для типа: false, 0, пустая строка, пустая ссылка,
-// пустой список. Например, новый элемент списка в редакторе.
+// пустой список, запись без полей. У записи настоящее значение по умолчанию
+// знает её свойство (Property::defaultElement).
 YQLORA_API PropertyValue defaultPropertyValue(PropertyType type);
 
 // Как показывать свойство в инспекторе, если обычного поля для его типа мало.
 enum class PropertyHint {
     None,
-    Color,      // Vec4 как цвет RGBA с палитрой
-    Mesh,       // ссылка на ресурс меша: выбор из доступных мешей
-    Angle,      // градусы: при перетаскивании значение меняется медленнее
-    Layer,      // int: один слой узла из списка
-    Layers,     // int: набор слоёв (LayerMask), флажок на каждый
-    Scene,      // ссылка на ресурс сцены: выбор из сцен проекта
-    LayerNames, // список строк: имена слоёв по номеру, длина постоянная, слой 0 не меняется
+    Color,         // Vec4 как цвет RGBA с палитрой
+    Mesh,          // ссылка на ресурс меша: выбор из доступных мешей
+    Angle,         // градусы: при перетаскивании значение меняется медленнее
+    Layer,         // int: один слой узла из списка
+    Layers,        // int: набор слоёв (LayerMask), флажок на каждый
+    Scene,         // ссылка на ресурс сцены: выбор из сцен проекта
+    LayerNames,    // список строк: имена слоёв по номеру, длина постоянная, слой 0 не меняется
+    ComponentType, // строка: имя типа компонента, выбор из зарегистрированных
 };
 
 // Свойство узла, компонента или раздела настроек проекта: имя, тип и доступ к значению. Доступ к
@@ -278,6 +293,9 @@ public:
         PropertyHint hint = PropertyHint::None
     );
 
+    // Поле записи: только описание, без доступа к объекту (см. Record.hpp).
+    static Property field(std::string name, PropertyType type, PropertyHint hint = PropertyHint::None);
+
     const std::string& name() const
     {
         return m_name;
@@ -305,12 +323,24 @@ public:
         return m_enumNames;
     }
 
+    // Поля записи по порядку: у свойства-записи - его, у списка записей - его
+    // элементов. Пусто у остальных.
+    const std::vector<Property>& fields() const
+    {
+        return m_fields;
+    }
+
+    // Новый элемент списка: запись со значениями полей из её C++-структуры,
+    // остальное - defaultPropertyValue.
+    PropertyValue defaultElement() const;
+
     // Объект должен быть того типа, для которого зарегистрировано свойство, или его наследником.
     PropertyValue get(const Node& node) const;
     PropertyValue get(const Component& component) const;
     PropertyValue get(const SettingsSection& section) const;
 
-    // Значение того типа, что у свойства; у списка - и элементы того типа.
+    // Значение того типа, что у свойства; у списка - и элементы того типа,
+    // у записи - все поля по описанию.
     bool accepts(const PropertyValue& value) const;
 
     // false, если тип значения не совпадает с типом свойства.
@@ -324,14 +354,22 @@ public:
     // Тип элементов списка, см. elementType.
     void setElementType(PropertyType type);
 
+    // Поля записи (свойства-записи или элементов списка записей) и значения
+    // полей по умолчанию, см. fields.
+    void setRecord(std::vector<Property> fields, RecordValue defaults);
+
 private:
     Property() = default;
+
+    bool acceptsAs(PropertyType type, const PropertyValue& value) const;
 
     std::string m_name;
     PropertyType m_type = PropertyType::Bool;
     PropertyHint m_hint = PropertyHint::None;
     PropertyType m_elementType = PropertyType::Bool;
     std::vector<std::string> m_enumNames;
+    std::vector<Property> m_fields;
+    RecordValue m_recordDefaults;
     // Своё у каждого вида объектов: объект одного вида не передать свойству другого.
     NodeGetter m_nodeGet;
     NodeSetter m_nodeSet;

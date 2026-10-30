@@ -11,6 +11,7 @@
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/project/SettingsSection.hpp"
 #include "yqlora/reflection/Property.hpp"
+#include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/render/BuiltinMeshes.hpp"
 #include "yqlora/resource/ResourceDatabase.hpp"
 #include "yqlora/scene/Layers.hpp"
@@ -36,6 +37,8 @@ constexpr float kSlowFactor = 0.1f;  // с Ctrl
 
 // Значение элемента и кнопка его удаления.
 constexpr int kListColumnCount = 2;
+// Подпись поля записи и его значение.
+constexpr int kRecordColumnCount = 2;
 
 // Сколько меняется значение за точку движения мыши.
 constexpr float kAngleDragSpeed = 0.5f;
@@ -390,6 +393,57 @@ void valueField(
     PropertyResult& result
 );
 
+// Типы компонентов, у которых есть порядок выполнения: только те, что
+// переопределяют фазы кадра. Выбранный виден всегда, даже если его модуль не загружен.
+bool componentTypeCombo(std::string& value, const TypeRegistry& registry)
+{
+    bool changed = false;
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (ImGui::BeginCombo("##value", value.empty() ? tr("editor.inspector.none").c_str() : value.c_str())) {
+        for (const auto& type : registry.types()) {
+            if (type->kind() != TypeKind::Component || type->phases() == 0) {
+                continue;
+            }
+            if (ImGui::Selectable(type->name().c_str(), type->name() == value)) {
+                value = type->name();
+                changed = true;
+            }
+            ImGui::SetItemTooltip("%s", tr(type->descriptionKey()).c_str());
+        }
+        ImGui::EndCombo();
+    }
+
+    return changed;
+}
+
+// Поля записи таблицей, как свойства в инспекторе. Описание полей - у свойства
+// (Property::fields): и у самой записи, и у списка записей.
+void recordField(
+    const Property& property,
+    RecordValue& record,
+    const PropertyEditorContext& context,
+    PropertyResult& result
+)
+{
+    const auto& fields = property.fields();
+    if (fields.size() != record.fields.size() || !ImGui::BeginTable("fields", kRecordColumnCount)) {
+        return;
+    }
+    ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
+    for (std::size_t i = 0; i < fields.size(); ++i) {
+        ImGui::PushID(static_cast<int>(i));
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(propertyLabel(fields[i].name()).c_str());
+        ImGui::TableNextColumn();
+        valueField(fields[i], fields[i].type(), record.fields[i], context, result);
+        ImGui::PopID();
+    }
+    ImGui::EndTable();
+}
+
 // Элементы списка друг под другом, у каждого кнопка удаления, внизу кнопка добавления.
 // Подсказка свойства относится к элементам: список цветов показывается цветами.
 void listField(const Property& property, ListValue& list, const PropertyEditorContext& context, PropertyResult& result)
@@ -423,7 +477,7 @@ void listField(const Property& property, ListValue& list, const PropertyEditorCo
     }
     const std::string add = std::string(icons::kAdd) + " " + tr("editor.inspector.addItem");
     if (ImGui::Button(add.c_str(), ImVec2(-FLT_MIN, 0.0f))) {
-        list.items.push_back(defaultPropertyValue(property.elementType()));
+        list.items.push_back(property.defaultElement());
         result.changed = true;
     }
 }
@@ -453,8 +507,12 @@ void valueField(
         break;
     case PropertyType::Float: floatField("##value", std::get<float>(value), -FLT_MIN, "%.3f", result); break;
     case PropertyType::String:
-        ImGui::SetNextItemWidth(-FLT_MIN);
-        result.changed = ImGui::InputText("##value", &std::get<std::string>(value)) || result.changed;
+        if (property.hint() == PropertyHint::ComponentType) {
+            result.changed = componentTypeCombo(std::get<std::string>(value), context.registry) || result.changed;
+        } else {
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            result.changed = ImGui::InputText("##value", &std::get<std::string>(value)) || result.changed;
+        }
         break;
     case PropertyType::Vector2:
         vectorFields(&std::get<Vec2>(value).x, Vec2::length(), speed, context.colors, result);
@@ -485,6 +543,7 @@ void valueField(
         }
         break;
     case PropertyType::List: listField(property, std::get<ListValue>(value), context, result); break;
+    case PropertyType::Record: recordField(property, std::get<RecordValue>(value), context, result); break;
     }
 }
 

@@ -14,6 +14,7 @@ class Node;
 class ResourceDatabase;
 class Scene;
 class SettingsSection;
+class TypeRegistry;
 
 } // namespace yqlora
 
@@ -43,6 +44,8 @@ struct PropertyEditorContext {
     const EditorMetrics& metrics;
     // Из неё выбирается узел для ссылки на узел.
     const Scene& scene;
+    // Из него выбирается тип компонента (PropertyHint::ComponentType).
+    const TypeRegistry& registry;
     // Ресурсы проекта для ссылок на ресурсы. nullptr, если проекта нет.
     const ResourceDatabase* resources = nullptr;
     // Имена слоёв по номеру (LayerSettings). Пусто без проекта: слои показываются номерами.
