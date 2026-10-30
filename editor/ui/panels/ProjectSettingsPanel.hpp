@@ -2,7 +2,11 @@
 
 #include "core/EditorPanel.hpp"
 
+#include "yqlora/reflection/Property.hpp"
+
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace yqlora::editor {
 
@@ -26,16 +30,39 @@ public:
         return "editor.window.projectSettings";
     }
 
-    // Показывает окно и выводит его вперёд.
-    void open()
+    // Показывает окно и выводит его вперёд; section - имя типа раздела,
+    // который выбрать, пусто - оставить выбранный.
+    void open(std::string_view section = {})
     {
         setVisible(true);
         m_focusRequested = true;
+        if (!section.empty()) {
+            m_selected = section;
+        }
     }
 
     void draw(EditorContext& context) override;
 
 private:
+    // Правка, которая ждёт ответа: она стирает имя слоя, на котором есть узлы.
+    struct PendingEdit {
+        std::string section;
+        const Property* property = nullptr;
+        PropertyValue value;
+        std::string question;
+    };
+
+    // Ставит правку в очередь на вопрос, если она стирает имя занятого слоя.
+    // true - правка отложена до ответа.
+    bool askBeforeClearingLayers(
+        EditorSession& session,
+        const SettingsSection& section,
+        const Property& property,
+        const PropertyValue& value
+    );
+    void drawPendingQuestion(EditorSession& session);
+
+    std::optional<PendingEdit> m_pending;
     // Имя типа выбранного раздела; пусто - первый.
     std::string m_selected;
     bool m_focusRequested = false;

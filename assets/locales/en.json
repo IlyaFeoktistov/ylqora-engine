@@ -41,6 +41,9 @@
         },
         "TimeSettings": {
             "description": "Game time: the fixed physics step and the longest frame."
+        },
+        "LayerSettings": {
+            "description": "Names of the 32 node layers used by camera masks and physics."
         }
     },
     "editor": {
@@ -81,14 +84,16 @@
                 "makeMain": "Make main",
                 "inactive": "Camera is inactive and does not draw",
                 "rule": "The main camera is the active camera with the lowest order; the game is seen through it. The button sets this camera's order one below the main camera's."
-            }
+            },
+            "addItem": "Add"
         },
         "viewport": {
             "cameraPreview": "Preview of the selected camera"
         },
         "layers": {
             "everything": "Everything",
-            "nothing": "Nothing"
+            "nothing": "Nothing",
+            "edit": "Edit layers..."
         },
         "tree": {
             "addNode": "Add node",
@@ -144,7 +149,13 @@
             "GeneralSettings": "General",
             "projectVersion": "Project version:",
             "projectVersionHint": "Version of the project file format. It changes only when the project is upgraded to a newer engine, never by hand.",
-            "TimeSettings": "Time"
+            "TimeSettings": "Time",
+            "LayerSettings": "Layers",
+            "layerNodes": "node(s) in scenes",
+            "clearLayerTitle": "Clear layer name",
+            "clearLayerQuestion": "These layers still have nodes:",
+            "clearLayerKeeps": "The nodes stay on their layers, the layer just has no name.",
+            "clearLayer": "Clear name"
         }
     },
     "projects": {
@@ -215,6 +226,7 @@
         "background": "Background",
         "gameVersion": "Game version",
         "fixedStep": "Fixed step, s",
-        "maxFrame": "Longest frame, s"
+        "maxFrame": "Longest frame, s",
+        "names": "Names"
     }
 }

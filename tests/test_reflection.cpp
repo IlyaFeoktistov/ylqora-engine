@@ -5,6 +5,8 @@
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/render/Camera3D.hpp>
 #include <yqlora/scene/Node3D.hpp>
+#include <yqlora/scene/Scene.hpp>
+#include <yqlora/scene/SceneSerializer.hpp>
 
 #include <string>
 #include <vector>
@@ -18,6 +20,14 @@ struct TestComponent final : Component {
     YQLORA_TYPE(TestComponent, Component)
 
     int value = 100;
+};
+
+// Компонент со списками: точки пути и имена.
+struct ListComponent final : Component {
+    YQLORA_TYPE(ListComponent, Component)
+
+    std::vector<Vec3> points;
+    std::vector<std::string> tags;
 };
 
 std::vector<std::string> names(const std::vector<const Property*>& properties)
@@ -238,4 +248,39 @@ TEST_CASE("Property: enums, node and resource references")
     CHECK(std::get<EnumValue>(mood->get(guard)).value == 1);
     find("target")->set(guard, NodeRef{42});
     CHECK(guard.target.id == 42);
+}
+
+TEST_CASE("Property: lists of any property type, checked and saved with the scene")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    registry.registerComponent<ListComponent>()
+        .property("points", &ListComponent::points)
+        .property("tags", &ListComponent::tags);
+    const auto properties = registry.properties(*registry.find<ListComponent>());
+    const Property& points = *properties[1];
+    const Property& tags = *properties[2];
+    CHECK(points.type() == PropertyType::List);
+    CHECK(points.elementType() == PropertyType::Vector3);
+    CHECK(tags.elementType() == PropertyType::String);
+
+    ListComponent component;
+    component.points = {{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f, 6.0f}};
+    const PropertyValue value = points.get(component);
+    CHECK(std::get<ListValue>(value).items.size() == 2);
+
+    // Элемент не того типа портит весь список.
+    CHECK_FALSE(points.set(component, ListValue{{PropertyValue{1.0f}}}));
+    CHECK(tags.set(component, ListValue{{PropertyValue{std::string("enemy")}}}));
+    CHECK(component.tags == std::vector<std::string>{"enemy"});
+
+    Scene scene{EngineServices::none()};
+    scene.createRoot<Node>("Root").addComponent<ListComponent>().points = component.points;
+    const SceneSerializer serializer(registry);
+    Scene loaded{EngineServices::none()};
+    REQUIRE(serializer.fromJson(loaded, serializer.toJson(scene)));
+    const auto* loadedComponent = dynamic_cast<const ListComponent*>(loaded.root()->components().back().get());
+    REQUIRE(loadedComponent);
+    CHECK(loadedComponent->points == component.points);
+    CHECK(defaultPropertyValue(PropertyType::List) == PropertyValue{ListValue{}});
 }

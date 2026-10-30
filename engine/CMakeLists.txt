@@ -37,6 +37,7 @@ add_library(yqlora SHARED
     src/math/Euler.cpp
     src/scene/ExecutionOrder.cpp
     src/scene/GameTime.cpp
+    src/scene/LayerSettings.cpp
     src/scene/Node.cpp
     src/scene/NodeTree.cpp
     src/scene/Component.cpp

@@ -4,10 +4,13 @@
 
 #include <yqlora/core/EngineServices.hpp>
 #include <yqlora/editor/EditorSession.hpp>
+#include <yqlora/editor/LayerUsage.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
 #include <yqlora/input/Input.hpp>
 #include <yqlora/project/GeneralSettings.hpp>
 #include <yqlora/project/Project.hpp>
+#include <yqlora/scene/LayerSettings.hpp>
+#include <yqlora/scene/Node3D.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 #include <yqlora/scene/TimeSettings.hpp>
@@ -138,4 +141,42 @@ TEST_CASE_FIXTURE(Fixture, "TimeSettings: the scene takes the fixed step from th
     scene.advance(0.0f);
     CHECK(scene.time().fixedStep() == 0.25f);
     services.setProject(nullptr);
+}
+
+TEST_CASE("LayerSettings: 32 names, layer 0 is always Default")
+{
+    LayerSettings layers;
+    CHECK(layers.names().size() == kLayerCount);
+    CHECK(layers.name(0) == kDefaultLayerName);
+
+    layers.setNames({"Renamed", "Player"});
+    CHECK(layers.names().size() == kLayerCount);
+    CHECK(layers.name(0) == kDefaultLayerName);
+    CHECK(layers.name(1) == "Player");
+    CHECK(layers.name(2).empty());
+    CHECK(layers.name(kLayerCount).empty());
+}
+
+TEST_CASE_FIXTURE(Fixture, "LayerUsage: nodes on a layer are found in every scene of the project")
+{
+    Scene other{EngineServices::none()};
+    other.createRoot<Node3D>("Root").addChild<Node3D>("Enemy").setLayer(3);
+    REQUIRE(serializer.save(other, directory / "other.yscene"));
+
+    Input input;
+    EngineServices services{input, registry};
+    EditorSession session(services, serializer);
+    REQUIRE(session.open(open()));
+    session.project()->resources().add("other.yscene");
+    // Открытая сцена считается с несохранёнными правками.
+    session.scene().root()->setLayer(3);
+
+    const LayerUsage usage = layerUsage(session, 3);
+    CHECK(usage.nodes == 2);
+    CHECK(usage.scenes.size() == 2);
+    CHECK(layerUsage(session, 4).nodes == 0);
+
+    const std::vector<std::string> before{"Default", "A", "", "B"};
+    const std::vector<std::string> after{"Default", "", "", "B"};
+    CHECK(clearedLayers(before, after) == std::vector<int>{1});
 }

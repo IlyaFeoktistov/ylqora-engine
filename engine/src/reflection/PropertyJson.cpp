@@ -27,6 +27,27 @@ std::optional<PropertyValue> enumFromJson(const Json& json, const Property& prop
     return EnumValue{static_cast<int>(it - names.begin())};
 }
 
+std::optional<PropertyValue> fromJson(const Json& json, PropertyType type, const Property& property);
+
+// Элементы списка того типа, что у свойства; один неверный элемент портит весь список.
+std::optional<PropertyValue> listFromJson(const Json& json, const Property& property)
+{
+    if (!json.is_array()) {
+        return std::nullopt;
+    }
+    ListValue list;
+    list.items.reserve(json.size());
+    for (const Json& item : json) {
+        auto value = fromJson(item, property.elementType(), property);
+        if (!value) {
+            return std::nullopt;
+        }
+        list.items.push_back(std::move(*value));
+    }
+
+    return list;
+}
+
 } // namespace
 
 Json valueToJson(const Property& property, const PropertyValue& value)
@@ -47,6 +68,13 @@ Json valueToJson(const Property& property, const PropertyValue& value)
                 return v.value;
             } else if constexpr (std::is_same_v<T, NodeRef> || std::is_same_v<T, ResourceRef>) {
                 return idToJson(v.id);
+            } else if constexpr (std::is_same_v<T, ListValue>) {
+                Json items = Json::array();
+                for (const PropertyValue& item : v.items) {
+                    items.push_back(valueToJson(property, item));
+                }
+
+                return items;
             } else {
                 return Json(v);
             }
@@ -57,7 +85,14 @@ Json valueToJson(const Property& property, const PropertyValue& value)
 
 std::optional<PropertyValue> valueFromJson(const Json& json, const Property& property)
 {
-    switch (property.type()) {
+    return fromJson(json, property.type(), property);
+}
+
+namespace {
+
+std::optional<PropertyValue> fromJson(const Json& json, PropertyType type, const Property& property)
+{
+    switch (type) {
     case PropertyType::Bool:
         if (json.is_boolean()) {
             return json.get<bool>();
@@ -92,9 +127,12 @@ std::optional<PropertyValue> valueFromJson(const Json& json, const Property& pro
             return ResourceRef{*id};
         }
         break;
+    case PropertyType::List: return listFromJson(json, property);
     }
 
     return std::nullopt;
 }
+
+} // namespace
 
 } // namespace yqlora

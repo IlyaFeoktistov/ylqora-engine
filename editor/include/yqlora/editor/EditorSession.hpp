@@ -119,6 +119,11 @@ public:
     // Типы, которые знает сессия: те же, что у её сериализатора.
     const TypeRegistry& registry() const;
 
+    const SceneSerializer& serializer() const
+    {
+        return m_serializer;
+    }
+
     // Открывает проект и его стартовую сцену. Если сцена не читается, проект
     // всё равно открывается с пустой сценой, а метод возвращает false.
     bool open(Project project);

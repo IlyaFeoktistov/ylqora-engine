@@ -198,13 +198,20 @@ public:
         const auto set = [setter](Root& object, const PropertyValue& value) {
             std::invoke(setter, static_cast<Class&>(object), Storage::load(std::get<Stored>(value)));
         };
-        if constexpr (std::same_as<Root, Node>) {
-            return property(Property::forNode(std::move(name), type, get, set, hint));
-        } else if constexpr (std::same_as<Root, Component>) {
-            return property(Property::forComponent(std::move(name), type, get, set, hint));
-        } else {
-            return property(Property::forSettings(std::move(name), type, get, set, hint));
+        Property built = [&] {
+            if constexpr (std::same_as<Root, Node>) {
+                return Property::forNode(std::move(name), type, get, set, hint);
+            } else if constexpr (std::same_as<Root, Component>) {
+                return Property::forComponent(std::move(name), type, get, set, hint);
+            } else {
+                return Property::forSettings(std::move(name), type, get, set, hint);
+            }
+        }();
+        if constexpr (kIsListProperty<Value>) {
+            built.setElementType(propertyTypeOf<typename Value::value_type>());
         }
+
+        return property(std::move(built));
     }
 
     // Свойство-поле, когда getter и setter не нужны: .property("radius", &SphereShape::radius);

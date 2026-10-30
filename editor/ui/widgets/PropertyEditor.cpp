@@ -1,5 +1,6 @@
 #include "widgets/PropertyEditor.hpp"
 
+#include "style/Icons.hpp"
 #include "style/Theme.hpp"
 #include "widgets/Checkbox.hpp"
 
@@ -21,6 +22,7 @@
 #include <algorithm>
 #include <bit>
 #include <cctype>
+#include <optional>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -31,6 +33,9 @@ namespace {
 
 constexpr float kFastFactor = 10.0f; // с Shift
 constexpr float kSlowFactor = 0.1f;  // с Ctrl
+
+// Значение элемента и кнопка его удаления.
+constexpr int kListColumnCount = 2;
 
 // Сколько меняется значение за точку движения мыши.
 constexpr float kAngleDragSpeed = 0.5f;
@@ -162,30 +167,61 @@ bool sceneCombo(ResourceRef& value, const ResourceDatabase* resources)
     return changed;
 }
 
-// Подпись слоя. Пока номер: имена слоёв придут с настройками проекта.
-std::string layerLabel(int layer)
+// Имя слоя, а у слоя без имени - номер.
+std::string layerLabel(int layer, std::span<const std::string> names)
 {
-    return std::to_string(layer);
+    const auto index = static_cast<std::size_t>(layer);
+
+    return index < names.size() && !names[index].empty() ? names[index] : std::to_string(layer);
 }
 
-bool layerCombo(int& layer)
+// Слой без имени не используется и в списках не показывается, если он не выбран
+// сейчас. Без проекта имён нет вовсе, тогда видны все.
+bool layerListed(int layer, std::span<const std::string> names, bool selected)
+{
+    const auto index = static_cast<std::size_t>(layer);
+
+    return selected || names.empty() || (index < names.size() && !names[index].empty());
+}
+
+// Последний пункт списков слоёв. Вызывается внутри открытого списка.
+void editLayersItem(const PropertyEditorContext& context, bool& requested)
+{
+    if (!context.editLayers) {
+        return;
+    }
+    ImGui::Separator();
+    if (ImGui::Selectable(tr("editor.layers.edit").c_str())) {
+        requested = true;
+    }
+}
+
+bool layerCombo(int& layer, const PropertyEditorContext& context)
 {
     bool changed = false;
+    bool editRequested = false;
     ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::BeginCombo("##value", layerLabel(layer).c_str())) {
+    if (ImGui::BeginCombo("##value", layerLabel(layer, context.layerNames).c_str())) {
         for (int i = 0; i < kLayerCount; ++i) {
-            if (ImGui::Selectable(layerLabel(i).c_str(), i == layer)) {
+            if (!layerListed(i, context.layerNames, i == layer)) {
+                continue;
+            }
+            if (ImGui::Selectable(layerLabel(i, context.layerNames).c_str(), i == layer)) {
                 layer = i;
                 changed = true;
             }
         }
+        editLayersItem(context, editRequested);
         ImGui::EndCombo();
+    }
+    if (editRequested) {
+        context.editLayers();
     }
 
     return changed;
 }
 
-std::string maskPreview(LayerMask mask)
+std::string maskPreview(LayerMask mask, std::span<const std::string> names)
 {
     if (mask == kAllLayers) {
         return tr("editor.layers.everything");
@@ -196,7 +232,7 @@ std::string maskPreview(LayerMask mask)
     std::string result;
     for (int i = 0; i < kLayerCount; ++i) {
         if (inMask(mask, i)) {
-            result += (result.empty() ? "" : ", ") + layerLabel(i);
+            result += (result.empty() ? "" : ", ") + layerLabel(i, names);
         }
     }
 
@@ -204,12 +240,13 @@ std::string maskPreview(LayerMask mask)
 }
 
 // Маска хранится в int с теми же битами, см. PropertyStorage<std::uint32_t>.
-bool layerMaskCombo(int& stored, float checkboxPadding)
+bool layerMaskCombo(int& stored, const PropertyEditorContext& context)
 {
     auto mask = std::bit_cast<LayerMask>(stored);
     bool changed = false;
+    bool editRequested = false;
     ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::BeginCombo("##value", maskPreview(mask).c_str())) {
+    if (ImGui::BeginCombo("##value", maskPreview(mask, context.layerNames).c_str())) {
         if (ImGui::Selectable(tr("editor.layers.everything").c_str(), mask == kAllLayers)) {
             mask = kAllLayers;
             changed = true;
@@ -221,16 +258,42 @@ bool layerMaskCombo(int& stored, float checkboxPadding)
         ImGui::Separator();
         for (int i = 0; i < kLayerCount; ++i) {
             bool on = inMask(mask, i);
+            if (!layerListed(i, context.layerNames, on)) {
+                continue;
+            }
             ImGui::PushID(i);
-            if (checkbox(layerLabel(i).c_str(), &on, checkboxPadding)) {
+            if (checkbox(layerLabel(i, context.layerNames).c_str(), &on, context.metrics.checkboxPadding)) {
                 mask ^= LayerMask{1} << i;
                 changed = true;
             }
             ImGui::PopID();
         }
+        editLayersItem(context, editRequested);
         ImGui::EndCombo();
     }
     stored = std::bit_cast<int>(mask);
+    if (editRequested) {
+        context.editLayers();
+    }
+
+    return changed;
+}
+
+// Имена слоёв по номеру: число строк постоянное, слой 0 не переименовывается.
+bool layerNamesField(ListValue& list)
+{
+    bool changed = false;
+    for (std::size_t i = 0; i < list.items.size(); ++i) {
+        ImGui::PushID(static_cast<int>(i));
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextDisabled("%2zu", i);
+        ImGui::SameLine();
+        ImGui::BeginDisabled(i == 0);
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        changed = ImGui::InputText("##name", &std::get<std::string>(list.items[i])) || changed;
+        ImGui::EndDisabled();
+        ImGui::PopID();
+    }
 
     return changed;
 }
@@ -321,21 +384,68 @@ void rowLabel(const Property& property, PropertyValue& value, PropertyResult& re
 
 void valueField(
     const Property& property,
+    PropertyType type,
+    PropertyValue& value,
+    const PropertyEditorContext& context,
+    PropertyResult& result
+);
+
+// Элементы списка друг под другом, у каждого кнопка удаления, внизу кнопка добавления.
+// Подсказка свойства относится к элементам: список цветов показывается цветами.
+void listField(const Property& property, ListValue& list, const PropertyEditorContext& context, PropertyResult& result)
+{
+    if (property.hint() == PropertyHint::LayerNames) {
+        result.changed = layerNamesField(list) || result.changed;
+
+        return;
+    }
+
+    std::optional<std::size_t> removed;
+    if (!list.items.empty() && ImGui::BeginTable("items", kListColumnCount)) {
+        ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("remove", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFrameHeight());
+        for (std::size_t i = 0; i < list.items.size(); ++i) {
+            ImGui::PushID(static_cast<int>(i));
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            valueField(property, property.elementType(), list.items[i], context, result);
+            ImGui::TableNextColumn();
+            if (ImGui::Button(icons::kDelete)) {
+                removed = i;
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndTable();
+    }
+    if (removed) {
+        list.items.erase(list.items.begin() + static_cast<std::ptrdiff_t>(*removed));
+        result.changed = true;
+    }
+    const std::string add = std::string(icons::kAdd) + " " + tr("editor.inspector.addItem");
+    if (ImGui::Button(add.c_str(), ImVec2(-FLT_MIN, 0.0f))) {
+        list.items.push_back(defaultPropertyValue(property.elementType()));
+        result.changed = true;
+    }
+}
+
+void valueField(
+    const Property& property,
+    PropertyType type,
     PropertyValue& value,
     const PropertyEditorContext& context,
     PropertyResult& result
 )
 {
     const float speed = dragSpeed(property);
-    switch (property.type()) {
+    switch (type) {
     case PropertyType::Bool:
         result.changed = checkbox("##value", &std::get<bool>(value), context.metrics.checkboxPadding) || result.changed;
         break;
     case PropertyType::Int:
         if (property.hint() == PropertyHint::Layer) {
-            result.changed = layerCombo(std::get<int>(value)) || result.changed;
+            result.changed = layerCombo(std::get<int>(value), context) || result.changed;
         } else if (property.hint() == PropertyHint::Layers) {
-            result.changed = layerMaskCombo(std::get<int>(value), context.metrics.checkboxPadding) || result.changed;
+            result.changed = layerMaskCombo(std::get<int>(value), context) || result.changed;
         } else {
             ImGui::SetNextItemWidth(-FLT_MIN);
             result.changed = ImGui::DragInt("##value", &std::get<int>(value)) || result.changed;
@@ -374,6 +484,7 @@ void valueField(
             ImGui::TextUnformatted(resourceLabel(std::get<ResourceRef>(value), context.resources).c_str());
         }
         break;
+    case PropertyType::List: listField(property, std::get<ListValue>(value), context, result); break;
     }
 }
 
@@ -388,7 +499,7 @@ PropertyResult drawPropertyRow(const Property& property, Object& object, const P
     ImGui::TableNextColumn();
     rowLabel(property, value, result);
     ImGui::TableNextColumn();
-    valueField(property, value, context, result);
+    valueField(property, property.type(), value, context, result);
     ImGui::PopID();
 
     result.value = std::move(value);

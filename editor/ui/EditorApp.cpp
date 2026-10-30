@@ -69,9 +69,14 @@ EditorContext EditorApp::context()
         .theme = m_theme,
         .settings = *m_settings,
         .deltaSeconds = m_deltaSeconds,
-        .openScene = [this](const std::filesystem::path& path) {
-            openScene(path);
-        },
+        .openScene =
+            [this](const std::filesystem::path& path) {
+                openScene(path);
+            },
+        .openProjectSettings =
+            [this](std::string_view section) {
+                m_projectSettings->open(section);
+            },
     };
 }
 

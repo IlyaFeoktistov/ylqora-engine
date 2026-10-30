@@ -43,9 +43,23 @@ struct ResourceRef {
     bool operator==(const ResourceRef&) const = default;
 };
 
+struct ListValue;
+
 // Значение свойства, которое умеют показывать инспектор и сохранять файлы сцен.
 // Порядок типов совпадает с PropertyType.
-using PropertyValue = std::variant<bool, int, float, std::string, Vec2, Vec3, Vec4, EnumValue, NodeRef, ResourceRef>;
+using PropertyValue = std::
+    variant<bool, int, float, std::string, Vec2, Vec3, Vec4, EnumValue, NodeRef, ResourceRef, ListValue>;
+
+// Список значений одного типа (Property::elementType). Элементы - тоже
+// PropertyValue, поэтому список может хранить значения любого типа свойства.
+struct ListValue {
+    std::vector<PropertyValue> items;
+};
+
+inline bool operator==(const ListValue& a, const ListValue& b)
+{
+    return a.items == b.items;
+}
 
 enum class PropertyType {
     Bool,
@@ -58,9 +72,10 @@ enum class PropertyType {
     Enum,
     Node,
     Resource,
+    List,
 };
 
-static_assert(std::variant_size_v<PropertyValue> == 10, "PropertyType must list every PropertyValue type");
+static_assert(std::variant_size_v<PropertyValue> == 11, "PropertyType must list every PropertyValue type");
 
 // Как значение типа C++ хранится в PropertyValue. Обычно как есть,
 // а любое перечисление C++ - как EnumValue.
@@ -141,6 +156,41 @@ struct PropertyStorage<T*> {
     }
 };
 
+// std::vector - как ListValue, каждый элемент хранится как свой тип.
+template <typename T>
+struct PropertyStorage<std::vector<T>> {
+    using Type = ListValue;
+    using Element = PropertyStorage<T>;
+
+    static ListValue store(const std::vector<T>& values)
+    {
+        ListValue list;
+        list.items.reserve(values.size());
+        for (const T& value : values) {
+            list.items.emplace_back(std::in_place_type<typename Element::Type>, Element::store(value));
+        }
+
+        return list;
+    }
+
+    static std::vector<T> load(const ListValue& list)
+    {
+        std::vector<T> values;
+        values.reserve(list.items.size());
+        for (const PropertyValue& item : list.items) {
+            values.push_back(Element::load(std::get<typename Element::Type>(item)));
+        }
+
+        return values;
+    }
+};
+
+template <typename T>
+inline constexpr bool kIsListProperty = false;
+
+template <typename T>
+inline constexpr bool kIsListProperty<std::vector<T>> = true;
+
 namespace detail {
 
 template <typename T, typename Variant>
@@ -176,15 +226,20 @@ constexpr PropertyType propertyTypeOf()
     return static_cast<PropertyType>(detail::VariantIndex<Stored, PropertyValue>::value);
 }
 
+// Значение по умолчанию для типа: false, 0, пустая строка, пустая ссылка,
+// пустой список. Например, новый элемент списка в редакторе.
+YQLORA_API PropertyValue defaultPropertyValue(PropertyType type);
+
 // Как показывать свойство в инспекторе, если обычного поля для его типа мало.
 enum class PropertyHint {
     None,
-    Color,  // Vec4 как цвет RGBA с палитрой
-    Mesh,   // ссылка на ресурс меша: выбор из доступных мешей
-    Angle,  // градусы: при перетаскивании значение меняется медленнее
-    Layer,  // int: один слой узла из списка
-    Layers, // int: набор слоёв (LayerMask), флажок на каждый
-    Scene,  // ссылка на ресурс сцены: выбор из сцен проекта
+    Color,      // Vec4 как цвет RGBA с палитрой
+    Mesh,       // ссылка на ресурс меша: выбор из доступных мешей
+    Angle,      // градусы: при перетаскивании значение меняется медленнее
+    Layer,      // int: один слой узла из списка
+    Layers,     // int: набор слоёв (LayerMask), флажок на каждый
+    Scene,      // ссылка на ресурс сцены: выбор из сцен проекта
+    LayerNames, // список строк: имена слоёв по номеру, длина постоянная, слой 0 не меняется
 };
 
 // Свойство узла, компонента или раздела настроек проекта: имя, тип и доступ к значению. Доступ к
@@ -238,6 +293,12 @@ public:
         return m_hint;
     }
 
+    // Тип элементов списка (PropertyType::List). У остальных типов не важен.
+    PropertyType elementType() const
+    {
+        return m_elementType;
+    }
+
     // Имена значений перечисления по порядку. Пусто у остальных типов.
     const std::vector<std::string>& enumNames() const
     {
@@ -249,6 +310,9 @@ public:
     PropertyValue get(const Component& component) const;
     PropertyValue get(const SettingsSection& section) const;
 
+    // Значение того типа, что у свойства; у списка - и элементы того типа.
+    bool accepts(const PropertyValue& value) const;
+
     // false, если тип значения не совпадает с типом свойства.
     bool set(Node& node, const PropertyValue& value) const;
     bool set(Component& component, const PropertyValue& value) const;
@@ -257,12 +321,16 @@ public:
     // Имена значений перечисления по порядку, см. enumNames.
     void setEnumNames(std::vector<std::string> names);
 
+    // Тип элементов списка, см. elementType.
+    void setElementType(PropertyType type);
+
 private:
     Property() = default;
 
     std::string m_name;
     PropertyType m_type = PropertyType::Bool;
     PropertyHint m_hint = PropertyHint::None;
+    PropertyType m_elementType = PropertyType::Bool;
     std::vector<std::string> m_enumNames;
     // Своё у каждого вида объектов: объект одного вида не передать свойству другого.
     NodeGetter m_nodeGet;

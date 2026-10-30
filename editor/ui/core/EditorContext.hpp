@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <string_view>
 
 namespace yqlora {
 
@@ -31,6 +32,8 @@ struct EditorContext {
 
     // Открыть сцену проекта. Сначала спросит про несохранённые изменения в текущей.
     std::function<void(const std::filesystem::path&)> openScene;
+    // Открыть окно настроек проекта на разделе (имя типа раздела).
+    std::function<void(std::string_view section)> openProjectSettings;
 
     // Панель ставит, если в этом кадре курсору нужен перенос у края окна:
     // летит камера или тянут значение.

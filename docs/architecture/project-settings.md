@@ -45,7 +45,7 @@ never go into the project.
 | Time | fixed time step, longest frame; read every frame by the scene and the frame loop, so an edit applies at once, in Play too | **[done]** |
 | Input | actions and axes, their bindings to keys, mouse buttons, gamepad | **[next]** |
 | Execution Order | order of component types inside every lifecycle phase, overriding the default from code (see [scene](scene.md)) | **[next]** |
-| Layers | names of the 32 node layers used by camera masks and physics | **[next]** |
+| Layers | names of the 32 node layers used by camera masks and physics | **[done]** |
 | Graphics | graphics API per platform (OpenGL; Vulkan and D3D12 come with the RHI), vsync | **[next]** |
 | Scripts | C++ build: compiler, configuration; Luau later | **[planned, step 3]** |
 | Physics | gravity, layers, collision matrix | **[planned, step 6]** |
@@ -120,15 +120,23 @@ As Tags and Layers in Unity:
   appear in the lists.
 - A node and a camera mask store layer numbers, so renaming a layer changes
   nothing in scenes. Clearing the name of a layer still in use asks first and
-  leaves the nodes on it.
+  leaves the nodes on it. Nodes are looked for in every scene of the project
+  (the open one with its unsaved edits, the others from their files); camera
+  masks do not count, the mask "Everything" covers unnamed layers too.
 - The layer list in the inspector and the culling mask show the names and end
-  with "Edit layers...", which opens this section.
+  with "Edit layers...", which opens this section. A layer without a name is
+  still shown while it is selected, by its number.
+- `LayerSettings` (scene/) holds exactly 32 names; the editor shows them as
+  fixed rows, the `Default` row disabled **[done]**.
 - Physics (step 6) takes the same layers for its collision matrix.
 
 ## What the registry needs
 
-- List properties (actions, bindings, layers): today a property holds one
-  value only.
+- List properties (actions, bindings, layers): `PropertyType::List` with an
+  element type, any property type except a list; `std::vector<T>` fields
+  register as lists, JSON writes them as arrays, the inspector as rows with
+  add and remove **[done]**. Records (an action with a name, a kind and its
+  bindings) come as one more element type with the input actions.
 - A binding property type (key, mouse button, gamepad input) with its editor
   widget: press to capture.
 - The settings kind (`TypeKind::Settings`) and its builder **[done]**.

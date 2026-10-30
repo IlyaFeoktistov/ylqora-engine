@@ -6,6 +6,7 @@ add_library(yqlora_editor STATIC
     src/EditorSession.cpp
     src/EditorSettings.cpp
     src/Inspection.cpp
+    src/LayerUsage.cpp
     src/PlayMode.cpp
     src/ResourceLabel.cpp
     src/SceneDocument.cpp
@@ -55,6 +56,7 @@ add_library(yqlora_editor_ui STATIC
     ui/style/Theme.cpp
     ui/widgets/Checkbox.cpp
     ui/widgets/PlayFrame.cpp
+    ui/widgets/PropertyContext.cpp
     ui/widgets/PropertyEditor.cpp
     ui/widgets/PropertyTable.cpp
     ui/widgets/RenderView.cpp

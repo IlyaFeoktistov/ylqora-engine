@@ -1,6 +1,6 @@
 #include "panels/InspectorPanel.hpp"
 
-#include "style/Theme.hpp"
+#include "widgets/PropertyContext.hpp"
 #include "widgets/PropertyTable.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
@@ -156,12 +156,7 @@ void InspectorPanel::draw(EditorContext& context)
         return;
     }
 
-    const PropertyEditorContext widgets{
-        .colors = context.theme.colors(),
-        .metrics = context.theme.metrics(),
-        .scene = session.scene(),
-        .resources = session.project() ? &session.project()->resources() : nullptr,
-    };
+    const PropertyEditorContext widgets = propertyEditorContext(context);
     ImGui::TextDisabled("%s", inspection->type.name().c_str());
     ImGui::SetItemTooltip("%s", tr(inspection->type.descriptionKey()).c_str());
     drawCameraRole(session, *inspection);

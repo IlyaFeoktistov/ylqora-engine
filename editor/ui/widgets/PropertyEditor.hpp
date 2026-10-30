@@ -2,6 +2,9 @@
 
 #include "yqlora/reflection/Property.hpp"
 
+#include <functional>
+#include <span>
+
 #include <string>
 
 namespace yqlora {
@@ -42,6 +45,11 @@ struct PropertyEditorContext {
     const Scene& scene;
     // Ресурсы проекта для ссылок на ресурсы. nullptr, если проекта нет.
     const ResourceDatabase* resources = nullptr;
+    // Имена слоёв по номеру (LayerSettings). Пусто без проекта: слои показываются номерами.
+    std::span<const std::string> layerNames;
+    // Открыть раздел Layers настроек проекта: пункт "Изменить слои..." в
+    // списках слоёв. Пусто - пункта нет.
+    std::function<void()> editLayers;
 };
 
 PropertyResult drawProperty(const Property& property, Node& node, const PropertyEditorContext& context);
