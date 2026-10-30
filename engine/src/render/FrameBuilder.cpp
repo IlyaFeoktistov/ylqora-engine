@@ -1,9 +1,9 @@
 #include "yqlora/render/FrameBuilder.hpp"
 
+#include "yqlora/render/Camera3D.hpp"
 #include "yqlora/render/MeshData.hpp"
-#include "yqlora/scene/Camera3D.hpp"
-#include "yqlora/scene/MeshRenderer.hpp"
-#include "yqlora/scene/RenderSystem.hpp"
+#include "yqlora/render/MeshRenderer.hpp"
+#include "yqlora/render/RenderSystem.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 namespace yqlora {

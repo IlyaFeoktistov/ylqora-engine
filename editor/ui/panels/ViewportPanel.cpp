@@ -13,8 +13,8 @@
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/editor/EditorSettings.hpp"
 #include "yqlora/i18n/Translate.hpp"
+#include "yqlora/render/Camera3D.hpp"
 #include "yqlora/render/FrameBuilder.hpp"
-#include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <imgui.h>

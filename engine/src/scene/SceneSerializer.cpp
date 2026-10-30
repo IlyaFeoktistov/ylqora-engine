@@ -8,7 +8,6 @@
 #include "yqlora/reflection/ComponentRules.hpp"
 #include "yqlora/reflection/PropertyJson.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
-#include "yqlora/scene/Camera3D.hpp"
 #include "yqlora/scene/NodeTree.hpp"
 #include "yqlora/scene/Scene.hpp"
 

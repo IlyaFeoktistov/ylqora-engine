@@ -1,10 +1,11 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/input/Input.hpp>
 #include <yqlora/platform/InputFeeder.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
-#include <yqlora/scene/Camera3D.hpp>
+#include <yqlora/render/Camera3D.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 

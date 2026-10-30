@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/editor/ProjectManager.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>

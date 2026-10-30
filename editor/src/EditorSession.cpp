@@ -5,7 +5,7 @@
 #include "yqlora/core/Log.hpp"
 #include "yqlora/reflection/ComponentRules.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
-#include "yqlora/scene/Camera3D.hpp"
+#include "yqlora/scene/Node3D.hpp"
 #include "yqlora/scene/NodeTree.hpp"
 #include "yqlora/scene/Scene.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"

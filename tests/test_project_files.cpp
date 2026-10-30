@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/ProjectFiles.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>

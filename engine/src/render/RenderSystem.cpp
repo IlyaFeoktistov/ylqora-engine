@@ -1,6 +1,6 @@
-#include "yqlora/scene/RenderSystem.hpp"
+#include "yqlora/render/RenderSystem.hpp"
 
-#include "yqlora/scene/Camera3D.hpp"
+#include "yqlora/render/Camera3D.hpp"
 
 #include <algorithm>
 

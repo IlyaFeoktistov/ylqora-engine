@@ -1,6 +1,6 @@
-#include "yqlora/scene/Camera3D.hpp"
+#include "yqlora/render/Camera3D.hpp"
 
-#include "yqlora/scene/RenderSystem.hpp"
+#include "yqlora/render/RenderSystem.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>

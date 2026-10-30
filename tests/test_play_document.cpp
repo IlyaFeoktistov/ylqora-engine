@@ -1,5 +1,6 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/editor/PlayMode.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
 #include <yqlora/editor/SceneDocument.hpp>

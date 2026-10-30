@@ -1,10 +1,12 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
+#include <yqlora/render/Camera3D.hpp>
 #include <yqlora/render/FrameBuilder.hpp>
 #include <yqlora/render/MeshData.hpp>
-#include <yqlora/scene/Camera3D.hpp>
-#include <yqlora/scene/MeshRenderer.hpp>
+#include <yqlora/render/MeshRenderer.hpp>
+#include <yqlora/resource/BuiltinResources.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 
@@ -54,7 +56,9 @@ TEST_CASE("FrameBuilder: every Node3D with a MeshRenderer and a known mesh becom
 
     auto& cube = root.addChild<Node3D>("Cube");
     cube.transform().setPosition({2.0f, 0.0f, 0.0f});
-    cube.addComponent<MeshRenderer>().setColor({1.0f, 0.0f, 0.0f, 1.0f});
+    auto& cubeRenderer = cube.addComponent<MeshRenderer>();
+    cubeRenderer.setMesh(ResourceRef{builtin::kCubeMesh});
+    cubeRenderer.setColor({1.0f, 0.0f, 0.0f, 1.0f});
 
     auto& unknown = root.addChild<Node3D>("Unknown");
     unknown.addComponent<MeshRenderer>().setMesh(ResourceRef{123456});

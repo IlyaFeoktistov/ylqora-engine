@@ -1,7 +1,7 @@
 #include <doctest/doctest.h>
 
 #include <yqlora/core/Utf8Path.hpp>
-#include <yqlora/scene/MeshRenderer.hpp>
+#include <yqlora/render/MeshRenderer.hpp>
 #include <yqlora/scene/Node3D.hpp>
 #include <yqlora/scene/NodeTree.hpp>
 

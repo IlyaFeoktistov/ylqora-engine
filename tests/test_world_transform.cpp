@@ -1,6 +1,7 @@
 #include <doctest/doctest.h>
 
 #include <yqlora/core/EngineServices.hpp>
+#include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/input/Input.hpp>
 #include <yqlora/math/Euler.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>

@@ -7,7 +7,7 @@
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/render/FrameBuilder.hpp"
-#include "yqlora/scene/RenderSystem.hpp"
+#include "yqlora/render/RenderSystem.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <imgui.h>

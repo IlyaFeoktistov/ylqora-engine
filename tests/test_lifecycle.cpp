@@ -3,11 +3,12 @@
 #include <doctest/doctest.h>
 
 #include <yqlora/core/EngineServices.hpp>
+#include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/input/Input.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
-#include <yqlora/scene/Camera3D.hpp>
+#include <yqlora/render/Camera3D.hpp>
+#include <yqlora/render/RenderSystem.hpp>
 #include <yqlora/scene/Node3D.hpp>
-#include <yqlora/scene/RenderSystem.hpp>
 #include <yqlora/scene/Scene.hpp>
 
 #include <functional>

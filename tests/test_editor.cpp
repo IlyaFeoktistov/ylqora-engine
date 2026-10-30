@@ -4,8 +4,9 @@
 #include <yqlora/editor/Picking.hpp>
 #include <yqlora/editor/Selection.hpp>
 #include <yqlora/platform/InputFeeder.hpp>
-#include <yqlora/scene/Camera3D.hpp>
-#include <yqlora/scene/MeshRenderer.hpp>
+#include <yqlora/render/Camera3D.hpp>
+#include <yqlora/render/MeshRenderer.hpp>
+#include <yqlora/resource/BuiltinResources.hpp>
 #include <yqlora/scene/Scene.hpp>
 
 using namespace yqlora;
@@ -136,7 +137,7 @@ TEST_CASE("Picking: scale and rotation of the node are taken into account")
 {
     Scene scene{EngineServices::none()};
     auto& cube = scene.createRoot<Node3D>();
-    cube.addComponent<MeshRenderer>();
+    cube.addComponent<MeshRenderer>().setMesh(ResourceRef{builtin::kCubeMesh});
     cube.transform().setPosition({0.0f, 0.0f, -5.0f});
     cube.transform().setScale({4.0f, 1.0f, 1.0f});
 

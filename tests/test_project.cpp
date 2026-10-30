@@ -1,12 +1,13 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/core/Version.hpp>
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/ProjectList.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
 #include <yqlora/project/Project.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
-#include <yqlora/scene/Camera3D.hpp>
+#include <yqlora/render/Camera3D.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 

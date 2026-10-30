@@ -1,12 +1,5 @@
 #include "yqlora/reflection/TypeRegistry.hpp"
 
-#include "yqlora/scene/Camera3D.hpp"
-#include "yqlora/scene/MeshRenderer.hpp"
-#include "yqlora/scene/Node3D.hpp"
-#include "yqlora/scene/RenderSystem.hpp"
-#include "yqlora/scene/Transform3D.hpp"
-#include "yqlora/scene/TransformSystem3D.hpp"
-
 #include <cassert>
 #include <ranges>
 
@@ -106,51 +99,6 @@ std::size_t TypeRegistry::removeModule(std::string_view module)
     });
 
     return std::erase_if(m_types, inModule);
-}
-
-void registerEngineTypes(TypeRegistry& registry)
-{
-    registry.registerNode<Node>()
-        .property("name", &Node::name, &Node::setName)
-        .property("active", &Node::active, &Node::setActive)
-        .property("layer", &Node::layer, &Node::setLayer, PropertyHint::Layer)
-        .method("findChild", &Node::findChild, {{"name"}});
-
-    registry.registerComponent<Component>().property("enabled", &Component::enabled, &Component::setEnabled);
-
-    registry.registerNode<Node3D>()
-        .method("worldPosition", &Node3D::worldPosition)
-        .method("setWorldPosition", &Node3D::setWorldPosition, {{"position"}})
-        .method("toWorld", &Node3D::toWorld, {{"localPoint"}})
-        .method("toLocal", &Node3D::toLocal, {{"worldPoint"}})
-        .method("worldForward", &Node3D::worldForward)
-        .method("worldRight", &Node3D::worldRight)
-        .method("worldUp", &Node3D::worldUp);
-
-    registry.registerNode<Camera3D>()
-        .property("fov", &Camera3D::fovDegrees, &Camera3D::setFovDegrees, PropertyHint::Angle)
-        .property("near", &Camera3D::nearPlane, &Camera3D::setNearPlane)
-        .property("far", &Camera3D::farPlane, &Camera3D::setFarPlane)
-        .property("order", &Camera3D::order, &Camera3D::setOrder)
-        .property("cullingMask", &Camera3D::cullingMask, &Camera3D::setCullingMask, PropertyHint::Layers)
-        .property("clear", &Camera3D::clear, &Camera3D::setClear)
-        .enumNames({"ColorAndDepth", "DepthOnly", "Nothing"})
-        .property("background", &Camera3D::background, &Camera3D::setBackground, PropertyHint::Color);
-
-    registry.registerComponent<Transform3D>()
-        .property("position", &Transform3D::position, &Transform3D::setPosition)
-        .property("rotation", &Transform3D::rotationDegrees, &Transform3D::setRotationDegrees, PropertyHint::Angle)
-        .property("scale", &Transform3D::scale, &Transform3D::setScale)
-        .method("lookAt", &Transform3D::lookAt, {{"target"}, {"up", math::kWorldUp}});
-
-    registry.registerComponent<MeshRenderer>()
-        .requiresNode<Node3D>()
-        .property("mesh", &MeshRenderer::mesh, &MeshRenderer::setMesh, PropertyHint::Mesh)
-        .property("color", &MeshRenderer::color, &MeshRenderer::setColor, PropertyHint::Color);
-
-    registry.registerSystem<SceneSystem>();
-    registry.registerSystem<TransformSystem3D>();
-    registry.registerSystem<RenderSystem>();
 }
 
 } // namespace yqlora

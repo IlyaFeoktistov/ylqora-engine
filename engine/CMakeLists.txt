@@ -18,6 +18,7 @@ target_compile_definitions(yqlora_engine_code INTERFACE
 add_library(yqlora SHARED
     src/core/Application.cpp
     src/core/EngineServices.cpp
+    src/core/EngineTypes.cpp
     src/core/FileFormat.cpp
     src/core/FrameClock.cpp
     src/core/FrameLoop.cpp
@@ -39,13 +40,12 @@ add_library(yqlora SHARED
     src/scene/Component.cpp
     src/scene/Transform3D.cpp
     src/scene/Node3D.cpp
-    src/scene/Camera3D.cpp
     src/scene/PhaseList.cpp
     src/scene/Scene.cpp
-    src/scene/RenderSystem.cpp
     src/scene/SceneSystem.cpp
     src/scene/TransformSystem3D.cpp
     src/scene/SceneSerializer.cpp
+    src/scene/SceneTypes.cpp
     src/project/Project.cpp
     src/reflection/ComponentRules.cpp
     src/reflection/Method.cpp
@@ -54,8 +54,11 @@ add_library(yqlora SHARED
     src/reflection/TypeBuilder.cpp
     src/reflection/TypeInfo.cpp
     src/reflection/TypeRegistry.cpp
+    src/render/Camera3D.cpp
     src/render/FrameBuilder.cpp
     src/render/MeshData.cpp
+    src/render/RenderSystem.cpp
+    src/render/RenderTypes.cpp
     src/render/RendererFactory.cpp
     src/resource/ResourceDatabase.cpp
 )

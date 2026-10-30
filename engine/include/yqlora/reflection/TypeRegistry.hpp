@@ -25,7 +25,7 @@ namespace yqlora {
 
 // Список типов узлов и компонентов, доступных редактору и файлам сцен.
 // Базовый тип регистрируется раньше наследника. Типы движка добавляет
-// registerEngineTypes(), игра регистрирует свои в своём модуле (см. ModuleScope).
+// registerEngineTypes() (core/EngineTypes.hpp), игра регистрирует свои в своём модуле (см. ModuleScope).
 class YQLORA_API TypeRegistry {
 public:
     // Модуль типов самого движка. Функция, а не константа: см. YQLORA_TYPE.
@@ -170,9 +170,5 @@ private:
     std::map<std::type_index, TypeInfo*> m_byCppType;
     std::string m_module{engineModule()};
 };
-
-// Типы движка: Node, Node3D, Camera3D, Component, Transform3D, MeshRenderer,
-// SceneSystem, TransformSystem3D, RenderSystem.
-YQLORA_API void registerEngineTypes(TypeRegistry& registry);
 
 } // namespace yqlora

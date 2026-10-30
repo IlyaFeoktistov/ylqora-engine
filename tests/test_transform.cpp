@@ -1,6 +1,6 @@
 #include <doctest/doctest.h>
 
-#include <yqlora/scene/Camera3D.hpp>
+#include <yqlora/render/Camera3D.hpp>
 #include <yqlora/scene/Node3D.hpp>
 
 using namespace yqlora;

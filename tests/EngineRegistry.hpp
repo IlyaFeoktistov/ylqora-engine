@@ -1,5 +1,6 @@
 #pragma once
 
+#include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 
 namespace yqlora::test {

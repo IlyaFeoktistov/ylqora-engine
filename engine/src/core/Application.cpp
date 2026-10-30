@@ -1,5 +1,6 @@
 #include "yqlora/core/Application.hpp"
 
+#include "yqlora/core/EngineTypes.hpp"
 #include "yqlora/core/FrameLoop.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/LogSettings.hpp"

@@ -1,8 +1,9 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/core/EngineTypes.hpp>
 #include <yqlora/i18n/Localization.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
-#include <yqlora/scene/Camera3D.hpp>
+#include <yqlora/render/Camera3D.hpp>
 #include <yqlora/scene/Node3D.hpp>
 
 #include <string>

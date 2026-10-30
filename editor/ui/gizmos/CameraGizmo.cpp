@@ -3,7 +3,7 @@
 #include "style/Theme.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
-#include "yqlora/scene/Camera3D.hpp"
+#include "yqlora/render/Camera3D.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <array>

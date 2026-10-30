@@ -4,9 +4,9 @@
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/editor/ProjectFiles.hpp"
+#include "yqlora/render/Camera3D.hpp"
+#include "yqlora/render/MeshRenderer.hpp"
 #include "yqlora/resource/BuiltinResources.hpp"
-#include "yqlora/scene/Camera3D.hpp"
-#include "yqlora/scene/MeshRenderer.hpp"
 #include "yqlora/scene/Scene.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
 
