@@ -52,6 +52,7 @@ add_library(yqlora SHARED
     src/scene/TreeChangeQueue.cpp
     src/scene/SceneSerializer.cpp
     src/scene/SceneTypes.cpp
+    src/scene/TimeSettings.cpp
     src/project/Project.cpp
     src/project/ProjectSettings.cpp
     src/project/ProjectTypes.cpp

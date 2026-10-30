@@ -2,6 +2,7 @@
 
 #include "yqlora/core/Log.hpp"
 #include "yqlora/scene/NodeTree.hpp"
+#include "yqlora/scene/TimeSettings.hpp"
 
 #include <cassert>
 
@@ -124,6 +125,7 @@ void Scene::stop()
 void Scene::advance(float realDelta)
 {
     m_lifecycle.beginFrame();
+    m_time.setFixedStep(timeSettingsOf(m_services).fixedStep());
     m_time.beginFrame(realDelta);
     while (m_time.takeFixedStep()) {
         m_systems.fixedUpdate(m_time.fixedStep());

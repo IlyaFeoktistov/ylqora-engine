@@ -8,9 +8,10 @@ namespace yqlora {
 
 void registerEngineTypes(TypeRegistry& registry)
 {
+    // Первыми: корень разделов настроек нужен разделам подсистем.
+    registerProjectTypes(registry);
     registerSceneTypes(registry);
     registerRenderTypes(registry);
-    registerProjectTypes(registry);
 }
 
 } // namespace yqlora

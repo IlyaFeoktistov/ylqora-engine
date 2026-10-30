@@ -43,7 +43,7 @@
 | Раздел | Содержимое | Когда |
 |---|---|---|
 | General | название игры, версия, компания, стартовая сцена **[done]**; иконка | **[planned, step 4]** для иконки, вместе с текстурами |
-| Time | фиксированный шаг времени, самый длинный кадр (сейчас константа `kMaxFrameSeconds`) | **[next]**, вместе с фиксированным шагом |
+| Time | фиксированный шаг времени, самый длинный кадр; сцена и цикл кадра читают их каждый кадр, поэтому правка применяется сразу, и в Play тоже | **[done]** |
 | Input | действия и оси, их привязки к клавишам, кнопкам мыши, геймпаду | **[next]** |
 | Execution Order | порядок типов компонентов внутри каждой фазы жизненного цикла, переопределяет значение по умолчанию из кода (см. [сцену](scene.ru.md)) | **[next]** |
 | Layers | имена 32 слоёв узлов для масок камер и физики | **[next]** |
@@ -60,17 +60,15 @@
 ## Регистрация
 
 ```cpp
-class TimeSettings final : public SettingsSection {
+class PhysicsSettings final : public SettingsSection {
 public:
-    YQLORA_TYPE(TimeSettings, SettingsSection)   // имя типа, как у узлов
+    YQLORA_TYPE(PhysicsSettings, SettingsSection)   // имя типа, как у узлов
 
-    float fixedStepSeconds = 1.0f / 60.0f;
-    float maxFrameSeconds = 0.25f;
+    Vec3 gravity{0.0f, -9.81f, 0.0f};
 };
 
-registry.registerSettings<TimeSettings>("time")  // settings/time.json
-    .property("fixedStep", &TimeSettings::fixedStepSeconds)
-    .property("maxFrame", &TimeSettings::maxFrameSeconds);
+registry.registerSettings<PhysicsSettings>("physics")  // settings/physics.json
+    .property("gravity", &PhysicsSettings::gravity);
 ```
 
 `SettingsSection` - корень разделов, как `Node` и `Component`. Имя файла, имя

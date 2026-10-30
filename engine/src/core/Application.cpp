@@ -13,6 +13,7 @@
 #include "yqlora/platform/Window.hpp"
 #include "yqlora/render/Renderer.hpp"
 #include "yqlora/runtime/GameRuntime.hpp"
+#include "yqlora/scene/TimeSettings.hpp"
 #include "yqlora/ui/UiLayer.hpp"
 
 #include <algorithm>
@@ -39,8 +40,6 @@ constexpr const char* kUiLayoutFile = "imgui.ini";
 constexpr const char* kLocalesFolder = "locales";
 // Пока окно ещё не нарисовано интерфейсом.
 constexpr Vec4 kWindowClearColor{0.1f, 0.1f, 0.11f, 1.0f};
-// Самый длинный шаг кадра: после паузы в отладчике не прыгаем на секунды вперёд.
-constexpr double kMaxFrameSeconds = 0.1;
 constexpr std::string_view kTitleSeparator = " - ";
 
 } // namespace
@@ -278,11 +277,12 @@ void Application::mainLoop()
     } else {
         stages = std::make_unique<GameStages>(*this);
     }
-    FrameLoop loop(*stages, kMaxFrameSeconds);
+    FrameLoop loop(*stages, timeSettingsOf(m_services).maxFrame());
 
     m_running = true;
     loop.reset(platform::timeSeconds());
     while (m_running) {
+        loop.setMaxFrameSeconds(timeSettingsOf(m_services).maxFrame());
         loop.runFrame(platform::timeSeconds());
     }
 }

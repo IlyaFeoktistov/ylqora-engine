@@ -37,6 +37,12 @@ public:
     // Один кадр. false, если он прерван на вводе.
     bool runFrame(double nowSeconds);
 
+    // Самый длинный кадр меняется на ходу: он из настроек проекта (TimeSettings).
+    void setMaxFrameSeconds(double seconds)
+    {
+        m_clock.setMaxFrameSeconds(seconds);
+    }
+
 private:
     FrameStages& m_stages;
     FrameClock m_clock;

@@ -38,6 +38,9 @@
         },
         "SettingsSection": {
             "description": "Base of every project settings section."
+        },
+        "TimeSettings": {
+            "description": "Game time: the fixed physics step and the longest frame."
         }
     },
     "editor": {
@@ -140,7 +143,8 @@
             "nothing": "Open a project to change its settings",
             "GeneralSettings": "General",
             "projectVersion": "Project version:",
-            "projectVersionHint": "Version of the project file format. It changes only when the project is upgraded to a newer engine, never by hand."
+            "projectVersionHint": "Version of the project file format. It changes only when the project is upgraded to a newer engine, never by hand.",
+            "TimeSettings": "Time"
         }
     },
     "projects": {
@@ -209,6 +213,8 @@
         "cullingMask": "Culling mask",
         "clear": "Clear",
         "background": "Background",
-        "gameVersion": "Game version"
+        "gameVersion": "Game version",
+        "fixedStep": "Fixed step, s",
+        "maxFrame": "Longest frame, s"
     }
 }

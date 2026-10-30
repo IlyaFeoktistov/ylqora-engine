@@ -2,6 +2,7 @@
 
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/Node3D.hpp"
+#include "yqlora/scene/TimeSettings.hpp"
 #include "yqlora/scene/Transform3D.hpp"
 #include "yqlora/scene/TransformSystem3D.hpp"
 
@@ -34,6 +35,10 @@ void registerSceneTypes(TypeRegistry& registry)
 
     registry.registerSystem<SceneSystem>();
     registry.registerSystem<TransformSystem3D>();
+
+    registry.registerSettings<TimeSettings>("time")
+        .property("fixedStep", &TimeSettings::fixedStep, &TimeSettings::setFixedStep)
+        .property("maxFrame", &TimeSettings::maxFrame, &TimeSettings::setMaxFrame);
 }
 
 } // namespace yqlora

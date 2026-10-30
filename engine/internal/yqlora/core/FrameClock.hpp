@@ -16,6 +16,11 @@ public:
     // Сколько прошло с прошлого вызова (или reset), не больше maxFrameSeconds.
     float tick(double nowSeconds);
 
+    void setMaxFrameSeconds(double seconds)
+    {
+        m_maxFrameSeconds = seconds;
+    }
+
 private:
     double m_maxFrameSeconds;
     double m_previous = 0.0;

@@ -42,7 +42,7 @@ never go into the project.
 | Section | Contents | When |
 |---|---|---|
 | General | game name, version, company, startup scene **[done]**; icon | **[planned, step 4]** for the icon, with textures |
-| Time | fixed time step, longest frame (today the constant `kMaxFrameSeconds`) | **[next]**, with the fixed step |
+| Time | fixed time step, longest frame; read every frame by the scene and the frame loop, so an edit applies at once, in Play too | **[done]** |
 | Input | actions and axes, their bindings to keys, mouse buttons, gamepad | **[next]** |
 | Execution Order | order of component types inside every lifecycle phase, overriding the default from code (see [scene](scene.md)) | **[next]** |
 | Layers | names of the 32 node layers used by camera masks and physics | **[next]** |
@@ -59,17 +59,15 @@ The startup scene lives in General (`GeneralSettings::startupScene`);
 ## Registration
 
 ```cpp
-class TimeSettings final : public SettingsSection {
+class PhysicsSettings final : public SettingsSection {
 public:
-    YQLORA_TYPE(TimeSettings, SettingsSection)   // type name, as for nodes
+    YQLORA_TYPE(PhysicsSettings, SettingsSection)   // type name, as for nodes
 
-    float fixedStepSeconds = 1.0f / 60.0f;
-    float maxFrameSeconds = 0.25f;
+    Vec3 gravity{0.0f, -9.81f, 0.0f};
 };
 
-registry.registerSettings<TimeSettings>("time")  // settings/time.json
-    .property("fixedStep", &TimeSettings::fixedStepSeconds)
-    .property("maxFrame", &TimeSettings::maxFrameSeconds);
+registry.registerSettings<PhysicsSettings>("physics")  // settings/physics.json
+    .property("gravity", &PhysicsSettings::gravity);
 ```
 
 `SettingsSection` is the root of sections, like `Node` and `Component`. The

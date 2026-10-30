@@ -8,7 +8,9 @@
 #include <yqlora/input/Input.hpp>
 #include <yqlora/project/GeneralSettings.hpp>
 #include <yqlora/project/Project.hpp>
+#include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
+#include <yqlora/scene/TimeSettings.hpp>
 
 #include <algorithm>
 #include <filesystem>
@@ -109,4 +111,31 @@ TEST_CASE_FIXTURE(Fixture, "SettingsEditing: the startup scene is chosen with un
 
     REQUIRE(session.undo());
     CHECK(session.project()->startupScenePath() == main);
+}
+
+TEST_CASE_FIXTURE(Fixture, "TimeSettings: the scene takes the fixed step from the open project")
+{
+    Input input;
+    EngineServices services{input, registry};
+    CHECK(timeSettingsOf(services).fixedStep() == kDefaultFixedStep);
+    CHECK(timeSettingsOf(services).maxFrame() == kDefaultMaxFrame);
+
+    Project project = open();
+    auto& time = project.settings().get<TimeSettings>();
+    time.setFixedStep(0.0f);
+    CHECK(time.fixedStep() == kMinTimeStep);
+    time.setMaxFrame(10.0f);
+    CHECK(time.maxFrame() == kMaxTimeStep);
+    time.setFixedStep(0.5f);
+
+    services.setProject(&project);
+    Scene scene{services};
+    scene.advance(0.0f);
+    CHECK(scene.time().fixedStep() == 0.5f);
+
+    // Правка во время игры применяется со следующего кадра.
+    time.setFixedStep(0.25f);
+    scene.advance(0.0f);
+    CHECK(scene.time().fixedStep() == 0.25f);
+    services.setProject(nullptr);
 }
