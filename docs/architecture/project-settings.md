@@ -43,7 +43,7 @@ never go into the project.
 |---|---|---|
 | General | game name, version, company, startup scene **[done]**; icon | **[planned, step 4]** for the icon, with textures |
 | Time | fixed time step, longest frame; read every frame by the scene and the frame loop, so an edit applies at once, in Play too | **[done]** |
-| Input | actions and axes, their bindings to keys, mouse buttons, gamepad | **[next]** |
+| Input | actions and axes, their bindings to keys and mouse buttons **[done]**; gamepad bindings **[next]**; see [input](input.md) | **[done]** |
 | Execution Order | order of component types inside every lifecycle phase, overriding the default from code (see [scene](scene.md)); a type is picked from the registered components that use the frame phases, rows of unloaded types are kept. An edit applies from the next frame, in Play too: every write of a section raises `ProjectSettings::revision`, and the phase lists re-sort when it changes | **[done]** |
 | Layers | names of the 32 node layers used by camera masks and physics | **[done]** |
 | Graphics | graphics API per platform (OpenGL; Vulkan and D3D12 come with the RHI), vsync; both apply at once, see [rendering](rendering.md) | **[done]** |
@@ -104,12 +104,7 @@ the game itself, for players, is the editable `gameVersion` in General
 
 ## Input actions
 
-- An action has a name and a kind: a button (pressed, held, released) or an
-  axis (a value from -1 to 1, from two keys or a stick).
-- A binding is a key, a mouse button or a gamepad button or axis. One action
-  has any number of bindings.
-- `Input` keeps the raw state (keys, mouse) as today; actions are a layer over
-  it, read by scripts and the HUD.
+Described in [input](input.md).
 
 ## Layers
 
@@ -144,6 +139,6 @@ As Tags and Layers in Unity:
   inspector draws the fields as a small table. A record field may itself be a
   list or a record; lists of records are how Execution Order and the input
   actions are stored **[done]**.
-- A binding property type (key, mouse button, gamepad input) with its editor
-  widget: press to capture.
+- A binding property: a string with `PropertyHint::InputControl`, set by
+  pressing in the editor **[done]**.
 - The settings kind (`TypeKind::Settings`) and its builder **[done]**.

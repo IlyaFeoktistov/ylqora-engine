@@ -1,5 +1,10 @@
 #include "yqlora/platform/InputFeeder.hpp"
 
+#include "yqlora/input/InputControl.hpp"
+#include "yqlora/input/InputSettings.hpp"
+
+#include <algorithm>
+
 namespace yqlora {
 
 namespace {
@@ -80,6 +85,29 @@ void InputFeeder::releaseAll()
     }
     for (std::size_t i = 0; i < m_input.m_buttonsDown.size(); ++i) {
         mouseButtonUp(static_cast<MouseButton>(i));
+    }
+}
+
+void InputFeeder::updateActions(const InputSettings& settings)
+{
+    auto previous = std::exchange(m_input.m_actions, {});
+    for (const InputAction& action : settings.actions) {
+        Input::ActionState state;
+        float sum = 0.0f;
+        for (const InputBinding& binding : action.bindings) {
+            const auto control = controlFromName(binding.control);
+            if (control && isControlDown(m_input, *control)) {
+                state.down = true;
+                sum += binding.scale;
+            }
+        }
+        state.value = action.kind == InputActionKind::Axis ? std::clamp(sum, -1.0f, 1.0f) : (state.down ? 1.0f : 0.0f);
+        const auto before = previous.find(action.name);
+        const bool wasDown = before != previous.end() && before->second.down;
+        state.pressed = state.down && !wasDown;
+        state.released = !state.down && wasDown;
+        // При повторе имени действует первое, как и в порядке выполнения.
+        m_input.m_actions.emplace(action.name, state);
     }
 }
 

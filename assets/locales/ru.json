@@ -50,6 +50,9 @@
         },
         "GraphicsSettings": {
             "description": "Графический API для каждой системы и vsync. Смена API пересоздаёт только рендер, без перезапуска."
+        },
+        "InputSettings": {
+            "description": "Действия ввода и их привязки к клавишам и кнопкам мыши. Скрипты спрашивают действие по имени, а не клавишу."
         }
     },
     "editor": {
@@ -98,7 +101,8 @@
             "paste": "Вставить значение",
             "resetPart": "Сбросить",
             "copyPart": "Копировать",
-            "pastePart": "Вставить в"
+            "pastePart": "Вставить в",
+            "pressControl": "Нажмите клавишу или кнопку мыши..."
         },
         "viewport": {
             "cameraPreview": "Превью выбранной камеры"
@@ -170,7 +174,8 @@
             "clearLayerKeeps": "Узлы останутся на своих слоях, у слоя просто не будет имени.",
             "clearLayer": "Убрать имя",
             "ExecutionOrderSettings": "Порядок выполнения",
-            "GraphicsSettings": "Графика"
+            "GraphicsSettings": "Графика",
+            "InputSettings": "Ввод"
         },
         "panel": {
             "maximize": "Развернуть",
@@ -234,7 +239,7 @@
         "background": "Фон",
         "position": "Позиция",
         "rotation": "Поворот",
-        "scale": "Масштаб",
+        "scale": "Множитель",
         "fov": "Угол обзора",
         "near": "Ближняя плоскость",
         "far": "Дальняя плоскость",
@@ -251,6 +256,10 @@
         "type": "Тип",
         "windowsApi": "API на Windows",
         "linuxApi": "API на Linux",
-        "vsync": "Вертикальная синхронизация"
+        "vsync": "Вертикальная синхронизация",
+        "actions": "Действия",
+        "kind": "Вид",
+        "bindings": "Привязки",
+        "control": "Клавиша"
     }
 }

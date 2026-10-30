@@ -1,5 +1,7 @@
 #include <doctest/doctest.h>
 
+#include <yqlora/input/InputControl.hpp>
+#include <yqlora/input/InputSettings.hpp>
 #include <yqlora/platform/InputFeeder.hpp>
 #include <yqlora/platform/MouseWrap.hpp>
 
@@ -121,4 +123,60 @@ TEST_CASE("MouseWrap: a working warp is not mistaken for an ignored one")
         wrap.delta({5.0f, 300.0f}, window);
     }
     CHECK_FALSE(wrap.warpIgnored());
+}
+
+TEST_CASE("InputControl: keys and mouse buttons by name")
+{
+    CHECK(controlFromName("Space") == InputControl{Key::Space});
+    CHECK(controlFromName("MouseRight") == InputControl{MouseButton::Right});
+    CHECK_FALSE(controlFromName("Unknown"));
+    CHECK_FALSE(controlFromName("NoSuchKey"));
+    CHECK(controlName(InputControl{Key::F12}) == "F12");
+    CHECK(controlName(InputControl{MouseButton::Left}) == "MouseLeft");
+}
+
+TEST_CASE("InputFeeder: actions from the settings, pressed and released by their own state")
+{
+    InputSettings settings;
+    settings.actions = {
+        {.name = "Jump", .kind = InputActionKind::Button, .bindings = {{.control = "Space"}, {.control = "MouseLeft"}}},
+        {.name = "MoveX",
+         .kind = InputActionKind::Axis,
+         .bindings =
+             {{.control = "D", .scale = 1.0f}, {.control = "A", .scale = -1.0f}, {.control = "Right", .scale = 1.0f}}},
+    };
+    Input input;
+    InputFeeder feeder(input);
+
+    feeder.keyDown(Key::Space);
+    feeder.keyDown(Key::D);
+    feeder.keyDown(Key::Right);
+    feeder.updateActions(settings);
+    CHECK(input.isActionDown("Jump"));
+    CHECK(input.wasActionPressed("Jump"));
+    CHECK(input.actionValue("Jump") == 1.0f);
+    // Две привязки в одну сторону: ось не больше 1.
+    CHECK(input.actionValue("MoveX") == 1.0f);
+
+    // Вторая привязка держит действие: отпускания нет.
+    feeder.beginFrame();
+    feeder.mouseButtonDown(MouseButton::Left);
+    feeder.keyUp(Key::Space);
+    feeder.keyDown(Key::A);
+    feeder.updateActions(settings);
+    CHECK(input.isActionDown("Jump"));
+    CHECK_FALSE(input.wasActionPressed("Jump"));
+    CHECK_FALSE(input.wasActionReleased("Jump"));
+    CHECK(input.actionValue("MoveX") == doctest::Approx(1.0f));
+
+    feeder.beginFrame();
+    feeder.mouseButtonUp(MouseButton::Left);
+    feeder.keyUp(Key::D);
+    feeder.keyUp(Key::Right);
+    feeder.updateActions(settings);
+    CHECK(input.wasActionReleased("Jump"));
+    CHECK(input.actionValue("MoveX") == -1.0f);
+
+    CHECK_FALSE(input.isActionDown("NoSuchAction"));
+    CHECK(input.actionValue("NoSuchAction") == 0.0f);
 }

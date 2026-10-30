@@ -6,11 +6,16 @@
 
 #include <array>
 #include <cstddef>
+#include <functional>
+#include <map>
+#include <string>
+#include <string_view>
 
 namespace yqlora {
 
-// Состояние клавиатуры и мыши на текущий кадр. Только для чтения:
-// заполняет его платформа, пока обрабатывает события окна.
+// Состояние клавиатуры и мыши на текущий кадр и действия ввода из настроек
+// проекта (раздел Input). Только для чтения: заполняет его платформа, пока
+// обрабатывает события окна.
 class YQLORA_API Input {
 public:
     // Клавиша зажата сейчас.
@@ -30,6 +35,14 @@ public:
     // Прокрутка колеса за кадр: больше нуля - от себя.
     float wheelDelta() const;
 
+    // Действия по имени (см. InputSettings). Неизвестное действие не нажато
+    // и даёт 0.
+    bool isActionDown(std::string_view action) const;
+    bool wasActionPressed(std::string_view action) const;
+    bool wasActionReleased(std::string_view action) const;
+    // Ось: от -1 до 1. Кнопка: 1, пока зажата, иначе 0.
+    float actionValue(std::string_view action) const;
+
 private:
     friend class InputFeeder;
 
@@ -45,6 +58,17 @@ private:
     Vec2 m_mousePosition{0.0f};
     Vec2 m_mouseDelta{0.0f};
     float m_wheelDelta = 0.0f;
+
+    struct ActionState {
+        bool down = false;
+        bool pressed = false;
+        bool released = false;
+        float value = 0.0f;
+    };
+
+    const ActionState* findAction(std::string_view action) const;
+
+    std::map<std::string, ActionState, std::less<>> m_actions;
 };
 
 } // namespace yqlora

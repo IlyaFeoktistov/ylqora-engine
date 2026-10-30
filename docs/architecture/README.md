@@ -22,6 +22,7 @@ Status marks: **[done]** implemented, **[next]** the next stage of work
 | [Project and file formats](project.md) | the project folder, JSON files, format versions, upgrading a project |
 | [Resources](resources.md) | resource IDs, `.meta` files, built-in resources |
 | [Localization](localization.md) | language files, keys, `tr()`, translation rules |
+| [Input](input.md) | raw input, input actions and bindings, gamepads |
 
 How the code is written (layout, design rules, style, commits) is in
 [CONTRIBUTING](../../CONTRIBUTING.md).

@@ -10,6 +10,8 @@
 #include "yqlora/editor/ResourceLabel.hpp"
 
 #include "yqlora/i18n/Translate.hpp"
+#include "yqlora/input/Input.hpp"
+#include "yqlora/input/InputControl.hpp"
 #include "yqlora/project/SettingsSection.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
@@ -37,6 +39,7 @@ constexpr float kFastFactor = 10.0f; // с Shift
 constexpr float kSlowFactor = 0.1f;  // с Ctrl
 
 constexpr const char* kRowMenu = "##propertyMenu";
+constexpr const char* kWaitingForControl = "##waitingForControl";
 // Число вектора, по которому кликнули правой кнопкой в этом кадре, и то, для
 // которого открыто меню; -1 - всё значение. Хранятся в памяти окна ImGui.
 constexpr const char* kClickedComponent = "##clickedComponent";
@@ -436,6 +439,63 @@ bool componentTypeCombo(std::string& value, const TypeRegistry& registry)
     return changed;
 }
 
+// Первая нажатая в этом кадре клавиша или кнопка мыши; Escape не считается:
+// им отменяют ожидание.
+std::optional<InputControl> pressedControl(const Input& input)
+{
+    for (std::size_t i = 0; i < kKeyNames.size(); ++i) {
+        const auto key = static_cast<Key>(i);
+        if (key != Key::Unknown && key != Key::Escape && input.wasKeyPressed(key)) {
+            return key;
+        }
+    }
+    for (std::size_t i = 0; i < kMouseButtonNames.size(); ++i) {
+        const auto button = static_cast<MouseButton>(i);
+        if (input.wasMouseButtonPressed(button)) {
+            return button;
+        }
+    }
+
+    return std::nullopt;
+}
+
+// Привязка действия: кнопка с именем органа управления. Нажали кнопку - она
+// ждёт следующего нажатия клавиши или кнопки мыши и запоминает его; Escape
+// отменяет. Какое поле ждёт, хранится в памяти окна ImGui.
+bool inputControlField(std::string& value, const Input& input)
+{
+    ImGuiStorage& storage = *ImGui::GetStateStorage();
+    const ImGuiID waitingKey = ImGui::GetID(kWaitingForControl);
+    const bool waiting = storage.GetBool(waitingKey, false);
+
+    std::string label = waiting         ? tr("editor.inspector.pressControl")
+                        : value.empty() ? tr("editor.inspector.none")
+                                        : value;
+    label += "##control";
+    ImGui::SetNextItemWidth(-FLT_MIN);
+    if (ImGui::Button(label.c_str(), ImVec2(-FLT_MIN, 0.0f))) {
+        storage.SetBool(waitingKey, !waiting);
+
+        return false;
+    }
+    if (!waiting) {
+        return false;
+    }
+    if (input.wasKeyPressed(Key::Escape)) {
+        storage.SetBool(waitingKey, false);
+
+        return false;
+    }
+    const auto pressed = pressedControl(input);
+    if (!pressed) {
+        return false;
+    }
+    storage.SetBool(waitingKey, false);
+    value = std::string(controlName(*pressed));
+
+    return true;
+}
+
 // Поля записи таблицей, как свойства в инспекторе. Описание полей - у свойства
 // (Property::fields): и у самой записи, и у списка записей.
 void recordField(
@@ -529,6 +589,8 @@ void valueField(
     case PropertyType::String:
         if (property.hint() == PropertyHint::ComponentType) {
             result.changed = componentTypeCombo(std::get<std::string>(value), context.registry) || result.changed;
+        } else if (property.hint() == PropertyHint::InputControl) {
+            result.changed = inputControlField(std::get<std::string>(value), context.input) || result.changed;
         } else {
             ImGui::SetNextItemWidth(-FLT_MIN);
             result.changed = ImGui::InputText("##value", &std::get<std::string>(value)) || result.changed;

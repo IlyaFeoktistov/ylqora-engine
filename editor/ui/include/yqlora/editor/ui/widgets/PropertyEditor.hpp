@@ -10,6 +10,7 @@
 namespace yqlora {
 
 class Component;
+class Input;
 class Node;
 class ResourceDatabase;
 class Scene;
@@ -46,6 +47,8 @@ struct PropertyEditorContext {
     const Scene& scene;
     // Из него выбирается тип компонента (PropertyHint::ComponentType).
     const TypeRegistry& registry;
+    // Ввод приложения: привязка действия задаётся нажатием (PropertyHint::InputControl).
+    const Input& input;
     // Ресурсы проекта для ссылок на ресурсы. nullptr, если проекта нет.
     const ResourceDatabase* resources = nullptr;
     // Имена слоёв по номеру (LayerSettings). Пусто без проекта: слои показываются номерами.

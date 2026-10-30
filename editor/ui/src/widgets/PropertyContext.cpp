@@ -3,6 +3,7 @@
 #include "yqlora/editor/ui/style/Theme.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
+#include "yqlora/editor/ui/core/EditorHost.hpp"
 #include "yqlora/scene/LayerSettings.hpp"
 
 namespace yqlora::editor {
@@ -21,6 +22,7 @@ PropertyEditorContext propertyEditorContext(const EditorContext& context)
         .metrics = context.theme.metrics(),
         .scene = session.scene(),
         .registry = session.registry(),
+        .input = context.host.input(),
         .resources = project ? &project->resources() : nullptr,
         .layerNames = layers ? std::span<const std::string>(layers->names()) : std::span<const std::string>(),
         .editLayers = [open = context.openProjectSettings] {

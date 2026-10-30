@@ -61,4 +61,39 @@ float Input::wheelDelta() const
     return m_wheelDelta;
 }
 
+bool Input::isActionDown(std::string_view action) const
+{
+    const ActionState* state = findAction(action);
+
+    return state && state->down;
+}
+
+bool Input::wasActionPressed(std::string_view action) const
+{
+    const ActionState* state = findAction(action);
+
+    return state && state->pressed;
+}
+
+bool Input::wasActionReleased(std::string_view action) const
+{
+    const ActionState* state = findAction(action);
+
+    return state && state->released;
+}
+
+float Input::actionValue(std::string_view action) const
+{
+    const ActionState* state = findAction(action);
+
+    return state ? state->value : 0.0f;
+}
+
+const Input::ActionState* Input::findAction(std::string_view action) const
+{
+    const auto it = m_actions.find(action);
+
+    return it != m_actions.end() ? &it->second : nullptr;
+}
+
 } // namespace yqlora

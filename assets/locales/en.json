@@ -50,6 +50,9 @@
         },
         "GraphicsSettings": {
             "description": "Graphics API per system and vsync. Changing the API rebuilds only the renderer, no restart."
+        },
+        "InputSettings": {
+            "description": "Input actions and their bindings to keys and mouse buttons. Scripts ask for an action by name, not for a key."
         }
     },
     "editor": {
@@ -98,7 +101,8 @@
             "paste": "Paste value",
             "resetPart": "Reset",
             "copyPart": "Copy",
-            "pastePart": "Paste into"
+            "pastePart": "Paste into",
+            "pressControl": "Press a key or a mouse button..."
         },
         "viewport": {
             "cameraPreview": "Preview of the selected camera"
@@ -170,7 +174,8 @@
             "clearLayerKeeps": "The nodes stay on their layers, the layer just has no name.",
             "clearLayer": "Clear name",
             "ExecutionOrderSettings": "Execution Order",
-            "GraphicsSettings": "Graphics"
+            "GraphicsSettings": "Graphics",
+            "InputSettings": "Input"
         },
         "panel": {
             "maximize": "Maximize",
@@ -251,6 +256,10 @@
         "type": "Type",
         "windowsApi": "API on Windows",
         "linuxApi": "API on Linux",
-        "vsync": "Vertical sync"
+        "vsync": "Vertical sync",
+        "actions": "Actions",
+        "kind": "Kind",
+        "bindings": "Bindings",
+        "control": "Control"
     }
 }

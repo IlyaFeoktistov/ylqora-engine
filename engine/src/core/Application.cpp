@@ -7,6 +7,7 @@
 #include "yqlora/core/LogSettings.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/i18n/Language.hpp"
+#include "yqlora/input/InputSettings.hpp"
 #include "yqlora/platform/FileDialogs.hpp"
 #include "yqlora/platform/InputFeeder.hpp"
 #include "yqlora/platform/Platform.hpp"
@@ -172,6 +173,7 @@ public:
         m_input.beginFrame();
         m_app.m_dialogs->deliver();
         m_app.m_window->pollEvents(m_events, m_input);
+        m_input.updateActions(inputSettingsOf(m_app.m_services));
 
         return m_app.m_running;
     }

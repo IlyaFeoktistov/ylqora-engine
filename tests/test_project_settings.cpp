@@ -7,6 +7,7 @@
 #include <yqlora/editor/LayerUsage.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
 #include <yqlora/input/Input.hpp>
+#include <yqlora/input/InputSettings.hpp>
 #include <yqlora/project/GeneralSettings.hpp>
 #include <yqlora/project/Project.hpp>
 #include <yqlora/render/GraphicsSettings.hpp>
@@ -330,4 +331,31 @@ TEST_CASE_FIXTURE(Fixture, "GraphicsSettings: an API per system, written by name
     CHECK(graphicsSettingsOf(services).currentPlatformApi() == GraphicsApi::Vulkan);
     CHECK_FALSE(graphicsSettingsOf(services).vsync);
     services.setProject(nullptr);
+}
+
+TEST_CASE_FIXTURE(Fixture, "InputSettings: actions with nested bindings are saved and read back")
+{
+    Project project = open();
+    auto& input = project.settings().get<InputSettings>();
+    input.actions = {
+        {.name = "MoveX",
+         .kind = InputActionKind::Axis,
+         .bindings = {{.control = "D", .scale = 1.0f}, {.control = "A", .scale = -1.0f}}}
+    };
+    REQUIRE(project.settings().save(input));
+    CHECK(readText(directory / "settings" / "input.json").find("\"Axis\"") != std::string::npos);
+
+    const Project reopened = open();
+    const auto& actions = reopened.settings().get<InputSettings>().actions;
+    REQUIRE(actions.size() == 1);
+    CHECK(actions[0].kind == InputActionKind::Axis);
+    REQUIRE(actions[0].bindings.size() == 2);
+    CHECK(actions[0].bindings[1].control == "A");
+    CHECK(actions[0].bindings[1].scale == -1.0f);
+
+    // У списка привязок внутри записи свои поля.
+    const auto properties = registry.properties(*registry.find<InputSettings>());
+    const Property& bindings = properties.front()->fields()[2];
+    CHECK(bindings.elementType() == PropertyType::Record);
+    CHECK(bindings.fields()[0].hint() == PropertyHint::InputControl);
 }

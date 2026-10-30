@@ -34,6 +34,9 @@ add_library(yqlora SHARED
     src/platform/InputFeeder.cpp
     src/platform/MouseWrap.cpp
     src/input/Input.cpp
+    src/input/InputControl.cpp
+    src/input/InputSettings.cpp
+    src/input/InputTypes.cpp
     src/math/Euler.cpp
     src/scene/ExecutionOrder.cpp
     src/scene/ExecutionOrderSettings.cpp
