@@ -220,6 +220,18 @@ the hand; a wagon hooked to a train must not move in the world.
 - Nodes without a transform (`Node`) and parents that are not `Node3D` have
   nothing to recompute: the flag changes nothing there.
 
+## Inside the scene [next]
+
+`Scene` keeps the tree and the order of `advance`; the work is done by parts
+it owns. Its public interface stays as it is.
+
+- `ComponentLifecycle`: the phase lists, the start queues, `onEnable` /
+  `onDisable`, calls guarded against exceptions.
+- `TreeChangeQueue`: deferred destroying and changes of parent.
+- `SceneSystems`: systems created from the registry, lookup by type, calls in
+  the order of registration.
+- `ComponentIndex`: components by type name.
+
 ## References, state and serialization
 
 - A reference to a node is a `NodeId`, to a resource a `ResourceId`; both are

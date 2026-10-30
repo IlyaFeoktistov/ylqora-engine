@@ -160,3 +160,22 @@ game's `Application`, a test) says what each stage does.
   **[planned, RHI]**.
 - **The render thread** comes when it is needed; the snapshot from Extract
   already allows it **[planned, later]**.
+
+## The application [next]
+
+`Application` assembles the parts and runs the frame loop, nothing else.
+
+- It creates the window, the renderer and, for tools, the interface layer,
+  and runs `FrameLoop`.
+- The scene of a game is held by `GameRuntime`, which later also switches
+  scenes **[planned, step 9]**. The editor has no scene of the application:
+  its scenes are the document and the Play copy.
+- The frame stages differ by mode: a game extracts and renders its scene, a
+  tool draws its interface. No `if (ui)` inside the stages and no hooks for
+  the editor (`setSceneRunning`, `onPrepareFrame`).
+- The interface language is a service of its own: it picks the language on
+  the first start, switches it and remembers the choice.
+- The folders of user data and of engine assets come from platform
+  functions, not from methods of the application.
+- Editor panels get a narrow `EditorHost` instead of the application (see
+  [editor](editor.md)).

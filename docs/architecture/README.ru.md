@@ -15,6 +15,7 @@
 | [Контекст движка и кадр](frame.ru.md) | службы движка, игровое время, системы сцены, порядок кадра |
 | [Рендер](rendering.ru.md) | камеры, слои, виды, графика редактора |
 | [Скрипты](scripting.ru.md) | C++, Luau, визуальные скрипты, горячая перезагрузка |
+| [Редактор](editor.ru.md) | части редактора: сессия, документ, Play, панели |
 | [Редактор кода](code-editor.ru.md) | вкладка "Скрипты": Luau с подсветкой и подсказками, позже шейдеры |
 | [Плагины](plugins.ru.md) | готовые скрипты, сцены и ресурсы из репозитория плагинов, менеджер плагинов |
 | [Настройки проекта](project-settings.ru.md) | настройки игры, которые лежат в её проекте |
@@ -36,3 +37,8 @@ engine/include/yqlora/physics/     RigidBody, colliders, PhysicsWorld           
 engine/include/yqlora/audio/       AudioSource, AudioListener, AudioWorld              [step 7]
 engine/include/yqlora/ui/          Control, Label, Button                              [step 8]
 ```
+
+Переносы следующего этапа **[next]**: слой интерфейса (`UiLayer`, Dear
+ImGui) из `core/` в `ui/`; диалог выбора папки из `Window` в платформенный
+`FileDialogs`; перевод проекта на текущий формат - свободная функция
+`project/`, а не метод `Project`.

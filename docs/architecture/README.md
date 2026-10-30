@@ -15,6 +15,7 @@ Status marks: **[done]** implemented, **[next]** the next stage of work
 | [Engine context and the frame](frame.md) | engine services, game time, scene systems, the order of a frame |
 | [Rendering](rendering.md) | cameras, layers, views, editor overlay |
 | [Scripts](scripting.md) | C++, Luau, visual scripts, hot reload |
+| [Editor](editor.md) | parts of the editor: session, document, Play, panels |
 | [Code editor](code-editor.md) | the Scripts tab: Luau with highlighting and hints, later shaders |
 | [Plugins](plugins.md) | ready-made scripts, scenes and resources from the plugin repository, the plugin manager |
 | [Project settings](project-settings.md) | settings of a game kept in its project |
@@ -36,3 +37,8 @@ engine/include/yqlora/physics/     RigidBody, colliders, PhysicsWorld           
 engine/include/yqlora/audio/       AudioSource, AudioListener, AudioWorld              [step 7]
 engine/include/yqlora/ui/          Control, Label, Button                              [step 8]
 ```
+
+Moves of the next stage **[next]**: the interface layer (`UiLayer`, Dear
+ImGui) from `core/` to `ui/`; the folder dialog from `Window` to the platform
+`FileDialogs`; upgrading a project to the current format becomes a free
+function of `project/` instead of a method of `Project`.
