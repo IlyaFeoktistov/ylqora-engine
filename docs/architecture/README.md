@@ -26,7 +26,13 @@ Each subsystem is a folder of its own and registers its own types
 (`registerSceneTypes`, `registerRenderTypes`, `registerProjectTypes` in `internal/`);
 `registerEngineTypes` in `core/` only calls them in order. Public headers are
 in `include/`, headers for the engine and the editor only in `internal/`,
-`src/` holds only `.cpp` files.
+`src/` holds only `.cpp` files. The same holds outside the engine: the editor
+logic (`editor/include/yqlora/editor/`, `editor/src/`), the editor interface
+(`editor/ui/include/yqlora/editor/ui/`, `editor/ui/src/`) and the OpenGL
+backend (`backends/opengl/internal/yqlora/opengl/`, `backends/opengl/src/`,
+namespace `yqlora::opengl`, so the passes of the future Vulkan and D3D12
+backends do not clash by name).
+Headers are always included as `"yqlora/<part>/X.hpp"`.
 
 ```
 engine/include/yqlora/core/        engine services, engine types, log, version

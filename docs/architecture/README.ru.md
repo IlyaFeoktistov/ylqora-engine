@@ -26,7 +26,13 @@
 (`registerSceneTypes`, `registerRenderTypes`, `registerProjectTypes` в `internal/`);
 `registerEngineTypes` в `core/` только вызывает их по порядку. Публичные
 заголовки лежат в `include/`, заголовки только для движка и редактора - в
-`internal/`, в `src/` только файлы `.cpp`.
+`internal/`, в `src/` только файлы `.cpp`. Так же и вне движка: логика
+редактора (`editor/include/yqlora/editor/`, `editor/src/`), интерфейс
+редактора (`editor/ui/include/yqlora/editor/ui/`, `editor/ui/src/`) и бэкенд
+OpenGL (`backends/opengl/internal/yqlora/opengl/`, `backends/opengl/src/`,
+пространство имён `yqlora::opengl`, чтобы проходы будущих бэкендов Vulkan и
+D3D12 не совпали по именам).
+Заголовки подключаются всегда как `"yqlora/<часть>/X.hpp"`.
 
 ```
 engine/include/yqlora/core/        engine services, engine types, log, version

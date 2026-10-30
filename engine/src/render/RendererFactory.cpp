@@ -1,7 +1,7 @@
 #include "yqlora/render/Renderer.hpp"
 
 #if YQLORA_HAS_OPENGL
-#include "OpenGLRenderer.hpp"
+#include "yqlora/opengl/OpenGLRenderer.hpp"
 #endif
 
 #include <stdexcept>
@@ -23,7 +23,7 @@ void prepareWindowForApi(GraphicsApi api)
     switch (api) {
     case GraphicsApi::OpenGL:
 #if YQLORA_HAS_OPENGL
-        OpenGLRenderer::prepareWindow();
+        opengl::OpenGLRenderer::prepareWindow();
 
         return;
 #else
@@ -41,7 +41,7 @@ std::unique_ptr<Renderer> createRenderer(GraphicsApi api, [[maybe_unused]] Windo
     case GraphicsApi::OpenGL:
 #if YQLORA_HAS_OPENGL
 
-        return std::make_unique<OpenGLRenderer>(window);
+        return std::make_unique<opengl::OpenGLRenderer>(window);
 #else
         break;
 #endif

@@ -251,5 +251,5 @@ it owns. Its public interface stays as it is.
   custom inspector for a type is added only when hints are not enough.
 - "Add component" lists only the types that fit the node: `requiresNode`, the
   one-per-node rule and requirements that can be met **[done]**.
-- Gizmos for a type live in `editor/ui/gizmos` (like `CameraGizmo`); the engine
+- Gizmos for a type live in the editor interface, `gizmos/` (like `CameraGizmo`); the engine
   knows nothing about them.

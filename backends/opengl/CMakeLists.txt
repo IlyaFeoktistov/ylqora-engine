@@ -31,19 +31,19 @@ add_custom_command(
 
 add_library(yqlora_opengl STATIC
     ${YQLORA_GL_SHADERS_HEADER}
-    OpenGLRenderer.cpp
-    GlShader.cpp
-    GlRenderTarget.cpp
-    GlUiRenderer.cpp
-    GridPass.cpp
-    GlMesh.cpp
-    MeshPass.cpp
-    OutlinePass.cpp
+    src/OpenGLRenderer.cpp
+    src/GlShader.cpp
+    src/GlRenderTarget.cpp
+    src/GlUiRenderer.cpp
+    src/GridPass.cpp
+    src/GlMesh.cpp
+    src/MeshPass.cpp
+    src/OutlinePass.cpp
 )
 add_library(yqlora::opengl ALIAS yqlora_opengl)
 
 # Собирается внутрь библиотеки движка. Заголовок бэкенда виден только фабрике рендереров.
-target_include_directories(yqlora_opengl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
+target_include_directories(yqlora_opengl PUBLIC internal PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
 target_link_libraries(yqlora_opengl
     PUBLIC yqlora_engine_code
     PRIVATE glad SDL3::SDL3-static imgui_opengl3

@@ -32,38 +32,38 @@ yqlora_set_warnings(yqlora_editor)
 # Интерфейс редактора на ImGui: панели, диалоги, гизмо, тема. Только вызывает
 # логику выше. Программа с main лежит в apps/editor.
 add_library(yqlora_editor_ui STATIC
-    ui/EditorApp.cpp
-    ui/core/Actions.cpp
-    ui/core/DefaultLayout.cpp
-    ui/core/EditorActions.cpp
-    ui/core/EditorHost.cpp
-    ui/dialogs/AddNodeDialog.cpp
-    ui/dialogs/UnsavedChangesDialog.cpp
-    ui/gizmos/AxisGizmo.cpp
-    ui/gizmos/CameraGizmo.cpp
-    ui/gizmos/GizmoLayer.cpp
-    ui/gizmos/GridGizmo.cpp
-    ui/gizmos/ManipulatorGizmo.cpp
-    ui/gizmos/SelectionGizmo.cpp
-    ui/menu/MainMenu.cpp
-    ui/panels/FileSystemPanel.cpp
-    ui/panels/GamePanel.cpp
-    ui/panels/InspectorPanel.cpp
-    ui/panels/ProjectManagerPanel.cpp
-    ui/panels/ProjectSettingsPanel.cpp
-    ui/panels/SceneTreePanel.cpp
-    ui/panels/ViewportPanel.cpp
-    ui/style/Theme.cpp
-    ui/widgets/Checkbox.cpp
-    ui/widgets/PlayFrame.cpp
-    ui/widgets/PropertyContext.cpp
-    ui/widgets/PropertyEditor.cpp
-    ui/widgets/PropertyTable.cpp
-    ui/widgets/RenderView.cpp
+    ui/src/EditorApp.cpp
+    ui/src/core/Actions.cpp
+    ui/src/core/DefaultLayout.cpp
+    ui/src/core/EditorActions.cpp
+    ui/src/core/EditorHost.cpp
+    ui/src/dialogs/AddNodeDialog.cpp
+    ui/src/dialogs/UnsavedChangesDialog.cpp
+    ui/src/gizmos/AxisGizmo.cpp
+    ui/src/gizmos/CameraGizmo.cpp
+    ui/src/gizmos/GizmoLayer.cpp
+    ui/src/gizmos/GridGizmo.cpp
+    ui/src/gizmos/ManipulatorGizmo.cpp
+    ui/src/gizmos/SelectionGizmo.cpp
+    ui/src/menu/MainMenu.cpp
+    ui/src/panels/FileSystemPanel.cpp
+    ui/src/panels/GamePanel.cpp
+    ui/src/panels/InspectorPanel.cpp
+    ui/src/panels/ProjectManagerPanel.cpp
+    ui/src/panels/ProjectSettingsPanel.cpp
+    ui/src/panels/SceneTreePanel.cpp
+    ui/src/panels/ViewportPanel.cpp
+    ui/src/style/Theme.cpp
+    ui/src/widgets/Checkbox.cpp
+    ui/src/widgets/PlayFrame.cpp
+    ui/src/widgets/PropertyContext.cpp
+    ui/src/widgets/PropertyEditor.cpp
+    ui/src/widgets/PropertyTable.cpp
+    ui/src/widgets/RenderView.cpp
 )
 add_library(yqlora::editor_ui ALIAS yqlora_editor_ui)
 
-target_include_directories(yqlora_editor_ui PUBLIC ui)
+target_include_directories(yqlora_editor_ui PUBLIC ui/include)
 target_link_libraries(yqlora_editor_ui
     PUBLIC yqlora::editor
     PRIVATE nlohmann_json::nlohmann_json

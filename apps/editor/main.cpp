@@ -1,4 +1,4 @@
-#include "EditorApp.hpp"
+#include "yqlora/editor/ui/EditorApp.hpp"
 
 #include "yqlora/core/LogSettings.hpp"
 #include "yqlora/platform/Platform.hpp"
