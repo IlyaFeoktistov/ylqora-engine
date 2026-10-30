@@ -6,10 +6,12 @@
 #include "yqlora/scene/NodeId.hpp"
 
 #include <bit>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <variant>
 #include <vector>
@@ -105,6 +107,36 @@ struct PropertyStorage<std::uint32_t> {
     static std::uint32_t load(int value)
     {
         return std::bit_cast<std::uint32_t>(value);
+    }
+};
+
+// Строка без владения (параметр метода) - как std::string.
+template <>
+struct PropertyStorage<std::string_view> {
+    using Type = std::string;
+
+    static std::string store(std::string_view value)
+    {
+        return std::string(value);
+    }
+
+    static std::string_view load(const std::string& value)
+    {
+        return value;
+    }
+};
+
+// Указатель на узел (результат метода) - как ссылка на узел, nullptr - пустая
+// ссылка. Обратно только через сцену, поэтому load нет: параметром метода
+// указатель на узел быть не может.
+template <typename T>
+    requires std::derived_from<std::remove_const_t<T>, Node>
+struct PropertyStorage<T*> {
+    using Type = NodeRef;
+
+    static NodeRef store(const T* node)
+    {
+        return node ? NodeRef{node->id()} : NodeRef{};
     }
 };
 

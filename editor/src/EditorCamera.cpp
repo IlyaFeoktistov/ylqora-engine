@@ -9,8 +9,6 @@ namespace yqlora::editor {
 
 namespace {
 
-const Vec3 kWorldUp(0.0f, 1.0f, 0.0f);
-
 constexpr float kMouseSensitivity = 0.15f; // градусов на точку сдвига мыши
 constexpr float kBoostFactor = 3.0f;       // с зажатым Shift
 constexpr float kWheelStep = 1.2f;         // во сколько раз меняет скорость один щелчок колеса
@@ -47,7 +45,7 @@ void EditorCamera::update(const Input& input, float deltaSeconds, bool hovered)
     m_pitchDegrees = std::clamp(m_pitchDegrees - delta.y * kMouseSensitivity, -kMaxPitch, kMaxPitch);
 
     const Vec3 direction = forward() * axis(input, Key::S, Key::W) + right() * axis(input, Key::A, Key::D)
-                           + kWorldUp * axis(input, Key::Q, Key::E);
+                           + math::kWorldUp * axis(input, Key::Q, Key::E);
     if (glm::length(direction) == 0.0f) {
         return;
     }
@@ -89,7 +87,7 @@ Vec3 EditorCamera::forward() const
 
 Vec3 EditorCamera::right() const
 {
-    return glm::normalize(glm::cross(forward(), kWorldUp));
+    return glm::normalize(glm::cross(forward(), math::kWorldUp));
 }
 
 Vec3 EditorCamera::up() const
@@ -100,7 +98,7 @@ Vec3 EditorCamera::up() const
 CameraData EditorCamera::cameraData(float aspect, DepthRange depthRange) const
 {
     CameraData camera;
-    camera.view = glm::lookAt(m_position, m_position + forward(), kWorldUp);
+    camera.view = glm::lookAt(m_position, m_position + forward(), math::kWorldUp);
     camera.projection = math::perspective(glm::radians(m_fovDegrees), aspect, m_near, m_far, depthRange);
     camera.position = m_position;
 

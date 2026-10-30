@@ -48,6 +48,8 @@ constexpr std::string_view kSpinnerType = "Spinner";
 constexpr std::string_view kSpeedProperty = "speed";
 constexpr float kDefaultSpeed = 1.0f;
 constexpr float kChangedSpeed = 4.5f;
+constexpr std::string_view kBoostMethod = "boost";
+constexpr float kBoostFactor = 3.0f;
 constexpr float kFrame = 0.016f;
 
 ScriptStub& stub(Component& component)
@@ -80,6 +82,19 @@ struct Fixture {
                     },
                     [](Component& component, const PropertyValue& value) {
                         stub(component).values.find(kSpeedProperty)->second = value;
+                    }
+                )
+            )
+            .method(
+                Method::forComponent(
+                    std::string(kBoostMethod),
+                    {{"factor", PropertyType::Float, std::nullopt}},
+                    PropertyType::Float,
+                    [](Component& component, std::span<const PropertyValue> arguments) {
+                        PropertyValue& speed = stub(component).values.find(kSpeedProperty)->second;
+                        speed = std::get<float>(speed) * std::get<float>(arguments[0]);
+
+                        return std::optional<PropertyValue>(speed);
                     }
                 )
             );
@@ -142,4 +157,18 @@ TEST_CASE_FIXTURE(Fixture, "Runtime type: its properties survive save and load")
     });
     REQUIRE(it != loadedComponents.end());
     CHECK(std::get<float>(speed.get(**it)) == doctest::Approx(kChangedSpeed));
+}
+
+TEST_CASE_FIXTURE(Fixture, "Runtime type: its methods are called like methods of C++ classes")
+{
+    const auto component = spinner().createComponent();
+    const auto methods = registry.methods(spinner());
+    REQUIRE(methods.size() == 1);
+    const Method& boost = *methods[0];
+    CHECK(boost.name() == kBoostMethod);
+
+    const std::vector<PropertyValue> arguments{kBoostFactor};
+    const MethodCallResult result = boost.call(*component, arguments);
+    REQUIRE(result.called);
+    CHECK(std::get<float>(*result.value) == doctest::Approx(kDefaultSpeed * kBoostFactor));
 }

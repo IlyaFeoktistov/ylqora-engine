@@ -62,7 +62,7 @@ public:
     void setValues(const TransformValues& values);
 
     // Поворачивает так, чтобы -Z смотрел на target (в координатах родителя).
-    void lookAt(const Vec3& target, const Vec3& up = {0.0f, 1.0f, 0.0f});
+    void lookAt(const Vec3& target, const Vec3& up = math::kWorldUp);
 
     // Матрица T * R * S в пространстве родителя.
     Mat4 matrix() const;

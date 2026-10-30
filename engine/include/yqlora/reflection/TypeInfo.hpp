@@ -1,6 +1,7 @@
 #pragma once
 
 #include "yqlora/core/Export.hpp"
+#include "yqlora/reflection/Method.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/scene/LifecyclePhase.hpp"
 
@@ -72,6 +73,12 @@ public:
         return m_properties;
     }
 
+    // Только методы этого типа, без базовых. Все вместе: TypeRegistry::methods().
+    std::span<const Method> ownMethods() const
+    {
+        return m_methods;
+    }
+
     // Правила компонента, только свои, без базовых. Проверяют их функции
     // из ComponentRules.hpp, они же учитывают правила базовых типов.
 
@@ -124,6 +131,7 @@ private:
     std::function<std::unique_ptr<Component>()> m_createComponent;
     std::function<std::unique_ptr<SceneSystem>(Scene&)> m_createSystem;
     std::vector<Property> m_properties;
+    std::vector<Method> m_methods;
     std::string m_requiredNode;
     std::vector<std::string> m_requiredComponents;
     bool m_allowMultiple = false;

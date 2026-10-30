@@ -27,6 +27,9 @@ using Mat4 = glm::mat4;
 // Только то, чего в glm нет в нужном движку виде.
 namespace math {
 
+// Направление вверх в мире: система координат правая, +Y вверх, взгляд вдоль -Z.
+inline constexpr Vec3 kWorldUp{0.0f, 1.0f, 0.0f};
+
 // Допуск для сравнения результатов вычислений с плавающей точкой.
 inline constexpr float kEpsilon = 1e-4f;
 

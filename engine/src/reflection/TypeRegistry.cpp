@@ -72,6 +72,18 @@ std::vector<const Property*> TypeRegistry::properties(const TypeInfo& type) cons
     return result;
 }
 
+std::vector<const Method*> TypeRegistry::methods(const TypeInfo& type) const
+{
+    std::vector<const Method*> result;
+    for (const TypeInfo* t : chain(type) | std::views::reverse) {
+        for (const Method& method : t->ownMethods()) {
+            result.push_back(&method);
+        }
+    }
+
+    return result;
+}
+
 std::size_t TypeRegistry::removeModule(std::string_view module)
 {
     const auto inModule = [&](const std::unique_ptr<TypeInfo>& type) {
@@ -101,11 +113,19 @@ void registerEngineTypes(TypeRegistry& registry)
     registry.registerNode<Node>()
         .property("name", &Node::name, &Node::setName)
         .property("active", &Node::active, &Node::setActive)
-        .property("layer", &Node::layer, &Node::setLayer, PropertyHint::Layer);
+        .property("layer", &Node::layer, &Node::setLayer, PropertyHint::Layer)
+        .method("findChild", &Node::findChild, {{"name"}});
 
     registry.registerComponent<Component>().property("enabled", &Component::enabled, &Component::setEnabled);
 
-    registry.registerNode<Node3D>();
+    registry.registerNode<Node3D>()
+        .method("worldPosition", &Node3D::worldPosition)
+        .method("setWorldPosition", &Node3D::setWorldPosition, {{"position"}})
+        .method("toWorld", &Node3D::toWorld, {{"localPoint"}})
+        .method("toLocal", &Node3D::toLocal, {{"worldPoint"}})
+        .method("worldForward", &Node3D::worldForward)
+        .method("worldRight", &Node3D::worldRight)
+        .method("worldUp", &Node3D::worldUp);
 
     registry.registerNode<Camera3D>()
         .property("fov", &Camera3D::fovDegrees, &Camera3D::setFovDegrees, PropertyHint::Angle)
@@ -120,7 +140,8 @@ void registerEngineTypes(TypeRegistry& registry)
     registry.registerComponent<Transform3D>()
         .property("position", &Transform3D::position, &Transform3D::setPosition)
         .property("rotation", &Transform3D::rotationDegrees, &Transform3D::setRotationDegrees, PropertyHint::Angle)
-        .property("scale", &Transform3D::scale, &Transform3D::setScale);
+        .property("scale", &Transform3D::scale, &Transform3D::setScale)
+        .method("lookAt", &Transform3D::lookAt, {{"target"}, {"up", math::kWorldUp}});
 
     registry.registerComponent<MeshRenderer>()
         .requiresNode<Node3D>()

@@ -160,8 +160,15 @@ sandbox and a language server.
   (`ClassTypeBuilder` turns members into those values), and the scene indexes
   components by type name, so all `LuauScript` types get lists of their own.
 - Bindings are generated from the registry: properties plus **registered
-  methods** of engine types **[next]**. One list serves Luau, the inspector and
-  the API documentation. The same list produces type definition files for
+  methods** of engine types **[done]**. A method (`Method`) is, like a
+  property, a function over `PropertyValue`: name, parameters with types and
+  optional trailing defaults, result type. `ClassTypeBuilder::method` takes the
+  types from the C++ signature and only the parameter names from the caller,
+  `Method::forComponent` describes a method of a runtime type. A returned node
+  pointer becomes a `NodeRef`. Engine methods so far: `Node.findChild`,
+  `Node3D.worldPosition` / `setWorldPosition` / `toWorld` / `toLocal` /
+  `worldForward` / `worldRight` / `worldUp`, `Transform3D.lookAt`. One list
+  serves Luau, the inspector and the API documentation. The same list produces type definition files for
   luau-lsp, which gives completion and type checking in an editor.
 - Sandbox: Luau's own (`luaL_sandbox`: read-only globals, no `io` / `os`
   access), an interrupt callback against endless loops, an allocator with a

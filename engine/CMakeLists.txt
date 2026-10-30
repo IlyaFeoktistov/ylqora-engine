@@ -48,6 +48,7 @@ add_library(yqlora SHARED
     src/scene/SceneSerializer.cpp
     src/project/Project.cpp
     src/reflection/ComponentRules.cpp
+    src/reflection/Method.cpp
     src/reflection/Property.cpp
     src/reflection/PropertyJson.cpp
     src/reflection/TypeBuilder.cpp

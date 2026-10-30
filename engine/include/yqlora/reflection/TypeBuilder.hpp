@@ -8,11 +8,15 @@
 #include "yqlora/scene/Node.hpp"
 #include "yqlora/scene/SceneSystem.hpp"
 
+#include <algorithm>
+#include <array>
 #include <cassert>
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <initializer_list>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -31,6 +35,23 @@ public:
     Self& property(Property property)
     {
         m_info.m_properties.push_back(std::move(property));
+
+        return self();
+    }
+
+    // Метод, уже описанный значениями (Method::forNode, forComponent).
+    Self& method(Method method)
+    {
+        assert(
+            std::ranges::none_of(
+                m_info.m_methods,
+                [&](const Method& m) {
+                    return m.name() == method.name();
+                }
+            )
+            && "TypeBuilder: the type already has a method with this name"
+        );
+        m_info.m_methods.push_back(std::move(method));
 
         return self();
     }
@@ -124,6 +145,19 @@ public:
     TypeBuilder& phases(LifecyclePhases phases);
 };
 
+// Параметр метода C++-класса: тип берётся из сигнатуры, здесь только имя и,
+// если нужно, значение по умолчанию.
+struct ClassMethodParameter {
+    ClassMethodParameter(std::string parameterName, std::optional<PropertyValue> value = std::nullopt)
+        : name(std::move(parameterName))
+        , defaultValue(std::move(value))
+    {
+    }
+
+    std::string name;
+    std::optional<PropertyValue> defaultValue;
+};
+
 // Тип - C++-класс: свойства из его методов и полей, правила по C++-типам.
 // Сам ничего не хранит, переводит члены класса в значения BasicTypeBuilder:
 //   registry.registerNode<Camera3D>()
@@ -138,6 +172,7 @@ public:
     {
     }
 
+    using Base::method;
     using Base::property;
     using Base::requiresComponent;
     using Base::requiresNode;
@@ -184,6 +219,34 @@ public:
         return property(std::move(name), getter, setter, hint);
     }
 
+    // Метод класса или его базы. Типы параметров и результата берутся из
+    // сигнатуры, имена параметров (и значения по умолчанию) - из parameters,
+    // по одному на каждый параметр:
+    //   .method("lookAt", &Transform3D::lookAt, {{"target"}, {"up", kWorldUp}})
+    template <typename Result, typename Owner, typename... Args>
+        requires std::derived_from<Class, Owner>
+    ClassTypeBuilder& method(
+        std::string name,
+        Result (Owner::*function)(Args...),
+        std::initializer_list<ClassMethodParameter> parameters = {}
+    )
+        requires(!std::same_as<Root, SceneSystem>)
+    {
+        return addMethod<Result, Args...>(std::move(name), function, parameters);
+    }
+
+    template <typename Result, typename Owner, typename... Args>
+        requires std::derived_from<Class, Owner>
+    ClassTypeBuilder& method(
+        std::string name,
+        Result (Owner::*function)(Args...) const,
+        std::initializer_list<ClassMethodParameter> parameters = {}
+    )
+        requires(!std::same_as<Root, SceneSystem>)
+    {
+        return addMethod<Result, Args...>(std::move(name), function, parameters);
+    }
+
     //   registry.registerComponent<MeshRenderer>().requiresNode<Node3D>();
     template <std::derived_from<Node> NodeType>
     ClassTypeBuilder& requiresNode()
@@ -197,6 +260,67 @@ public:
         requires std::same_as<Root, Component>
     {
         return requiresComponent(std::string(typeNameOf<Required>()));
+    }
+
+private:
+    template <typename Result, typename... Args, typename Function>
+    ClassTypeBuilder& addMethod(std::string name, Function function, std::initializer_list<ClassMethodParameter> names)
+    {
+        assert(names.size() == sizeof...(Args) && "method: name every parameter");
+        const std::array<PropertyType, sizeof...(Args)> types{propertyTypeOf<std::remove_cvref_t<Args>>()...};
+        std::vector<MethodParameter> parameters;
+        parameters.reserve(names.size());
+        for (std::size_t i = 0; const ClassMethodParameter& parameter : names) {
+            parameters.push_back({parameter.name, types[i++], parameter.defaultValue});
+        }
+        std::optional<PropertyType> result;
+        if constexpr (!std::is_void_v<Result>) {
+            result = propertyTypeOf<std::remove_cvref_t<Result>>();
+        }
+
+        const auto invoke = [function](Root& object, std::span<const PropertyValue> arguments) {
+            return call<Result, Args...>(
+                function,
+                static_cast<Class&>(object),
+                arguments,
+                std::index_sequence_for<Args...>{}
+            );
+        };
+        if constexpr (std::same_as<Root, Node>) {
+            return method(Method::forNode(std::move(name), std::move(parameters), result, invoke));
+        } else {
+            return method(Method::forComponent(std::move(name), std::move(parameters), result, invoke));
+        }
+    }
+
+    template <typename Result, typename... Args, typename Function, std::size_t... Indices>
+    static std::optional<PropertyValue> call(
+        Function function,
+        Class& object,
+        std::span<const PropertyValue> arguments,
+        std::index_sequence<Indices...>
+    )
+    {
+        if constexpr (std::is_void_v<Result>) {
+            std::invoke(function, object, argument<Args>(arguments[Indices])...);
+
+            return std::nullopt;
+        } else {
+            using Storage = PropertyStorage<std::remove_cvref_t<Result>>;
+
+            return PropertyValue(
+                std::in_place_type<typename Storage::Type>,
+                Storage::store(std::invoke(function, object, argument<Args>(arguments[Indices])...))
+            );
+        }
+    }
+
+    template <typename Arg>
+    static decltype(auto) argument(const PropertyValue& value)
+    {
+        using Storage = PropertyStorage<std::remove_cvref_t<Arg>>;
+
+        return Storage::load(std::get<typename Storage::Type>(value));
     }
 };
 
