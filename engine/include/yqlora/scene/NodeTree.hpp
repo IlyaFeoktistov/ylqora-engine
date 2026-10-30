@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <string_view>
 
 namespace yqlora {
 
@@ -16,6 +17,10 @@ class Node;
 // Узел с этим ID в ветке root (вместе с самим root); nullptr, если нет.
 YQLORA_API Node* findNode(Node& root, NodeId id);
 YQLORA_API const Node* findNode(const Node& root, NodeId id);
+
+// Первый узел ветки с таким именем, в глубину, начиная с самого root.
+// nullptr, если такого нет.
+YQLORA_API Node* findNodeByName(Node& root, std::string_view name);
 
 // node - это branch или его потомок.
 YQLORA_API bool isInBranch(const Node& branch, const Node& node);

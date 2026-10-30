@@ -153,7 +153,7 @@ The component lifecycle of the [scene](scene.md), as scripts see it:
 
 1. Field attributes in `Property` (with `formerly`) and the "is a script"
    mark in the registry (for every language); `Script`, its API,
-   `YQLORA_SCRIPT`, `YQLORA_FIELDS`.
+   `YQLORA_SCRIPT`, `YQLORA_FIELDS`, `registerScript` **[done]**.
 2. Module registration: the entry function, `registerScript` (with
    `formerly`), refusal of a type name taken by another module.
 3. `GameModule`: load a shared library, register its types, unload. Before

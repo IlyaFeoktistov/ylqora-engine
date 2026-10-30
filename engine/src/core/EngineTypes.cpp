@@ -4,6 +4,7 @@
 #include "yqlora/project/ProjectTypes.hpp"
 #include "yqlora/render/RenderTypes.hpp"
 #include "yqlora/scene/SceneTypes.hpp"
+#include "yqlora/scripting/ScriptingTypes.hpp"
 
 namespace yqlora {
 
@@ -14,6 +15,7 @@ void registerEngineTypes(TypeRegistry& registry)
     registerInputTypes(registry);
     registerSceneTypes(registry);
     registerRenderTypes(registry);
+    registerScriptingTypes(registry);
 }
 
 } // namespace yqlora

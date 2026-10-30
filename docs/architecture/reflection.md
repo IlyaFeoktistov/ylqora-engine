@@ -34,6 +34,17 @@ Status marks: see [README](README.md).
 - Registered properties are what scene files save, the inspector shows and
   scripts see.
 
+## Property attributes [done]
+
+How a property is shown and saved, the same for every language that declares
+types (`PropertyAttributes`): `range(min, max)` limits numbers in the
+inspector (also the numbers of vectors and lists), `displayName` and
+`tooltip` (a translation key or the text itself), `group` puts it under a
+heading, `notSaved` keeps it out of files, `notShown` out of the inspector,
+`formerly("oldName")` reads files written under an old name. They chain after
+`property(...)` in a type builder and after `field(...)` in records and
+scripts. Saving and the inspector are two separate users of them.
+
 ## Methods [done]
 
 ```cpp

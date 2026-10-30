@@ -109,6 +109,13 @@ public:
         return m_phases;
     }
 
+    // Тип - скрипт: поведение, написанное для игры (C++, Luau, граф).
+    // "Добавить компонент" собирает скрипты по этой пометке, а не по базовому классу.
+    bool isScript() const
+    {
+        return m_script;
+    }
+
     // Порядок выполнения по умолчанию из кода. Действующий порядок - executionOrderOf.
     int executionOrder() const
     {
@@ -148,6 +155,7 @@ private:
     std::string m_requiredNode;
     std::vector<std::string> m_requiredComponents;
     bool m_allowMultiple = false;
+    bool m_script = false;
     LifecyclePhases m_phases = 0;
     int m_executionOrder = 0;
 };

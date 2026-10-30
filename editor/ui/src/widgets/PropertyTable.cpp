@@ -1,10 +1,12 @@
 #include "yqlora/editor/ui/widgets/PropertyTable.hpp"
 
+#include "yqlora/i18n/Translate.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 
 #include <imgui.h>
 
 #include <algorithm>
+#include <string>
 #include <vector>
 
 namespace yqlora::editor {
@@ -23,7 +25,7 @@ float labelColumnWidth(const std::vector<const Property*>& properties)
 {
     float widest = 0.0f;
     for (const Property* property : properties) {
-        widest = std::max(widest, ImGui::CalcTextSize(propertyLabel(property->name()).c_str()).x);
+        widest = std::max(widest, ImGui::CalcTextSize(propertyLabel(*property).c_str()).x);
     }
     const float padded = widest + 2.0f * ImGui::GetStyle().FramePadding.x;
     const float limit = std::max(kMinLabelWidth, ImGui::GetContentRegionAvail().x * kMaxLabelShare);
@@ -40,7 +42,10 @@ bool drawTable(
     const PropertyChanged& changed
 )
 {
-    const auto properties = registry.properties(type);
+    std::vector<const Property*> properties = registry.properties(type);
+    std::erase_if(properties, [](const Property* property) {
+        return !property->attributes().shown;
+    });
     if (properties.empty() || !ImGui::BeginTable("properties", kColumnCount)) {
         return false;
     }
@@ -48,7 +53,18 @@ bool drawTable(
     ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
 
     bool dragging = false;
+    const std::string* group = nullptr;
     for (const Property* property : properties) {
+        // Новая группа - строка с её названием над её свойствами.
+        const std::string& propertyGroup = property->attributes().group;
+        if (!propertyGroup.empty() && (!group || *group != propertyGroup)) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::TextDisabled("%s", tr(propertyGroup).c_str());
+            ImGui::TableNextColumn();
+            ImGui::Separator();
+        }
+        group = &propertyGroup;
         const PropertyResult result = drawProperty(*property, object, widgets);
         if (result.changed) {
             changed(*property, result.value);

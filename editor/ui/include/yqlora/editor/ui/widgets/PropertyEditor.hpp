@@ -62,8 +62,8 @@ PropertyResult drawProperty(const Property& property, Node& node, const Property
 PropertyResult drawProperty(const Property& property, Component& component, const PropertyEditorContext& context);
 PropertyResult drawProperty(const Property& property, SettingsSection& section, const PropertyEditorContext& context);
 
-// Подпись свойства на языке интерфейса: перевод ключа property.<имя>,
+// Подпись свойства: его displayName, иначе перевод ключа property.<имя>,
 // а без перевода - имя с заглавной буквы.
-std::string propertyLabel(const std::string& name);
+std::string propertyLabel(const Property& property);
 
 } // namespace yqlora::editor

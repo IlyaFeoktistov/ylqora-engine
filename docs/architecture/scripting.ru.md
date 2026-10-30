@@ -154,7 +154,7 @@ YQLORA_MODULE_ENTRY(registry)
 
 1. Атрибуты поля в `Property` (с `formerly`) и пометка "это скрипт" в
    реестре (для всех языков); `Script`, его API, `YQLORA_SCRIPT`,
-   `YQLORA_FIELDS`.
+   `YQLORA_FIELDS`, `registerScript` **[done]**.
 2. Регистрация модуля: входная функция, `registerScript` (с `formerly`),
    отказ для имени типа, занятого другим модулем.
 3. `GameModule`: загрузить разделяемую библиотеку, зарегистрировать её

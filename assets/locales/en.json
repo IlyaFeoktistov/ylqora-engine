@@ -53,6 +53,9 @@
         },
         "InputSettings": {
             "description": "Input actions and their bindings to keys and mouse buttons. Scripts ask for an action by name, not for a key."
+        },
+        "Script": {
+            "description": "Base of C++ scripts: game behaviour with the component lifecycle."
         }
     },
     "editor": {

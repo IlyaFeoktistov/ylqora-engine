@@ -32,7 +32,7 @@ namespace yqlora {
 // правила компонента. Self - конкретный строитель: методы возвращают его,
 // чтобы в цепочке вызовов не терялись его собственные методы.
 template <typename Self>
-class BasicTypeBuilder {
+class BasicTypeBuilder : public PropertyAttributeSetters<Self> {
 public:
     // Свойство, уже описанное значениями (Property::forNode, forComponent, forSettings).
     Self& property(Property property)
@@ -105,6 +105,23 @@ public:
         return self();
     }
 
+    // Тип - скрипт (см. TypeInfo::isScript). Ставит каждый язык скриптов.
+    Self& script()
+    {
+        assertComponent();
+        m_info.m_script = true;
+
+        return self();
+    }
+
+    // Все атрибуты последнего добавленного свойства разом: из описания поля.
+    Self& withAttributes(PropertyAttributes attributes)
+    {
+        attributesToEdit() = std::move(attributes);
+
+        return self();
+    }
+
     // Несколько компонентов этого типа на одном узле. По умолчанию один.
     Self& allowMultiple()
     {
@@ -123,6 +140,16 @@ protected:
     Self& self()
     {
         return static_cast<Self&>(*this);
+    }
+
+    // Атрибуты (PropertyAttributeSetters) относятся к последнему добавленному свойству.
+    friend class PropertyAttributeSetters<Self>;
+
+    PropertyAttributes& attributesToEdit()
+    {
+        assert(!m_info.m_properties.empty() && "TypeBuilder: add the property first");
+
+        return m_info.m_properties.back().attributes();
     }
 
     void assertComponent() const

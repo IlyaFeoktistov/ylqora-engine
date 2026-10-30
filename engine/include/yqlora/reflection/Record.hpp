@@ -49,13 +49,33 @@ struct RecordFields;
 template <typename T>
 concept Record = requires { RecordFields<T>::fields(); };
 
-// Одно поле записи: имя, член структуры, подсказка редактору и, у перечисления, имена значений.
+// Одно поле записи или скрипта: имя, член класса, подсказка редактору, у
+// перечисления - имена значений, и атрибуты в цепочке: field(...).range(0, 100).
 template <typename Owner, typename Value>
-struct RecordField {
+struct RecordField : PropertyAttributeSetters<RecordField<Owner, Value>> {
+    RecordField(
+        std::string_view fieldName,
+        Value Owner::* fieldMember,
+        PropertyHint fieldHint,
+        std::vector<std::string> names
+    )
+        : name(fieldName)
+        , member(fieldMember)
+        , hint(fieldHint)
+        , enumNames(std::move(names))
+    {
+    }
+
+    PropertyAttributes& attributesToEdit()
+    {
+        return attributes;
+    }
+
     std::string_view name;
     Value Owner::* member;
     PropertyHint hint = PropertyHint::None;
     std::vector<std::string> enumNames;
+    PropertyAttributes attributes;
 };
 
 template <typename Owner, typename Value>
@@ -134,6 +154,7 @@ std::vector<Property> recordFieldsOf()
                 if (!fields.enumNames.empty()) {
                     described.setEnumNames(fields.enumNames);
                 }
+                described.attributes() = fields.attributes;
                 describeValue<Value>(described);
 
                 return described;

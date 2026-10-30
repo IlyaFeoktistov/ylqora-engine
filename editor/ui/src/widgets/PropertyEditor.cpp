@@ -384,7 +384,7 @@ bool nodeCombo(const Scene& scene, NodeRef& value)
 // Подпись строки. У одиночного числа её можно тянуть, у остальных - просто текст.
 void rowLabel(const Property& property, PropertyValue& value, PropertyResult& result)
 {
-    const std::string label = propertyLabel(property.name());
+    const std::string label = propertyLabel(property);
     // В узком окне подпись обрезается: полный текст - подсказкой.
     const bool clipped = ImGui::CalcTextSize(label.c_str()).x + 2.0f * ImGui::GetStyle().FramePadding.x
                          > ImGui::GetContentRegionAvail().x;
@@ -403,7 +403,11 @@ void rowLabel(const Property& property, PropertyValue& value, PropertyResult& re
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetStyle().FramePadding.x);
         ImGui::TextUnformatted(label.c_str());
     }
-    if (clipped) {
+    // Подсказка поля - ключ перевода или сам текст: tr без перевода вернёт его же.
+    const std::string& tooltip = property.attributes().tooltip;
+    if (!tooltip.empty()) {
+        ImGui::SetItemTooltip("%s%s%s", clipped ? label.c_str() : "", clipped ? "\n" : "", tr(tooltip).c_str());
+    } else if (clipped) {
         ImGui::SetItemTooltip("%s", label.c_str());
     }
 }
@@ -521,12 +525,41 @@ void recordField(
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
         ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted(propertyLabel(fields[i].name()).c_str());
+        ImGui::TextUnformatted(propertyLabel(fields[i]).c_str());
         ImGui::TableNextColumn();
         valueField(fields[i], fields[i].type(), record.fields[i], context, result);
         ImGui::PopID();
     }
     ImGui::EndTable();
+}
+
+// Числа значения в пределах PropertyAttributes::min и max: и само число, и
+// числа вектора, и элементы списка чисел.
+void clampToRange(const Property& property, PropertyValue& value)
+{
+    const PropertyAttributes& attributes = property.attributes();
+    if (!attributes.min && !attributes.max) {
+        return;
+    }
+    const auto clamp = [&](float number) {
+        if (attributes.min) {
+            number = std::max(number, *attributes.min);
+        }
+        if (attributes.max) {
+            number = std::min(number, *attributes.max);
+        }
+
+        return number;
+    };
+    if (float* number = std::get_if<float>(&value)) {
+        *number = clamp(*number);
+    } else if (int* integer = std::get_if<int>(&value)) {
+        *integer = static_cast<int>(clamp(static_cast<float>(*integer)));
+    } else {
+        for (float& component : vectorComponents(value)) {
+            component = clamp(component);
+        }
+    }
 }
 
 // Элементы списка друг под другом, у каждого кнопка удаления, внизу кнопка добавления.
@@ -632,6 +665,9 @@ void valueField(
     case PropertyType::List: listField(property, std::get<ListValue>(value), context, result); break;
     case PropertyType::Record: recordField(property, std::get<RecordValue>(value), context, result); break;
     }
+    if (result.changed) {
+        clampToRange(property, value);
+    }
 }
 
 // Пункты для одного числа вектора: сбросить, скопировать, вставить только его.
@@ -733,6 +769,10 @@ PropertyResult drawPropertyRow(const Property& property, Object& object, const P
     rowMenu(property, value, rowTop, rowBottom, result, [&] {
         return defaultValue(context.registry, object, property);
     });
+    // Подпись числа тянут мимо поля значения: пределы и для неё.
+    if (result.changed) {
+        clampToRange(property, value);
+    }
     ImGui::PopID();
 
     result.value = std::move(value);
@@ -757,8 +797,12 @@ PropertyResult drawProperty(const Property& property, SettingsSection& section, 
     return drawPropertyRow(property, section, context);
 }
 
-std::string propertyLabel(const std::string& name)
+std::string propertyLabel(const Property& property)
 {
+    if (!property.attributes().displayName.empty()) {
+        return property.attributes().displayName;
+    }
+    const std::string& name = property.name();
     const std::string key = "property." + name;
     std::string label = tr(key);
     if (label == key) {

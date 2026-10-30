@@ -50,12 +50,19 @@ YQLORA_API nlohmann::json valueToJson(const Property& property, const PropertyVa
 // nullopt, если значение не того типа или такого значения перечисления нет.
 YQLORA_API std::optional<PropertyValue> valueFromJson(const nlohmann::json& json, const Property& property);
 
+// Значение свойства в объекте JSON: под его именем, а если его нет - под
+// прежним именем (PropertyAttributes::formerly). nullptr, если нет ни там, ни там.
+YQLORA_API const nlohmann::json* findPropertyJson(const nlohmann::json& object, const Property& property);
+
+// Свойства с атрибутом "не сохранять" не пишутся.
 template <typename Object>
 nlohmann::json propertiesToJson(const TypeRegistry& registry, const TypeInfo& type, const Object& object)
 {
     nlohmann::json result = nlohmann::json::object();
     for (const Property* property : registry.properties(type)) {
-        result[property->name()] = valueToJson(*property, property->get(object));
+        if (property->attributes().saved) {
+            result[property->name()] = valueToJson(*property, property->get(object));
+        }
     }
 
     return result;
@@ -70,11 +77,11 @@ void propertiesFromJson(const TypeRegistry& registry, const TypeInfo& type, Obje
         return;
     }
     for (const Property* property : registry.properties(type)) {
-        const auto it = json.find(property->name());
-        if (it == json.end()) {
+        const nlohmann::json* found = property->attributes().saved ? findPropertyJson(json, *property) : nullptr;
+        if (!found) {
             continue;
         }
-        const auto value = valueFromJson(*it, *property);
+        const auto value = valueFromJson(*found, *property);
         if (!value) {
             log::warn("Property '{}.{}' has a wrong value, skipped", type.name(), property->name());
             continue;

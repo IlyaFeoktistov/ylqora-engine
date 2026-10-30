@@ -53,4 +53,18 @@ Component* componentAt(const Node& node, std::size_t index)
     return index < node.components().size() ? node.components()[index].get() : nullptr;
 }
 
+Node* findNodeByName(Node& root, std::string_view name)
+{
+    if (root.name() == name) {
+        return &root;
+    }
+    for (const auto& child : root.children()) {
+        if (Node* found = findNodeByName(*child, name)) {
+            return found;
+        }
+    }
+
+    return nullptr;
+}
+
 } // namespace yqlora

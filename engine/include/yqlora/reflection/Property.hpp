@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -258,6 +259,94 @@ enum class PropertyHint {
     InputControl,  // строка: имя клавиши или кнопки мыши, задаётся нажатием
 };
 
+// Как свойство показывается и сохраняется. Общее для всех языков, на которых
+// описан тип (C++, Luau, графы): инспектор и файлы не знают, откуда поле.
+struct PropertyAttributes {
+    // Пределы чисел в инспекторе (int, float, числа векторов); nullopt - без предела.
+    std::optional<float> min;
+    std::optional<float> max;
+    // Подпись в инспекторе; пусто - перевод property.<имя> или само имя.
+    std::string displayName;
+    // Подсказка при наведении: ключ перевода или сам текст.
+    std::string tooltip;
+    // Заголовок, под которым свойство стоит в инспекторе; пусто - без группы.
+    std::string group;
+    // Пишется в файл. false - значение только на время работы.
+    bool saved = true;
+    // Видно в инспекторе. false - только для кода и файла.
+    bool shown = true;
+    // Прежние имена: файл с таким именем читается, пишется уже новое.
+    std::vector<std::string> formerly;
+};
+
+// Атрибуты в цепочке описания свойства: .range(0, 100).tooltip("..."). Одни
+// и те же методы у строителя типа (к последнему свойству) и у полей скриптов
+// и записей. Self даёт attributesToEdit().
+template <typename Self>
+class PropertyAttributeSetters {
+public:
+    Self& range(float min, float max)
+    {
+        edit().min = min;
+        edit().max = max;
+
+        return self();
+    }
+
+    Self& displayName(std::string name)
+    {
+        edit().displayName = std::move(name);
+
+        return self();
+    }
+
+    Self& tooltip(std::string text)
+    {
+        edit().tooltip = std::move(text);
+
+        return self();
+    }
+
+    Self& group(std::string name)
+    {
+        edit().group = std::move(name);
+
+        return self();
+    }
+
+    Self& notSaved()
+    {
+        edit().saved = false;
+
+        return self();
+    }
+
+    Self& notShown()
+    {
+        edit().shown = false;
+
+        return self();
+    }
+
+    Self& formerly(std::string oldName)
+    {
+        edit().formerly.push_back(std::move(oldName));
+
+        return self();
+    }
+
+private:
+    Self& self()
+    {
+        return static_cast<Self&>(*this);
+    }
+
+    PropertyAttributes& edit()
+    {
+        return self().attributesToEdit();
+    }
+};
+
 // Свойство узла, компонента или раздела настроек проекта: имя, тип и доступ к значению. Доступ к
 // значению - функции над PropertyValue, поэтому свойство может объявить и
 // C++-класс (ClassTypeBuilder), и тип, описанный во время выполнения
@@ -318,6 +407,17 @@ public:
         return m_elementType;
     }
 
+    const PropertyAttributes& attributes() const
+    {
+        return m_attributes;
+    }
+
+    // Атрибуты задают при описании типа (BasicTypeBuilder, поля скриптов и записей).
+    PropertyAttributes& attributes()
+    {
+        return m_attributes;
+    }
+
     // Имена значений перечисления по порядку. Пусто у остальных типов.
     const std::vector<std::string>& enumNames() const
     {
@@ -371,6 +471,7 @@ private:
     std::vector<std::string> m_enumNames;
     std::vector<Property> m_fields;
     RecordValue m_recordDefaults;
+    PropertyAttributes m_attributes;
     // Своё у каждого вида объектов: объект одного вида не передать свойству другого.
     NodeGetter m_nodeGet;
     NodeSetter m_nodeSet;

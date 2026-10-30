@@ -48,8 +48,9 @@ std::optional<PropertyValue> listFromJson(const Json& json, const Property& prop
     return list;
 }
 
-// Объект с полями по именам. Недостающее поле - значение по умолчанию, лишние
-// не читаются: поле в структуре можно добавить или убрать, файлы читаются.
+// Объект с полями по именам (и прежним именам). Недостающее поле - значение
+// по умолчанию, лишние не читаются: поле в структуре можно добавить или
+// убрать, файлы читаются.
 std::optional<PropertyValue> recordFromJson(const Json& json, const Property& property)
 {
     if (!json.is_object()) {
@@ -58,11 +59,11 @@ std::optional<PropertyValue> recordFromJson(const Json& json, const Property& pr
     const auto& fields = property.fields();
     RecordValue record = std::get<RecordValue>(property.defaultElement());
     for (std::size_t i = 0; i < fields.size(); ++i) {
-        const auto it = json.find(fields[i].name());
-        if (it == json.end()) {
+        const Json* found = findPropertyJson(json, fields[i]);
+        if (!found) {
             continue;
         }
-        auto value = valueFromJson(*it, fields[i]);
+        auto value = valueFromJson(*found, fields[i]);
         if (!value) {
             return std::nullopt;
         }
@@ -73,6 +74,20 @@ std::optional<PropertyValue> recordFromJson(const Json& json, const Property& pr
 }
 
 } // namespace
+
+const Json* findPropertyJson(const Json& object, const Property& property)
+{
+    if (const auto it = object.find(property.name()); it != object.end()) {
+        return &*it;
+    }
+    for (const std::string& name : property.attributes().formerly) {
+        if (const auto it = object.find(name); it != object.end()) {
+            return &*it;
+        }
+    }
+
+    return nullptr;
+}
 
 Json valueToJson(const Property& property, const PropertyValue& value)
 {
@@ -96,7 +111,9 @@ Json valueToJson(const Property& property, const PropertyValue& value)
                 Json object = Json::object();
                 const auto& fields = property.fields();
                 for (std::size_t i = 0; i < fields.size() && i < v.fields.size(); ++i) {
-                    object[fields[i].name()] = valueToJson(fields[i], v.fields[i]);
+                    if (fields[i].attributes().saved) {
+                        object[fields[i].name()] = valueToJson(fields[i], v.fields[i]);
+                    }
                 }
 
                 return object;
