@@ -19,6 +19,7 @@
 namespace yqlora {
 
 class Window;
+class FileDialogs;
 class Renderer;
 class UiLayer;
 class Settings;
@@ -133,7 +134,7 @@ public:
     // Пустая строка - только название.
     void setTitleDetail(std::string detail);
 
-    // См. Window::showFolderDialog.
+    // См. FileDialogs::showFolderDialog.
     void showFolderDialog(
         const std::filesystem::path& start,
         std::function<void(std::optional<std::filesystem::path>)> callback
@@ -187,6 +188,7 @@ private:
     std::unique_ptr<Settings> m_settings;
     std::unique_ptr<Localization> m_localization;
     std::unique_ptr<Window> m_window;
+    std::unique_ptr<FileDialogs> m_dialogs;
     std::unique_ptr<Renderer> m_renderer;
     // Только при ApplicationConfig::ui.
     std::unique_ptr<UiLayer> m_ui;

@@ -38,7 +38,8 @@ engine/include/yqlora/audio/       AudioSource, AudioListener, AudioWorld       
 engine/include/yqlora/ui/          Control, Label, Button                              [step 8]
 ```
 
-Переносы следующего этапа **[next]**: слой интерфейса (`UiLayer`, Dear
-ImGui) из `core/` в `ui/`; диалог выбора папки из `Window` в платформенный
-`FileDialogs`; перевод проекта на текущий формат - свободная функция
-`project/`, а не метод `Project`.
+Платформа и интерфейс **[done]**: слой интерфейса (`UiLayer`, Dear ImGui)
+живёт в `ui/` и получает события окна через `WindowEvents::onEvent`, так что
+окно ничего не знает про ImGui; системные диалоги - платформенный
+`FileDialogs`, а не часть `Window`; перевод проекта на текущий формат -
+свободная функция `upgradeProject` из `project/`.

@@ -6,6 +6,8 @@
 #include <memory>
 #include <string>
 
+union SDL_Event;
+
 namespace yqlora {
 
 class Renderer;
@@ -28,6 +30,9 @@ public:
     // бы для него рывком через всё окно. Подставляет прошлое положение так,
     // чтобы смещение совпало с уже очищенным от переносов.
     void setMouseDelta(const Vec2& position, const Vec2& delta);
+
+    // Событие окна: мышь, клавиши и ввод текста для ImGui.
+    void processEvent(const SDL_Event& event);
 
     // Между ними приложение строит интерфейс кадра вызовами ImGui.
     void beginFrame();

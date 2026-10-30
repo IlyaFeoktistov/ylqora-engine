@@ -1,10 +1,12 @@
-#include "yqlora/core/UiLayer.hpp"
+#include "yqlora/ui/UiLayer.hpp"
 
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/render/Renderer.hpp"
 #include "yqlora/render/UiRenderer.hpp"
 
+#include <SDL3/SDL.h>
 #include <imgui.h>
+#include <imgui_impl_sdl3.h>
 
 namespace yqlora {
 
@@ -33,6 +35,11 @@ void UiLayer::setMouseDelta(const Vec2& position, const Vec2& delta)
 {
     const Vec2 previous = position - delta;
     ImGui::GetIO().MousePosPrev = ImVec2(previous.x, previous.y);
+}
+
+void UiLayer::processEvent(const SDL_Event& event)
+{
+    ImGui_ImplSDL3_ProcessEvent(&event);
 }
 
 void UiLayer::beginFrame()

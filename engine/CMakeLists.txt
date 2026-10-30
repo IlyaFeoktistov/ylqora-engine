@@ -24,9 +24,9 @@ add_library(yqlora SHARED
     src/core/FrameLoop.cpp
     src/core/Log.cpp
     src/core/Settings.cpp
-    src/core/UiLayer.cpp
     src/core/Version.cpp
     src/i18n/Localization.cpp
+    src/platform/FileDialogs.cpp
     src/platform/Platform.cpp
     src/platform/Window.cpp
     src/platform/InputFeeder.cpp
@@ -47,6 +47,7 @@ add_library(yqlora SHARED
     src/scene/SceneSerializer.cpp
     src/scene/SceneTypes.cpp
     src/project/Project.cpp
+    src/project/ProjectUpgrade.cpp
     src/reflection/ComponentRules.cpp
     src/reflection/Method.cpp
     src/reflection/Property.cpp
@@ -62,6 +63,7 @@ add_library(yqlora SHARED
     src/render/RenderTypes.cpp
     src/render/RendererFactory.cpp
     src/resource/ResourceDatabase.cpp
+    src/ui/UiLayer.cpp
 )
 add_library(yqlora::yqlora ALIAS yqlora)
 

@@ -4,7 +4,7 @@
 #include "yqlora/math/Math.hpp"
 #include "yqlora/render/Camera3D.hpp"
 #include "yqlora/scene/Layers.hpp"
-#include "yqlora/scene/Node.hpp"
+#include "yqlora/scene/NodeId.hpp"
 
 #include <vector>
 

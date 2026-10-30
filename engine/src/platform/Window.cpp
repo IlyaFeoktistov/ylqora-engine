@@ -1,25 +1,14 @@
 #include "yqlora/platform/Window.hpp"
 
 #include "yqlora/core/Log.hpp"
-#include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/platform/InputFeeder.hpp"
 
 #include <SDL3/SDL.h>
-#include <imgui.h>
-#include <imgui_impl_sdl3.h>
 
-#include <mutex>
 #include <optional>
 #include <stdexcept>
 
 namespace yqlora {
-
-struct Window::FolderDialog {
-    FolderCallback callback;
-    std::mutex mutex;
-    bool answered = false;
-    std::optional<std::filesystem::path> folder;
-};
 
 namespace {
 
@@ -102,28 +91,15 @@ Window::Window(const WindowDesc& desc)
 
 Window::~Window()
 {
-    // Диалог мог остаться открытым: SDL ещё может вызвать его callback.
-    // Тогда отдаём состояние ему насовсем, чтобы указатель не повис.
-    if (m_folderDialog) {
-        const std::lock_guard lock(m_folderDialog->mutex);
-        if (!m_folderDialog->answered) {
-            static_cast<void>(m_folderDialog.release());
-        }
-    }
     SDL_DestroyWindow(m_window);
 }
 
 void Window::pollEvents(const WindowEvents& events, InputFeeder& input)
 {
-    deliverFolderDialog();
-
-    // Интерфейс включён, только если рендерер уже подключил к ImGui окно.
-    const bool ui = ImGui::GetCurrentContext() && ImGui::GetIO().BackendPlatformUserData;
-
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        if (ui) {
-            ImGui_ImplSDL3_ProcessEvent(&event);
+        if (events.onEvent) {
+            events.onEvent(event);
         }
         switch (event.type) {
         case SDL_EVENT_QUIT:
@@ -204,46 +180,6 @@ Vec2 Window::wrappedMouseDelta(const Vec2& position)
     }
 
     return delta;
-}
-
-void Window::showFolderDialog(const std::filesystem::path& start, FolderCallback callback)
-{
-    if (m_folderDialog) {
-        return;
-    }
-    m_folderDialog = std::make_unique<FolderDialog>();
-    m_folderDialog->callback = std::move(callback);
-
-    const auto onAnswer = [](void* userdata, const char* const* files, int /*filter*/) {
-        auto* dialog = static_cast<FolderDialog*>(userdata);
-        std::optional<std::filesystem::path> folder;
-        if (!files) {
-            log::warn("Folder dialog is not available: {}", SDL_GetError());
-        } else if (files[0]) {
-            folder = fromUtf8(files[0]);
-        }
-        const std::lock_guard lock(dialog->mutex);
-        dialog->folder = std::move(folder);
-        dialog->answered = true;
-    };
-    const std::string startUtf8 = toUtf8(start);
-    SDL_ShowOpenFolderDialog(onAnswer, m_folderDialog.get(), m_window, startUtf8.c_str(), false);
-}
-
-void Window::deliverFolderDialog()
-{
-    if (!m_folderDialog) {
-        return;
-    }
-    {
-        const std::lock_guard lock(m_folderDialog->mutex);
-        if (!m_folderDialog->answered) {
-            return;
-        }
-    }
-    // Callback может открыть новый диалог, поэтому сначала освобождаем место.
-    const std::unique_ptr<FolderDialog> dialog = std::move(m_folderDialog);
-    dialog->callback(std::move(dialog->folder));
 }
 
 void Window::setTitle(const std::string& title)

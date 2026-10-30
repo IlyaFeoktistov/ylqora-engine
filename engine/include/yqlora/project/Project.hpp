@@ -12,15 +12,13 @@
 
 namespace yqlora {
 
-class SceneSerializer;
-
 // Что известно о проекте без его открытия: для списка проектов.
 struct ProjectInfo {
     std::string name;
     int formatVersion = 0;
     // Версия движка, который сохранил проект последним. Пусто, если неизвестно.
     std::string engineVersion;
-    // Старый формат переводится на текущий через Project::upgrade.
+    // Старый формат переводится на текущий через upgradeProject.
     FormatCompatibility compatibility = FormatCompatibility::Unsupported;
 };
 
@@ -47,11 +45,9 @@ public:
     // Сведения из файла проекта, без обхода ресурсов. nullopt, если это не проект.
     static std::optional<ProjectInfo> readInfo(const std::filesystem::path& directory);
 
-    // Переводит проект старого формата на текущий: файл проекта и все сцены.
-    // После этого старые версии движка его не откроют. Сцены сначала читаются
-    // все, и только если все прочитались, записываются: при ошибке проект
-    // остаётся как был. serializer должен знать типы игры, как при открытии.
-    static bool upgrade(const std::filesystem::path& directory, const SceneSerializer& serializer);
+    // Переводит на текущий формат только файл проекта; сцены переводит
+    // upgradeProject (ProjectUpgrade.hpp), она же вызывает эту функцию.
+    static bool upgradeFile(const std::filesystem::path& directory);
 
     bool save() const;
 

@@ -5,13 +5,11 @@
 #include "yqlora/platform/MouseWrap.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 
-#include <filesystem>
 #include <functional>
-#include <memory>
-#include <optional>
 #include <string>
 
 struct SDL_Window;
+union SDL_Event;
 
 namespace yqlora {
 
@@ -30,6 +28,8 @@ struct WindowDesc {
 };
 
 struct WindowEvents {
+    // Каждое событие ОС до того, как его разберёт окно: например, для слоя интерфейса.
+    std::function<void(const SDL_Event&)> onEvent;
     std::function<void()> onCloseRequested;
     std::function<void(int width, int height)> onResized; // размер в пикселях
 };
@@ -59,12 +59,6 @@ public:
         return m_mouseWrapping;
     }
 
-    // Системный диалог выбора папки. Ответ придёт в callback из pollEvents,
-    // в главном потоке; nullopt, если выбор отменили или диалог недоступен.
-    // Пока открыт один диалог, второй не открывается.
-    using FolderCallback = std::function<void(std::optional<std::filesystem::path>)>;
-    void showFolderDialog(const std::filesystem::path& start, FolderCallback callback);
-
     void setTitle(const std::string& title);
 
     // В тех же единицах, что положение мыши. На экранах с масштабом
@@ -84,13 +78,7 @@ private:
     // Смещение мыши в режиме переноса; переносит курсор, если он у края.
     Vec2 wrappedMouseDelta(const Vec2& position);
 
-    // Диалог SDL может ответить из другого потока: ответ кладётся сюда,
-    // а отдаётся в pollEvents.
-    struct FolderDialog;
-    void deliverFolderDialog();
-
     SDL_Window* m_window = nullptr;
-    std::unique_ptr<FolderDialog> m_folderDialog;
     MouseWrap m_mouseWrap;
     bool m_mouseWrapping = false;
     // Выяснилось, что система не переносит курсор: больше не пытаемся.

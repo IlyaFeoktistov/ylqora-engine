@@ -6,6 +6,7 @@
 #include <yqlora/editor/ProjectList.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
 #include <yqlora/project/Project.hpp>
+#include <yqlora/project/ProjectUpgrade.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/render/Camera3D.hpp>
 #include <yqlora/scene/Scene.hpp>
@@ -201,7 +202,7 @@ TEST_CASE("Project: the version tells whether a project opens, needs an upgrade 
     CHECK(Project::readInfo(project->directory())->compatibility == FormatCompatibility::Newer);
     CHECK(Project::readInfo(project->directory())->engineVersion == "9.9.9");
     CHECK_FALSE(Project::open(project->directory()));
-    CHECK_FALSE(Project::upgrade(project->directory(), serializer));
+    CHECK_FALSE(upgradeProject(project->directory(), serializer));
 
     // Без версии - файл не этого формата, переводить не с чего.
     rewrite(R"({"name": "Game"})");
@@ -218,13 +219,13 @@ TEST_CASE("Project: upgrading a current project rewrites it and keeps it working
     const auto project = createProject(freshDirectory("project_upgrade"), "Game", serializer, error);
     REQUIRE(project);
 
-    REQUIRE(Project::upgrade(project->directory(), serializer));
+    REQUIRE(upgradeProject(project->directory(), serializer));
     const auto reopened = Project::open(project->directory());
     REQUIRE(reopened);
     CHECK(reopened->mainScene() == project->mainScene());
 
     // Испорченная сцена: перевод отказывается и ничего не трогает.
     std::ofstream(project->directory() / "broken.yscene") << "not json";
-    CHECK_FALSE(Project::upgrade(project->directory(), serializer));
+    CHECK_FALSE(upgradeProject(project->directory(), serializer));
     CHECK(Project::open(project->directory()));
 }

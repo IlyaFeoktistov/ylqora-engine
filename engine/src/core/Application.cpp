@@ -5,14 +5,15 @@
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/LogSettings.hpp"
 #include "yqlora/core/Settings.hpp"
-#include "yqlora/core/UiLayer.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/i18n/Localization.hpp"
+#include "yqlora/platform/FileDialogs.hpp"
 #include "yqlora/platform/InputFeeder.hpp"
 #include "yqlora/platform/Platform.hpp"
 #include "yqlora/platform/Window.hpp"
 #include "yqlora/render/FrameBuilder.hpp"
 #include "yqlora/render/Renderer.hpp"
+#include "yqlora/ui/UiLayer.hpp"
 
 #include <algorithm>
 #include <exception>
@@ -71,6 +72,7 @@ int Application::run()
             .height = m_config.height,
             .api = m_config.api,
         });
+        m_dialogs = std::make_unique<FileDialogs>(*m_window);
         m_renderer = createRenderer(m_config.api, *m_window);
         if (m_config.ui) {
             m_ui = std::make_unique<UiLayer>(*m_renderer, userDataDirectory() / kUiLayoutFile);
@@ -88,6 +90,7 @@ int Application::run()
 
     // Рендерер держит контекст окна, поэтому уничтожаем строго в обратном порядке.
     m_renderer.reset();
+    m_dialogs.reset();
     m_window.reset();
     Localization::setActive(nullptr);
     platform::shutdown();
@@ -162,7 +165,7 @@ void Application::showFolderDialog(
     std::function<void(std::optional<std::filesystem::path>)> callback
 )
 {
-    m_window->showFolderDialog(start, std::move(callback));
+    m_dialogs->showFolderDialog(start, std::move(callback));
 }
 
 void Application::setMouseWrapping(bool wrapping)
@@ -200,11 +203,17 @@ public:
         m_events.onResized = [&app](int width, int height) {
             app.m_renderer->resize(width, height);
         };
+        m_events.onEvent = [&app](const SDL_Event& event) {
+            if (app.m_ui) {
+                app.m_ui->processEvent(event);
+            }
+        };
     }
 
     bool input() override
     {
         m_input.beginFrame();
+        m_app.m_dialogs->deliver();
         m_app.m_window->pollEvents(m_events, m_input);
         if (m_app.m_ui && m_app.m_window->mouseWrapping()) {
             m_app.m_ui->setMouseDelta(m_app.m_input.mousePosition(), m_app.m_input.mouseDelta());

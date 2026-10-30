@@ -38,7 +38,8 @@ engine/include/yqlora/audio/       AudioSource, AudioListener, AudioWorld       
 engine/include/yqlora/ui/          Control, Label, Button                              [step 8]
 ```
 
-Moves of the next stage **[next]**: the interface layer (`UiLayer`, Dear
-ImGui) from `core/` to `ui/`; the folder dialog from `Window` to the platform
-`FileDialogs`; upgrading a project to the current format becomes a free
-function of `project/` instead of a method of `Project`.
+Platform and interface **[done]**: the interface layer (`UiLayer`, Dear
+ImGui) lives in `ui/` and gets window events through `WindowEvents::onEvent`,
+so the window knows nothing about ImGui; system dialogs are the platform
+`FileDialogs`, not part of `Window`; upgrading a project to the current format
+is the free function `upgradeProject` of `project/`.

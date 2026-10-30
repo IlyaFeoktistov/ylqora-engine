@@ -4,6 +4,7 @@
 
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
+#include "yqlora/project/ProjectUpgrade.hpp"
 
 namespace yqlora::editor {
 
@@ -102,7 +103,7 @@ bool ProjectManager::remove(std::size_t row, bool deleteFolder, std::string& err
 
 std::optional<Project> ProjectManager::upgrade(const std::filesystem::path& directory, std::string& error)
 {
-    if (!Project::upgrade(directory, m_serializer)) {
+    if (!upgradeProject(directory, m_serializer)) {
         error = "projects.error.upgradeFailed";
 
         return std::nullopt;
