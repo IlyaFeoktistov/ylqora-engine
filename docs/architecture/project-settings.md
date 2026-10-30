@@ -46,7 +46,7 @@ never go into the project.
 | Input | actions and axes, their bindings to keys, mouse buttons, gamepad | **[next]** |
 | Execution Order | order of component types inside every lifecycle phase, overriding the default from code (see [scene](scene.md)); a type is picked from the registered components that use the frame phases, rows of unloaded types are kept. An edit applies from the next frame, in Play too: every write of a section raises `ProjectSettings::revision`, and the phase lists re-sort when it changes | **[done]** |
 | Layers | names of the 32 node layers used by camera masks and physics | **[done]** |
-| Graphics | graphics API per platform (OpenGL; Vulkan and D3D12 come with the RHI), vsync | **[next]** |
+| Graphics | graphics API per platform (OpenGL; Vulkan and D3D12 come with the RHI), vsync; both apply at once, see [rendering](rendering.md) | **[done]** |
 | Scripts | C++ build: compiler, configuration; Luau later | **[planned, step 3]** |
 | Physics | gravity, layers, collision matrix | **[planned, step 6]** |
 | Audio | master volume, sample rate | **[planned, step 7]** |
@@ -87,9 +87,9 @@ holds the format version and the values under `values`, so a property named
   (step 9) loads the same files.
 - Sections of a game module are recreated when the module is reloaded, so
   the project holds no objects from an unloaded dll **[planned, step 3]**.
-- Settings that cannot change while running (the graphics API) carry a
-  "restart required" hint; the window says so next to the value. All others
-  apply at once, including during Play.
+- Every setting applies at once, including during Play. Nothing asks for a
+  restart: even a new graphics API rebuilds only the renderer (see
+  [rendering](rendering.md)) **[done]**.
 
 ## Window
 

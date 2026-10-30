@@ -67,11 +67,6 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
         throw std::runtime_error("Failed to load OpenGL functions");
     }
 
-    // VSync: не крутим кадры быстрее монитора. Не везде поддерживается, это не критично.
-    if (!SDL_GL_SetSwapInterval(1)) {
-        log::warn("VSync is not available: {}", SDL_GetError());
-    }
-
     log::info(
         "OpenGL {}.{}: {} ({})",
         GLAD_VERSION_MAJOR(version),
@@ -160,6 +155,17 @@ void OpenGLRenderer::drawScene(const FrameData& frame, int width, int height)
 void OpenGLRenderer::present()
 {
     SDL_GL_SwapWindow(m_window.sdlWindow());
+}
+
+bool OpenGLRenderer::setVsync(bool enabled)
+{
+    if (!SDL_GL_SetSwapInterval(enabled ? 1 : 0)) {
+        log::warn("VSync cannot be switched: {}", SDL_GetError());
+
+        return false;
+    }
+
+    return true;
 }
 
 void OpenGLRenderer::resize(int width, int height)

@@ -26,7 +26,7 @@ void SceneTreePanel::draw(EditorContext& context)
     Selection& selection = session.selection();
     m_reveal = selection.selected() != m_lastSelected;
 
-    if (ImGui::Begin(title().c_str(), visibleFlag())) {
+    if (beginWindow(context)) {
         if (ImGui::Button(icons::kAdd)) {
             m_addNode.open(selection.selected());
         }

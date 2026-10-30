@@ -69,6 +69,7 @@ add_library(yqlora SHARED
     src/reflection/TypeRegistry.cpp
     src/render/Camera3D.cpp
     src/render/FrameBuilder.cpp
+    src/render/GraphicsSettings.cpp
     src/render/BuiltinMeshes.cpp
     src/render/PrimitiveMeshes.cpp
     src/render/RenderSystem.cpp

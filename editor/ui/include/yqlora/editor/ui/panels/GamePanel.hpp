@@ -27,6 +27,11 @@ public:
         return false;
     }
 
+    void onRendererLost() override
+    {
+        m_view.release();
+    }
+
     void draw(EditorContext& context) override;
 
 private:

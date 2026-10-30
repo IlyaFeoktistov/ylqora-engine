@@ -68,6 +68,12 @@ public:
     int widthInPixels() const;
     int heightInPixels() const;
 
+    // API, под которое создано окно (см. WindowDesc::api).
+    GraphicsApi api() const
+    {
+        return m_api;
+    }
+
     // Для бэкендов рендеринга: им нужно окно SDL, чтобы создать контекст/поверхность.
     SDL_Window* sdlWindow() const
     {
@@ -79,10 +85,15 @@ private:
     Vec2 wrappedMouseDelta(const Vec2& position);
 
     SDL_Window* m_window = nullptr;
+    GraphicsApi m_api = GraphicsApi::OpenGL;
     MouseWrap m_mouseWrap;
     bool m_mouseWrapping = false;
     // Выяснилось, что система не переносит курсор: больше не пытаемся.
     bool m_warpUnsupported = false;
 };
+
+// Годится ли окно для API: окна SDL под OpenGL и под Vulkan создаются с
+// разными флагами, и при смене API между ними окно приходится пересоздать.
+YQLORA_API bool windowFitsApi(const Window& window, GraphicsApi api);
 
 } // namespace yqlora

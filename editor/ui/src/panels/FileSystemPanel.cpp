@@ -43,7 +43,7 @@ void FileSystemPanel::draw(EditorContext& context)
 {
     EditorSession& session = context.session;
     const SceneSerializer& serializer = context.serializer;
-    if (!ImGui::Begin(title().c_str(), visibleFlag()) || !session.project()) {
+    if (!beginWindow(context) || !session.project()) {
         ImGui::End();
 
         return;

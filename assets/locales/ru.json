@@ -47,6 +47,9 @@
         },
         "ExecutionOrderSettings": {
             "description": "Порядок типов компонентов внутри фаз кадра, переопределяет порядок из кода."
+        },
+        "GraphicsSettings": {
+            "description": "Графический API для каждой системы и vsync. Смена API пересоздаёт только рендер, без перезапуска."
         }
     },
     "editor": {
@@ -62,7 +65,8 @@
             "undo": "Отменить",
             "redo": "Повторить",
             "project": "Проект",
-            "projectSettings": "Настройки проекта"
+            "projectSettings": "Настройки проекта",
+            "maximizePanel": "Развернуть окно"
         },
         "window": {
             "scene": "Сцена",
@@ -88,7 +92,13 @@
                 "inactive": "Камера выключена и не рисует",
                 "rule": "Главная камера - активная камера с наименьшим order, через неё видна игра. Кнопка ставит камере order на единицу меньше, чем у главной."
             },
-            "addItem": "Добавить"
+            "addItem": "Добавить",
+            "reset": "Сбросить значение к стандартному",
+            "copy": "Копировать значение",
+            "paste": "Вставить значение",
+            "resetPart": "Сбросить",
+            "copyPart": "Копировать",
+            "pastePart": "Вставить в"
         },
         "viewport": {
             "cameraPreview": "Превью выбранной камеры"
@@ -159,7 +169,12 @@
             "clearLayerQuestion": "На этих слоях есть узлы:",
             "clearLayerKeeps": "Узлы останутся на своих слоях, у слоя просто не будет имени.",
             "clearLayer": "Убрать имя",
-            "ExecutionOrderSettings": "Порядок выполнения"
+            "ExecutionOrderSettings": "Порядок выполнения",
+            "GraphicsSettings": "Графика"
+        },
+        "panel": {
+            "maximize": "Развернуть",
+            "restore": "Вернуть раскладку"
         }
     },
     "projects": {
@@ -233,6 +248,9 @@
         "maxFrame": "Самый длинный кадр, с",
         "names": "Имена",
         "entries": "Типы",
-        "type": "Тип"
+        "type": "Тип",
+        "windowsApi": "API на Windows",
+        "linuxApi": "API на Linux",
+        "vsync": "Вертикальная синхронизация"
     }
 }

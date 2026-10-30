@@ -11,6 +11,7 @@
 #include "yqlora/platform/InputFeeder.hpp"
 #include "yqlora/platform/Platform.hpp"
 #include "yqlora/platform/Window.hpp"
+#include "yqlora/render/GraphicsSettings.hpp"
 #include "yqlora/render/Renderer.hpp"
 #include "yqlora/runtime/GameRuntime.hpp"
 #include "yqlora/scene/TimeSettings.hpp"
@@ -269,6 +270,75 @@ public:
     }
 };
 
+void Application::applyGraphicsSettings()
+{
+    const GraphicsSettings& graphics = graphicsSettingsOf(m_services);
+    const GraphicsApi api = graphics.currentPlatformApi();
+    if (api != m_renderer->api() && api != m_unavailableApi) {
+        if (isBuilt(api)) {
+            rebuildRenderer(api);
+        } else {
+            log::warn(
+                "Graphics API {} is not built into this engine, staying on {}",
+                graphicsApiName(api),
+                graphicsApiName(m_renderer->api())
+            );
+            m_unavailableApi = api;
+        }
+    }
+    if (graphics.vsync != m_vsync) {
+        m_renderer->setVsync(graphics.vsync);
+        m_vsync = graphics.vsync;
+    }
+}
+
+void Application::rebuildRenderer(GraphicsApi api)
+{
+    const GraphicsApi previous = m_renderer->api();
+    log::info("Graphics API: {} -> {}", graphicsApiName(previous), graphicsApiName(api));
+
+    // Сначала всё, что создано через рендерер, потом он сам: ресурсы
+    // удаляются, пока жив их контекст.
+    onRendererLost();
+    if (m_ui) {
+        m_ui->releaseRenderer();
+    }
+    m_renderer.reset();
+
+    const auto create = [this](GraphicsApi target) {
+        prepareWindowForApi(target);
+        if (!windowFitsApi(*m_window, target)) {
+            const Vec2 size = m_window->sizeInPoints();
+            m_dialogs.reset();
+            m_window = std::make_unique<Window>(WindowDesc{
+                .title = m_title,
+                .width = static_cast<int>(size.x),
+                .height = static_cast<int>(size.y),
+                .api = target,
+            });
+            m_dialogs = std::make_unique<FileDialogs>(*m_window);
+        }
+        m_renderer = createRenderer(target, *m_window);
+    };
+    try {
+        create(api);
+    } catch (const std::exception& e) {
+        // API собран, но система его не дала: остаёмся на прежнем.
+        log::error(
+            "Graphics API {} cannot start: {}. Staying on {}",
+            graphicsApiName(api),
+            e.what(),
+            graphicsApiName(previous)
+        );
+        m_unavailableApi = api;
+        create(previous);
+    }
+    if (m_ui) {
+        m_ui->attachRenderer(*m_renderer);
+    }
+    m_vsync.reset();
+}
+
 void Application::mainLoop()
 {
     std::unique_ptr<FrameStages> stages;
@@ -282,6 +352,7 @@ void Application::mainLoop()
     m_running = true;
     loop.reset(platform::timeSeconds());
     while (m_running) {
+        applyGraphicsSettings();
         loop.setMaxFrameSeconds(timeSettingsOf(m_services).maxFrame());
         loop.runFrame(platform::timeSeconds());
     }

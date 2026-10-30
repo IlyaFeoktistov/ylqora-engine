@@ -108,6 +108,33 @@ not part of this.
 - A scene switch requested by a script happens between frames, never in the
   middle of an update **[planned, step 9]**.
 
+## Changing the graphics API [done]
+
+The API comes from the Graphics section of the project settings (one per
+system) and changes without restarting the application. `Application`
+compares it with the running renderer every frame; on a change it rebuilds
+only the render part:
+
+```
+onRendererLost      owners release what they created through the renderer
+                    (the editor: textures of the scene windows)
+UiLayer             drops the ImGui drawing of the old API; the ImGui
+                    context, windows and layout stay
+Renderer            destroyed while its context is alive
+Window              recreated only if the new API needs other window flags
+                    (OpenGL and Vulkan windows differ in SDL)
+Renderer            created for the new API
+UiLayer             ImGui drawing for the new API
+```
+
+- The scene, the project, the edit history and the editor state live outside
+  the renderer, which sees only the frame snapshot, so nothing else notices.
+- An API that is not built into this engine, or that the system refuses,
+  leaves the current one in place with a message in the log, once.
+- Vsync is switched on the running renderer, without a rebuild.
+- The same path will recover from a lost device (Vulkan, D3D12)
+  **[planned, RHI]**.
+
 ## Editor overlay
 
 The editor overlay (grid, selection outline) leaves engine frame data when

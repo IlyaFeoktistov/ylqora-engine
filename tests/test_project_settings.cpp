@@ -9,6 +9,8 @@
 #include <yqlora/input/Input.hpp>
 #include <yqlora/project/GeneralSettings.hpp>
 #include <yqlora/project/Project.hpp>
+#include <yqlora/render/GraphicsSettings.hpp>
+#include <yqlora/render/Renderer.hpp>
 #include <yqlora/scene/ExecutionOrder.hpp>
 #include <yqlora/scene/ExecutionOrderSettings.hpp>
 #include <yqlora/scene/LayerSettings.hpp>
@@ -20,6 +22,8 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
+#include <string>
 
 using namespace yqlora;
 using namespace yqlora::editor;
@@ -58,6 +62,13 @@ struct Second final : Component {
 
     std::vector<std::string>& calls;
 };
+
+std::string readText(const std::filesystem::path& file)
+{
+    std::ifstream stream(file);
+
+    return {std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+}
 
 struct Fixture {
     Fixture()
@@ -290,5 +301,33 @@ TEST_CASE_FIXTURE(Fixture, "ExecutionOrderSettings: an edit reorders running com
     CHECK(calls == std::vector<std::string>{"second", "first"});
 
     scene.setRoot(nullptr);
+    services.setProject(nullptr);
+}
+
+TEST_CASE_FIXTURE(Fixture, "GraphicsSettings: an API per system, written by name")
+{
+    Input input;
+    EngineServices services{input, registry};
+    const GraphicsSettings& defaults = graphicsSettingsOf(services);
+    CHECK(defaults.currentPlatformApi() == GraphicsApi::OpenGL);
+    CHECK(defaults.vsync);
+    CHECK(isBuilt(GraphicsApi::OpenGL));
+    CHECK_FALSE(isBuilt(GraphicsApi::Vulkan));
+
+    Project project = open();
+    auto& graphics = project.settings().get<GraphicsSettings>();
+#ifdef _WIN32
+    graphics.windowsApi = GraphicsApi::Vulkan;
+#else
+    graphics.linuxApi = GraphicsApi::Vulkan;
+#endif
+    graphics.vsync = false;
+    REQUIRE(project.settings().save(graphics));
+    CHECK(readText(directory / "settings" / "graphics.json").find("\"Vulkan\"") != std::string::npos);
+
+    const Project reopened = open();
+    services.setProject(&reopened);
+    CHECK(graphicsSettingsOf(services).currentPlatformApi() == GraphicsApi::Vulkan);
+    CHECK_FALSE(graphicsSettingsOf(services).vsync);
     services.setProject(nullptr);
 }

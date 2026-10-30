@@ -36,3 +36,32 @@ Status marks: see [README](README.md).
   project) is resolved by `resourceLabel` in `editor/src`, without ImGui.
 - The main scene of the project lives in the project settings, section
   General (see [project settings](project-settings.md)) **[done]**.
+
+## Panels and property fields [done]
+
+- Every panel opens its window through `EditorPanel::beginWindow`: one place
+  for what all windows share.
+- **Maximize**: any panel can fill the whole editor window and go back. A
+  square button left of the close button (in the title of a floating window,
+  in the tab bar of a docked one), Shift+Space for the focused panel, a
+  right click on the tab or title, a double click on a docked tab, or View ->
+  Maximize window. The maximized panel is a separate ImGui window over the
+  work area; the dock layout is kept alive but not shown, so it comes back
+  unchanged.
+- **Property menu**: a right click on a property row in the inspector or the
+  settings window. Every menu item says what it acts on:
+  - "Reset value to default", "Copy value", "Paste value" act on the whole
+    value: three numbers of a position, a colour, a list. The default is the
+    value of a new object of the same type (`defaultValue`; a built-in
+    component takes it from a new node of the owner's type). Copy puts the
+    value on the system clipboard as the same JSON as in the files, so a
+    position can be pasted into a scale; a string property takes any text.
+  - A right click on one number of a vector (its X, Y, Z or W label or field)
+    adds, above the whole value items, "Reset X", "Copy X", "Paste into X"
+    for that number alone. "Paste into X" takes only a single number; three
+    numbers are pasted with "Paste value".
+  - Ctrl+C and Ctrl+V inside a field being edited copy its text, as in any
+    text field.
+  - Reset and paste are ordinary edits and are undone with Ctrl+Z.
+- The label column of a property table fits the longest label, up to half
+  the width; a clipped label shows its full text as a tooltip.

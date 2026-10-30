@@ -19,6 +19,7 @@
 #include <initializer_list>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -62,6 +63,12 @@ public:
     //   .property("clear", &Camera3D::clear, &Camera3D::setClear)
     //   .enumNames({"ColorAndDepth", "DepthOnly", "Nothing"})
     Self& enumNames(std::initializer_list<std::string_view> names)
+    {
+        return enumNames(std::span<const std::string_view>(names.begin(), names.size()));
+    }
+
+    // То же из готового списка имён, если он нужен и в другом месте (kGraphicsApiNames).
+    Self& enumNames(std::span<const std::string_view> names)
     {
         assert(!m_info.m_properties.empty() && "enumNames: add the enum property first");
         m_info.m_properties.back().setEnumNames(std::vector<std::string>(names.begin(), names.end()));

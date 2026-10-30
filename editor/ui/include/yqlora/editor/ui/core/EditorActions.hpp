@@ -15,6 +15,7 @@ struct EditorActionHandlers {
     std::function<void()> closeProject;
     std::function<void()> quit;
     std::function<void()> openProjectSettings;
+    std::function<void()> toggleMaximizedPanel;
 };
 
 // Все действия редактора (см. ActionIds.hpp): подписи, клавиши и доступность.

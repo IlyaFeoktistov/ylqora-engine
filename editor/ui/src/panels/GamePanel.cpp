@@ -23,11 +23,12 @@ void GamePanel::draw(EditorContext& context)
 
     // В раскладке, сохранённой до появления окна игры, его нет: первый раз
     // встаёт вкладкой рядом с окном вида, а не висит посреди экрана.
-    if (const ImGuiWindow* viewport = ImGui::FindWindowByName("###Viewport")) {
+    const ImGuiWindow* viewport = maximized(context) ? nullptr : ImGui::FindWindowByName("###Viewport");
+    if (viewport) {
         ImGui::SetNextWindowDockID(viewport->DockId, ImGuiCond_FirstUseEver);
     }
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    const bool visible = ImGui::Begin(title().c_str());
+    const bool visible = beginWindow(context);
     ImGui::PopStyleVar();
 
     // Игра началась: окно игры выходит вперёд и сразу получает ввод.

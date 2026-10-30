@@ -5,6 +5,7 @@
 #include <imgui.h>
 
 #include <algorithm>
+#include <vector>
 
 namespace yqlora::editor {
 
@@ -12,9 +13,23 @@ namespace {
 
 // Подпись и значение.
 constexpr int kColumnCount = 2;
-constexpr float kLabelShare = 0.3f;
 constexpr float kMinLabelWidth = 70.0f;
-constexpr float kMaxLabelWidth = 130.0f;
+// Подписи не отнимают у значений больше этой доли ширины.
+constexpr float kMaxLabelShare = 0.5f;
+
+// По самой длинной подписи таблицы, с отступами по краям, как у подписей,
+// которые можно тянуть.
+float labelColumnWidth(const std::vector<const Property*>& properties)
+{
+    float widest = 0.0f;
+    for (const Property* property : properties) {
+        widest = std::max(widest, ImGui::CalcTextSize(propertyLabel(property->name()).c_str()).x);
+    }
+    const float padded = widest + 2.0f * ImGui::GetStyle().FramePadding.x;
+    const float limit = std::max(kMinLabelWidth, ImGui::GetContentRegionAvail().x * kMaxLabelShare);
+
+    return std::clamp(padded, kMinLabelWidth, limit);
+}
 
 template <typename Object>
 bool drawTable(
@@ -29,8 +44,7 @@ bool drawTable(
     if (properties.empty() || !ImGui::BeginTable("properties", kColumnCount)) {
         return false;
     }
-    const float labelWidth = std::clamp(ImGui::GetContentRegionAvail().x * kLabelShare, kMinLabelWidth, kMaxLabelWidth);
-    ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, labelWidth);
+    ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, labelColumnWidth(properties));
     ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
 
     bool dragging = false;

@@ -47,6 +47,7 @@ public:
 
     void present() override;
     void resize(int width, int height) override;
+    bool setVsync(bool enabled) override;
 
 private:
     // Рисует сцену в привязанный сейчас framebuffer размером width x height.

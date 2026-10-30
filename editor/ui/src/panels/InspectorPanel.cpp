@@ -142,7 +142,7 @@ void drawAddComponent(EditorSession& session, const Inspection& inspection)
 void InspectorPanel::draw(EditorContext& context)
 {
     EditorSession& session = context.session;
-    if (!ImGui::Begin(title().c_str(), visibleFlag())) {
+    if (!beginWindow(context)) {
         ImGui::End();
 
         return;

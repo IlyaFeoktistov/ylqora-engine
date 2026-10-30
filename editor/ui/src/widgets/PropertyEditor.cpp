@@ -6,6 +6,7 @@
 
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/editor/ProjectFiles.hpp"
+#include "yqlora/editor/PropertyValues.hpp"
 #include "yqlora/editor/ResourceLabel.hpp"
 
 #include "yqlora/i18n/Translate.hpp"
@@ -34,6 +35,14 @@ namespace {
 
 constexpr float kFastFactor = 10.0f; // с Shift
 constexpr float kSlowFactor = 0.1f;  // с Ctrl
+
+constexpr const char* kRowMenu = "##propertyMenu";
+// Число вектора, по которому кликнули правой кнопкой в этом кадре, и то, для
+// которого открыто меню; -1 - всё значение. Хранятся в памяти окна ImGui.
+constexpr const char* kClickedComponent = "##clickedComponent";
+constexpr const char* kMenuComponent = "##menuComponent";
+constexpr int kWholeValue = -1;
+constexpr const char* kComponentNames[] = {"X", "Y", "Z", "W"};
 
 // Значение элемента и кнопка его удаления.
 constexpr int kListColumnCount = 2;
@@ -96,7 +105,6 @@ void floatField(const char* id, float& value, float width, const char* format, P
 // Компоненты вектора в одну строку: у каждой своя цветная подпись.
 void vectorFields(float* values, int count, float speed, const EditorColors& colors, PropertyResult& result)
 {
-    static constexpr const char* kNames[] = {"X", "Y", "Z", "W"};
     const ImVec4 axisColors[] =
         {toImVec4(colors.axisX), toImVec4(colors.axisY), toImVec4(colors.axisZ), toImVec4(colors.axisW)};
 
@@ -107,14 +115,21 @@ void vectorFields(float* values, int count, float speed, const EditorColors& col
     const float fieldWidth = (total - static_cast<float>(count) * labelWidth - static_cast<float>(count - 1) * spacing)
                              / static_cast<float>(count);
 
+    // Правый клик по числу: меню строки предложит пункты и для него одного.
+    const ImGuiID clickedKey = ImGui::GetID(kClickedComponent);
+    const bool rightReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Right);
     for (int i = 0; i < count; ++i) {
         ImGui::PushID(i);
         if (i > 0) {
             ImGui::SameLine(0.0f, spacing);
         }
-        dragLabel("##drag", kNames[i], axisColors[i], values[i], speed, result);
+        dragLabel("##drag", kComponentNames[i], axisColors[i], values[i], speed, result);
+        const bool labelHovered = ImGui::IsItemHovered();
         ImGui::SameLine(0.0f, 0.0f);
         floatField("##value", values[i], fieldWidth, "%.2f", result);
+        if (rightReleased && (labelHovered || ImGui::IsItemHovered())) {
+            ImGui::GetStateStorage()->SetInt(clickedKey, i);
+        }
         ImGui::PopID();
     }
 }
@@ -367,6 +382,9 @@ bool nodeCombo(const Scene& scene, NodeRef& value)
 void rowLabel(const Property& property, PropertyValue& value, PropertyResult& result)
 {
     const std::string label = propertyLabel(property.name());
+    // В узком окне подпись обрезается: полный текст - подсказкой.
+    const bool clipped = ImGui::CalcTextSize(label.c_str()).x + 2.0f * ImGui::GetStyle().FramePadding.x
+                         > ImGui::GetContentRegionAvail().x;
     if (property.type() == PropertyType::Float) {
         dragLabel(
             "##label",
@@ -376,13 +394,15 @@ void rowLabel(const Property& property, PropertyValue& value, PropertyResult& re
             dragSpeed(property),
             result
         );
-
-        return;
+    } else {
+        // С тем же отступом, что у подписей, которые можно тянуть.
+        ImGui::AlignTextToFramePadding();
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetStyle().FramePadding.x);
+        ImGui::TextUnformatted(label.c_str());
     }
-    // С тем же отступом, что у подписей, которые можно тянуть.
-    ImGui::AlignTextToFramePadding();
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetStyle().FramePadding.x);
-    ImGui::TextUnformatted(label.c_str());
+    if (clipped) {
+        ImGui::SetItemTooltip("%s", label.c_str());
+    }
 }
 
 void valueField(
@@ -547,6 +567,88 @@ void valueField(
     }
 }
 
+// Пункты для одного числа вектора: сбросить, скопировать, вставить только его.
+void componentMenuItems(
+    PropertyValue& value,
+    int component,
+    const std::optional<PropertyValue>& initial,
+    PropertyResult& result
+)
+{
+    float& number = vectorComponents(value)[static_cast<std::size_t>(component)];
+    const std::string name = kComponentNames[component];
+    std::optional<PropertyValue> initialValue = initial;
+    const auto initialComponents = initialValue ? vectorComponents(*initialValue) : std::span<float>();
+    const bool hasInitial = static_cast<std::size_t>(component) < initialComponents.size();
+    const float initialNumber = hasInitial ? initialComponents[static_cast<std::size_t>(component)] : 0.0f;
+
+    const std::string reset = tr("editor.inspector.resetPart") + " " + name;
+    if (ImGui::MenuItem(reset.c_str(), nullptr, false, hasInitial && initialNumber != number)) {
+        number = initialNumber;
+        result.changed = true;
+    }
+    const std::string copy = tr("editor.inspector.copyPart") + " " + name;
+    if (ImGui::MenuItem(copy.c_str())) {
+        ImGui::SetClipboardText(numberToText(number).c_str());
+    }
+    const char* clipboard = ImGui::GetClipboardText();
+    const auto pasted = clipboard ? numberFromText(clipboard) : std::nullopt;
+    const std::string paste = tr("editor.inspector.pastePart") + " " + name;
+    if (ImGui::MenuItem(paste.c_str(), nullptr, false, pasted.has_value())) {
+        number = *pasted;
+        result.changed = true;
+    }
+}
+
+// Правый клик по строке свойства: сбросить к значению по умолчанию,
+// скопировать, вставить - всё значение, а у вектора, если кликнули по числу,
+// сначала то же для этого числа. Новое значение уходит в result, как от поля,
+// поэтому правку можно отменить.
+void rowMenu(
+    const Property& property,
+    PropertyValue& value,
+    float rowTop,
+    float rowBottom,
+    PropertyResult& result,
+    const std::function<std::optional<PropertyValue>()>& defaults
+)
+{
+    ImGuiStorage& storage = *ImGui::GetStateStorage();
+    const ImGuiID clickedKey = ImGui::GetID(kClickedComponent);
+    const ImGuiID menuKey = ImGui::GetID(kMenuComponent);
+    const ImVec2 rowMin(ImGui::GetWindowPos().x, rowTop);
+    const ImVec2 rowMax(ImGui::GetWindowPos().x + ImGui::GetWindowWidth(), rowBottom);
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows) && ImGui::IsMouseHoveringRect(rowMin, rowMax)
+        && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
+        storage.SetInt(menuKey, storage.GetInt(clickedKey, kWholeValue));
+        ImGui::OpenPopup(kRowMenu);
+    }
+    storage.SetInt(clickedKey, kWholeValue);
+    if (!ImGui::BeginPopup(kRowMenu)) {
+        return;
+    }
+    const auto initial = defaults();
+    const int component = storage.GetInt(menuKey, kWholeValue);
+    if (component != kWholeValue && static_cast<std::size_t>(component) < vectorComponents(value).size()) {
+        componentMenuItems(value, component, initial, result);
+        ImGui::Separator();
+    }
+    if (ImGui::MenuItem(tr("editor.inspector.reset").c_str(), nullptr, false, initial && *initial != value)) {
+        value = *initial;
+        result.changed = true;
+    }
+    if (ImGui::MenuItem(tr("editor.inspector.copy").c_str())) {
+        ImGui::SetClipboardText(valueToText(property, value).c_str());
+    }
+    const char* clipboard = ImGui::GetClipboardText();
+    const auto pasted = clipboard ? valueFromText(property, clipboard) : std::nullopt;
+    if (ImGui::MenuItem(tr("editor.inspector.paste").c_str(), nullptr, false, pasted.has_value())) {
+        value = *pasted;
+        result.changed = true;
+    }
+    ImGui::EndPopup();
+}
+
 template <typename Object>
 PropertyResult drawPropertyRow(const Property& property, Object& object, const PropertyEditorContext& context)
 {
@@ -556,9 +658,14 @@ PropertyResult drawPropertyRow(const Property& property, Object& object, const P
     ImGui::PushID(property.name().c_str());
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
+    const float rowTop = ImGui::GetCursorScreenPos().y;
     rowLabel(property, value, result);
     ImGui::TableNextColumn();
     valueField(property, property.type(), value, context, result);
+    const float rowBottom = ImGui::GetItemRectMax().y;
+    rowMenu(property, value, rowTop, rowBottom, result, [&] {
+        return defaultValue(context.registry, object, property);
+    });
     ImGui::PopID();
 
     result.value = std::move(value);

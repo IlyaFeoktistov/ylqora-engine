@@ -3,6 +3,7 @@
 add_library(yqlora_editor STATIC
     src/EditorCamera.cpp
     src/Picking.cpp
+    src/PropertyValues.cpp
     src/EditorSession.cpp
     src/EditorSettings.cpp
     src/Inspection.cpp
@@ -35,6 +36,7 @@ add_library(yqlora_editor_ui STATIC
     ui/src/EditorApp.cpp
     ui/src/core/Actions.cpp
     ui/src/core/DefaultLayout.cpp
+    ui/src/core/EditorPanel.cpp
     ui/src/core/EditorActions.cpp
     ui/src/core/EditorHost.cpp
     ui/src/dialogs/AddNodeDialog.cpp
@@ -60,6 +62,7 @@ add_library(yqlora_editor_ui STATIC
     ui/src/widgets/PropertyEditor.cpp
     ui/src/widgets/PropertyTable.cpp
     ui/src/widgets/RenderView.cpp
+    ui/src/widgets/TitleBarButton.cpp
 )
 add_library(yqlora::editor_ui ALIAS yqlora_editor_ui)
 

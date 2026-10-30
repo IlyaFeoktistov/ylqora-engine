@@ -53,6 +53,12 @@ void registerEditorActions(ActionRegistry& registry, EditorSession& session, Edi
             session.redo();
         });
 
+    // Развернуть окно в фокусе на всё окно редактора или вернуть раскладку.
+    registry.add(actions::kMaximizePanel, "editor.menu.maximizePanel")
+        .shortcut(ImGuiMod_Shift | ImGuiKey_Space)
+        .enabledWhen(hasProject)
+        .onRun(std::move(handlers.toggleMaximizedPanel));
+
     registry.add(actions::kTogglePlay, "editor.play.play")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_P)
         .enabledWhen(hasProject)

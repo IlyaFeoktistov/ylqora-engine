@@ -77,6 +77,11 @@ EditorContext EditorApp::context()
             [this](std::string_view section) {
                 m_projectSettings->open(section);
             },
+        .maximized = m_maximized,
+        .toggleMaximized =
+            [this](EditorPanel& panel) {
+                toggleMaximized(panel);
+            },
     };
 }
 
@@ -120,8 +125,40 @@ void EditorApp::onStart()
                 [this] {
                     m_projectSettings->open();
                 },
+            .toggleMaximizedPanel =
+                [this] {
+                    toggleMaximizedFocused();
+                },
         }
     );
+}
+
+void EditorApp::toggleMaximized(EditorPanel& panel)
+{
+    m_maximized = m_maximized == &panel ? nullptr : &panel;
+}
+
+void EditorApp::toggleMaximizedFocused()
+{
+    if (m_maximized) {
+        m_maximized = nullptr;
+
+        return;
+    }
+    for (const auto& panel : m_panels) {
+        if (panel->visible() && panel->focused()) {
+            m_maximized = panel.get();
+
+            return;
+        }
+    }
+}
+
+void EditorApp::onRendererLost()
+{
+    for (const auto& panel : m_panels) {
+        panel->onRendererLost();
+    }
 }
 
 void EditorApp::onUpdate(float deltaSeconds)
@@ -155,7 +192,14 @@ void EditorApp::onGui()
 
     m_actions.handleShortcuts();
 
-    const ImGuiID dockspace = ImGui::DockSpaceOverViewport();
+    // Закрытая развёрнутая панель возвращает раскладку.
+    if (m_maximized && !m_maximized->visible()) {
+        m_maximized = nullptr;
+    }
+    // Пока панель развёрнута, раскладку не показываем, но держим живой:
+    // иначе пристыкованные окна выпали бы из неё.
+    const ImGuiDockNodeFlags dockFlags = m_maximized ? ImGuiDockNodeFlags_KeepAliveOnly : ImGuiDockNodeFlags_None;
+    const ImGuiID dockspace = ImGui::DockSpaceOverViewport(0, nullptr, dockFlags);
     if (!m_layoutChecked) {
         m_layoutChecked = true;
         buildDefaultLayout(dockspace);
@@ -163,7 +207,7 @@ void EditorApp::onGui()
 
     EditorContext frame = context();
     for (const auto& panel : m_panels) {
-        if (panel->visible()) {
+        if (panel->visible() && (!m_maximized || m_maximized == panel.get())) {
             panel->draw(frame);
         }
     }

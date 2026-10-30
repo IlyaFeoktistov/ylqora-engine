@@ -39,6 +39,12 @@ public:
         return false;
     }
 
+    void onRendererLost() override
+    {
+        m_view.release();
+        m_preview.release();
+    }
+
     void draw(EditorContext& context) override;
     void onProjectOpened(EditorContext& context) override;
 

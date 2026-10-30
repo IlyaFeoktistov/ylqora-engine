@@ -47,6 +47,9 @@
         },
         "ExecutionOrderSettings": {
             "description": "Order of component types inside the frame phases, overrides the order from code."
+        },
+        "GraphicsSettings": {
+            "description": "Graphics API per system and vsync. Changing the API rebuilds only the renderer, no restart."
         }
     },
     "editor": {
@@ -62,7 +65,8 @@
             "undo": "Undo",
             "redo": "Redo",
             "project": "Project",
-            "projectSettings": "Project Settings"
+            "projectSettings": "Project Settings",
+            "maximizePanel": "Maximize window"
         },
         "window": {
             "scene": "Scene",
@@ -88,7 +92,13 @@
                 "inactive": "Camera is inactive and does not draw",
                 "rule": "The main camera is the active camera with the lowest order; the game is seen through it. The button sets this camera's order one below the main camera's."
             },
-            "addItem": "Add"
+            "addItem": "Add",
+            "reset": "Reset value to default",
+            "copy": "Copy value",
+            "paste": "Paste value",
+            "resetPart": "Reset",
+            "copyPart": "Copy",
+            "pastePart": "Paste into"
         },
         "viewport": {
             "cameraPreview": "Preview of the selected camera"
@@ -159,7 +169,12 @@
             "clearLayerQuestion": "These layers still have nodes:",
             "clearLayerKeeps": "The nodes stay on their layers, the layer just has no name.",
             "clearLayer": "Clear name",
-            "ExecutionOrderSettings": "Execution Order"
+            "ExecutionOrderSettings": "Execution Order",
+            "GraphicsSettings": "Graphics"
+        },
+        "panel": {
+            "maximize": "Maximize",
+            "restore": "Restore layout"
         }
     },
     "projects": {
@@ -233,6 +248,9 @@
         "maxFrame": "Longest frame, s",
         "names": "Names",
         "entries": "Types",
-        "type": "Type"
+        "type": "Type",
+        "windowsApi": "API on Windows",
+        "linuxApi": "API on Linux",
+        "vsync": "Vertical sync"
     }
 }

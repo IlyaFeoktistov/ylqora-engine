@@ -146,6 +146,13 @@ protected:
     {
     }
 
+    // Рендерер сейчас пересоздадут (сменили графический API в настройках):
+    // всё, что создано через него (цели отрисовки, текстуры), надо отпустить.
+    // Новые создаются уже у нового рендерера.
+    virtual void onRendererLost()
+    {
+    }
+
 private:
     // Стадии кадра для FrameLoop: общие и свои у каждого режима.
     class Stages;
@@ -154,6 +161,11 @@ private:
 
     // Заголовок окна на текущем языке; меняется, только если стал другим.
     void updateTitle();
+    // Раздел Graphics открытого проекта: vsync сразу, смена API - пересоздание рендера.
+    void applyGraphicsSettings();
+    // Пересоздаёт только рендер: окно (если API нужны другие флаги окна),
+    // рендерер и отрисовку интерфейса. Сцены, проект и интерфейс остаются.
+    void rebuildRenderer(GraphicsApi api);
     void mainLoop();
 
     ApplicationConfig m_config;
@@ -170,6 +182,10 @@ private:
     // зарегистрировала свои типы, и системы сцены берутся из полного реестра.
     std::unique_ptr<GameRuntime> m_game;
     bool m_running = false;
+    // Какой vsync уже включён; nullopt - ещё не включали у этого рендерера.
+    std::optional<bool> m_vsync;
+    // API из настроек, которого нет в сборке или в системе: о нём уже сказали в лог.
+    std::optional<GraphicsApi> m_unavailableApi;
     std::string m_titleDetail;
     std::string m_title;
 };

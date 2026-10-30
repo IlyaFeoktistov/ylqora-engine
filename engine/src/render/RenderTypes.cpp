@@ -2,6 +2,7 @@
 
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/render/Camera3D.hpp"
+#include "yqlora/render/GraphicsSettings.hpp"
 #include "yqlora/render/MeshRenderer.hpp"
 #include "yqlora/render/RenderSystem.hpp"
 
@@ -25,6 +26,13 @@ void registerRenderTypes(TypeRegistry& registry)
         .property("color", &MeshRenderer::color, &MeshRenderer::setColor, PropertyHint::Color);
 
     registry.registerSystem<RenderSystem>();
+
+    registry.registerSettings<GraphicsSettings>("graphics")
+        .property("windowsApi", &GraphicsSettings::windowsApi)
+        .enumNames(kGraphicsApiNames)
+        .property("linuxApi", &GraphicsSettings::linuxApi)
+        .enumNames(kGraphicsApiNames)
+        .property("vsync", &GraphicsSettings::vsync);
 }
 
 } // namespace yqlora

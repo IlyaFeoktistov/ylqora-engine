@@ -34,6 +34,11 @@ protected:
     void onUpdate(float deltaSeconds) override;
     void onGui() override;
     void onCloseRequested() override;
+    void onRendererLost() override;
+    // Разворачивает панель или возвращает раскладку, если развёрнута она же.
+    void toggleMaximized(EditorPanel& panel);
+    // Shift+Пробел: развёрнутую - вернуть, иначе развернуть ту, что в фокусе.
+    void toggleMaximizedFocused();
 
 private:
     EditorContext context();
@@ -56,6 +61,8 @@ private:
     std::vector<std::unique_ptr<EditorPanel>> m_panels;
     // Лежит в m_panels; отдельно - чтобы открывать его из меню.
     ProjectSettingsPanel* m_projectSettings = nullptr;
+    // Развёрнута на всё окно; nullptr - обычная раскладка. Лежит в m_panels.
+    EditorPanel* m_maximized = nullptr;
     UnsavedChangesDialog m_unsaved;
     // Курсор переносится у края окна: летит камера или тянут значение в инспекторе.
     bool m_mouseWrapping = false;

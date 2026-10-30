@@ -32,6 +32,13 @@ public:
 
     void render(Renderer& renderer, const FrameData& frame);
 
+    // Рендерер пересоздают: текстура уходит сейчас, новая создастся при
+    // следующем resize уже у нового рендерера.
+    void release()
+    {
+        m_target.reset();
+    }
+
 private:
     std::unique_ptr<RenderTarget> m_target;
 };

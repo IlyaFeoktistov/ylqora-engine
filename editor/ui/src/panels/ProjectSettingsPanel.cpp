@@ -40,7 +40,7 @@ void ProjectSettingsPanel::draw(EditorContext& context)
         m_focusRequested = false;
     }
     ImGui::SetNextWindowSize(kFirstSize, ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin(title().c_str(), visibleFlag())) {
+    if (!beginWindow(context)) {
         ImGui::End();
 
         return;

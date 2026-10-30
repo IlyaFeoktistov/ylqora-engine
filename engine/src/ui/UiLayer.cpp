@@ -21,7 +21,7 @@ UiLayer::UiLayer(Renderer& renderer, const std::filesystem::path& layoutFile)
 
     // Шрифт и цвета задаёт само приложение (у редактора это файл темы),
     // движок свой внешний вид не навязывает.
-    m_renderer = renderer.createUiRenderer();
+    attachRenderer(renderer);
 }
 
 UiLayer::~UiLayer()
@@ -29,6 +29,16 @@ UiLayer::~UiLayer()
     // Отрисовщик держит ресурсы ImGui и уходит раньше контекста.
     m_renderer.reset();
     ImGui::DestroyContext();
+}
+
+void UiLayer::releaseRenderer()
+{
+    m_renderer.reset();
+}
+
+void UiLayer::attachRenderer(Renderer& renderer)
+{
+    m_renderer = renderer.createUiRenderer();
 }
 
 void UiLayer::setMouseDelta(const Vec2& position, const Vec2& delta)

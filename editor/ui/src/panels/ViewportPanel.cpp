@@ -58,7 +58,7 @@ void ViewportPanel::draw(EditorContext& context)
     EditorSession& session = context.session;
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    const bool visible = ImGui::Begin(title().c_str());
+    const bool visible = beginWindow(context);
     ImGui::PopStyleVar();
 
     const ImVec2 size = ImGui::GetContentRegionAvail();

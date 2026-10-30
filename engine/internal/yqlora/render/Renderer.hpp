@@ -42,7 +42,13 @@ public:
 
     // Размер области вывода в пикселях изменился.
     virtual void resize(int width, int height) = 0;
+
+    // Ждать ли обновления экрана перед показом кадра. false, если система не даёт его включить.
+    virtual bool setVsync(bool enabled) = 0;
 };
+
+// Собран ли бэкенд API в этой сборке движка.
+YQLORA_API bool isBuilt(GraphicsApi api);
 
 // Настраивает параметры, которые API требует задать до создания окна
 // (например, версию контекста OpenGL). Вызывается после platform::initialize().

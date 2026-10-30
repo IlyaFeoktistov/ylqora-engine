@@ -88,6 +88,8 @@ void drawViewMenu(const MainMenuContext& context)
             }
         }
         ImGui::Separator();
+        context.actions.menuItem(actions::kMaximizePanel);
+        ImGui::Separator();
     }
     drawLanguageMenu(context);
     ImGui::EndMenu();

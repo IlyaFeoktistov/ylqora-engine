@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/core/Export.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
@@ -44,10 +45,10 @@ std::optional<Vec> vectorFromJson(const nlohmann::json& json)
     return result;
 }
 
-nlohmann::json valueToJson(const Property& property, const PropertyValue& value);
+YQLORA_API nlohmann::json valueToJson(const Property& property, const PropertyValue& value);
 
 // nullopt, если значение не того типа или такого значения перечисления нет.
-std::optional<PropertyValue> valueFromJson(const nlohmann::json& json, const Property& property);
+YQLORA_API std::optional<PropertyValue> valueFromJson(const nlohmann::json& json, const Property& property);
 
 template <typename Object>
 nlohmann::json propertiesToJson(const TypeRegistry& registry, const TypeInfo& type, const Object& object)

@@ -77,7 +77,13 @@ std::optional<MouseButton> toMouseButton(std::uint8_t sdlButton)
 
 } // namespace
 
+bool windowFitsApi(const Window& window, GraphicsApi api)
+{
+    return apiFlag(window.api()) == apiFlag(api);
+}
+
 Window::Window(const WindowDesc& desc)
+    : m_api(desc.api)
 {
     SDL_WindowFlags flags = apiFlag(desc.api) | SDL_WINDOW_HIGH_PIXEL_DENSITY;
     if (desc.resizable) {

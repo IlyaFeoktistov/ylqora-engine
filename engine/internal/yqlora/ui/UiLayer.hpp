@@ -25,6 +25,12 @@ public:
     UiLayer(const UiLayer&) = delete;
     UiLayer& operator=(const UiLayer&) = delete;
 
+    // Рендерер пересоздают (сменили графический API): отрисовка ImGui уходит
+    // вместе со старым и создаётся для нового. Контекст ImGui, окна и
+    // раскладка остаются.
+    void releaseRenderer();
+    void attachRenderer(Renderer& renderer);
+
     // Курсор перенесли к другому краю окна (см. Window::setMouseWrapping).
     // ImGui сам считает смещение мыши по положению курсора, и перенос выглядел
     // бы для него рывком через всё окно. Подставляет прошлое положение так,

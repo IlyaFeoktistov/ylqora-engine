@@ -13,10 +13,21 @@ namespace {
 
 [[noreturn]] void throwNotBuilt(GraphicsApi api)
 {
-    throw std::runtime_error(std::string("Renderer backend is not built: ") + std::string(toString(api)));
+    throw std::runtime_error(std::string("Renderer backend is not built: ") + std::string(graphicsApiName(api)));
 }
 
 } // namespace
+
+bool isBuilt(GraphicsApi api)
+{
+    switch (api) {
+    case GraphicsApi::OpenGL: return YQLORA_HAS_OPENGL != 0;
+    case GraphicsApi::Vulkan:
+    case GraphicsApi::Direct3D12: return false;
+    }
+
+    return false;
+}
 
 void prepareWindowForApi(GraphicsApi api)
 {
