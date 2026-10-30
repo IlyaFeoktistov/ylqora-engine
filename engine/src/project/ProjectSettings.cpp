@@ -55,8 +55,9 @@ void ProjectSettings::load(const TypeRegistry& registry, const std::filesystem::
     }
 }
 
-bool ProjectSettings::save(const SettingsSection& section) const
+bool ProjectSettings::save(const SettingsSection& section)
 {
+    ++m_revision;
     const TypeInfo* type = m_registry ? m_registry->find(section.typeName()) : nullptr;
     if (!type) {
         return false;

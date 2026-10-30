@@ -5,6 +5,7 @@
 #include "yqlora/scene/PhaseList.hpp"
 
 #include <array>
+#include <cstdint>
 #include <vector>
 
 namespace yqlora {
@@ -34,7 +35,8 @@ public:
     // с onEnable и onStart.
     void stop(Component& component);
 
-    // Начало кадра: запуск ждущих onEnable и onStart.
+    // Начало кадра: порядок выполнения заново, если настройки проекта
+    // изменились, затем запуск ждущих onEnable и onStart.
     void beginFrame();
     void runPhase(LifecyclePhase phase, float seconds);
     void endFrame();
@@ -43,6 +45,10 @@ public:
 
 private:
     void startPending();
+    // Порядок выполнения из настроек проекта берётся, когда компонент входит
+    // в списки; после правки настроек списки пересортировываются.
+    void refreshExecutionOrder();
+    int orderOf(const Component& component) const;
     void start(Component& component);
 
     const EngineServices& m_services;
@@ -54,6 +60,9 @@ private:
     // Включены во время кадра, встанут в списки после него.
     std::vector<Component*> m_joining;
     bool m_inFrame = false;
+    // С каких настроек взят порядок выполнения в списках.
+    const void* m_orderProject = nullptr;
+    std::uint64_t m_orderRevision = 0;
 };
 
 } // namespace yqlora

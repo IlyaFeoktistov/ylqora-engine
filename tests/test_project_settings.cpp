@@ -26,6 +26,39 @@ using namespace yqlora::editor;
 
 namespace {
 
+// Пишут своё имя в общий журнал на каждом update.
+struct First final : Component {
+    explicit First(std::vector<std::string>& log)
+        : calls(log)
+    {
+    }
+
+    YQLORA_TYPE(First, Component)
+
+    void onUpdate(float /*deltaSeconds*/) override
+    {
+        calls.push_back("first");
+    }
+
+    std::vector<std::string>& calls;
+};
+
+struct Second final : Component {
+    explicit Second(std::vector<std::string>& log)
+        : calls(log)
+    {
+    }
+
+    YQLORA_TYPE(Second, Component)
+
+    void onUpdate(float /*deltaSeconds*/) override
+    {
+        calls.push_back("second");
+    }
+
+    std::vector<std::string>& calls;
+};
+
 struct Fixture {
     Fixture()
     {
@@ -230,4 +263,32 @@ TEST_CASE_FIXTURE(Fixture, "Property: a list of records knows its fields and che
     REQUIRE(entries.set(section, ListValue{{PropertyValue{good}}}));
     CHECK(section.orderOf("A") == 3);
     CHECK(section.orderOf("B") == std::nullopt);
+}
+
+TEST_CASE_FIXTURE(Fixture, "ExecutionOrderSettings: an edit reorders running components from the next frame")
+{
+    registry.registerComponent<First>();
+    registry.registerComponent<Second>();
+    Project project = open();
+    Input input;
+    EngineServices services{input, registry};
+    services.setProject(&project);
+
+    std::vector<std::string> calls;
+    Scene scene{services};
+    auto& root = scene.createRoot<Node3D>();
+    root.addComponent<First>(calls);
+    root.addComponent<Second>(calls);
+    scene.advance(0.0f);
+    CHECK(calls == std::vector<std::string>{"first", "second"});
+
+    auto& order = project.settings().get<ExecutionOrderSettings>();
+    order.entries = {{.type = "Second", .order = -1}};
+    REQUIRE(project.settings().save(order));
+    calls.clear();
+    scene.advance(0.0f);
+    CHECK(calls == std::vector<std::string>{"second", "first"});
+
+    scene.setRoot(nullptr);
+    services.setProject(nullptr);
 }

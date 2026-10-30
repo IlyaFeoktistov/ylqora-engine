@@ -44,7 +44,7 @@ never go into the project.
 | General | game name, version, company, startup scene **[done]**; icon | **[planned, step 4]** for the icon, with textures |
 | Time | fixed time step, longest frame; read every frame by the scene and the frame loop, so an edit applies at once, in Play too | **[done]** |
 | Input | actions and axes, their bindings to keys, mouse buttons, gamepad | **[next]** |
-| Execution Order | order of component types inside every lifecycle phase, overriding the default from code (see [scene](scene.md)); a type is picked from the registered components that use the frame phases, rows of unloaded types are kept. A component takes its order when it enters the phase lists, so an edit applies to components entering after it (every component on Play) | **[done]** |
+| Execution Order | order of component types inside every lifecycle phase, overriding the default from code (see [scene](scene.md)); a type is picked from the registered components that use the frame phases, rows of unloaded types are kept. An edit applies from the next frame, in Play too: every write of a section raises `ProjectSettings::revision`, and the phase lists re-sort when it changes | **[done]** |
 | Layers | names of the 32 node layers used by camera masks and physics | **[done]** |
 | Graphics | graphics API per platform (OpenGL; Vulkan and D3D12 come with the RHI), vsync | **[next]** |
 | Scripts | C++ build: compiler, configuration; Luau later | **[planned, step 3]** |

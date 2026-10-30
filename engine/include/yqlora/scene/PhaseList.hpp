@@ -19,6 +19,11 @@ public:
     void add(Component& component, int executionOrder);
     void remove(Component& component);
 
+    // Новый порядок выполнения для всех компонентов, например после правки
+    // настроек проекта. При равном порядке остаётся порядок добавления.
+    // Не во время обхода.
+    void reorder(const std::function<int(const Component&)>& executionOrder);
+
     // Вызывает call для каждого компонента по порядку.
     void forEach(const std::function<void(Component&)>& call);
 

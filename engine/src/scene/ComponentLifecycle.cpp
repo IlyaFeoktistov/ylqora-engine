@@ -2,6 +2,7 @@
 
 #include "yqlora/core/EngineServices.hpp"
 #include "yqlora/core/Log.hpp"
+#include "yqlora/project/Project.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/Component.hpp"
 #include "yqlora/scene/ExecutionOrder.hpp"
@@ -118,8 +119,32 @@ void ComponentLifecycle::stop(Component& component)
 
 void ComponentLifecycle::beginFrame()
 {
+    refreshExecutionOrder();
     m_inFrame = true;
     startPending();
+}
+
+void ComponentLifecycle::refreshExecutionOrder()
+{
+    const Project* project = m_services.project();
+    const std::uint64_t revision = project ? project->settings().revision() : 0;
+    if (project == m_orderProject && revision == m_orderRevision) {
+        return;
+    }
+    m_orderProject = project;
+    m_orderRevision = revision;
+    for (PhaseList& list : m_phases) {
+        list.reorder([this](const Component& component) {
+            return orderOf(component);
+        });
+    }
+}
+
+int ComponentLifecycle::orderOf(const Component& component) const
+{
+    const TypeInfo* type = m_services.registry().find(component.typeName());
+
+    return type ? executionOrderOf(m_services, *type) : 0;
 }
 
 void ComponentLifecycle::endFrame()

@@ -1,6 +1,7 @@
 #include "yqlora/scene/PhaseList.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <utility>
 
 namespace yqlora {
@@ -32,6 +33,17 @@ void PhaseList::remove(Component& component)
         return;
     }
     std::erase_if(m_entries, matches);
+}
+
+void PhaseList::reorder(const std::function<int(const Component&)>& executionOrder)
+{
+    assert(!m_iterating && "PhaseList::reorder: not during forEach");
+    for (Entry& entry : m_entries) {
+        entry.order = executionOrder(*entry.component);
+    }
+    std::ranges::sort(m_entries, [](const Entry& a, const Entry& b) {
+        return a.order != b.order ? a.order < b.order : a.sequence < b.sequence;
+    });
 }
 
 void PhaseList::forEach(const std::function<void(Component&)>& call)

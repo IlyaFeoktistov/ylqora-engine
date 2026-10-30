@@ -5,6 +5,7 @@
 #include "yqlora/reflection/TypeName.hpp"
 
 #include <cassert>
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <string_view>
@@ -41,8 +42,16 @@ public:
     // Реестр должен пережить настройки: по нему разделы пишутся в файлы.
     void load(const TypeRegistry& registry, const std::filesystem::path& projectDirectory);
 
-    // Пишет файл одного раздела.
-    bool save(const SettingsSection& section) const;
+    // Пишет файл одного раздела. Каждая запись увеличивает revision.
+    bool save(const SettingsSection& section);
+
+    // Растёт при каждой правке раздела (save): по нему части движка, которые
+    // берут значения один раз (порядок выполнения в списках фаз), видят, что
+    // пора взять их заново.
+    std::uint64_t revision() const
+    {
+        return m_revision;
+    }
 
     // Переводит файлы всех разделов в папке проекта на текущий формат, и тех,
     // кого нет в реестре. Сначала все переводятся в памяти: если один не
@@ -84,6 +93,7 @@ private:
     const TypeRegistry* m_registry = nullptr;
     std::filesystem::path m_directory;
     std::vector<std::unique_ptr<SettingsSection>> m_sections;
+    std::uint64_t m_revision = 0;
 };
 
 } // namespace yqlora
