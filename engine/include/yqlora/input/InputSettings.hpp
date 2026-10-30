@@ -35,15 +35,24 @@ struct InputAction {
     std::vector<InputBinding> bindings;
 };
 
-// Раздел Input настроек проекта: действия ввода и их привязки.
+// Раздел Input настроек проекта: действия ввода и их привязки. Новый
+// проект начинает со стандартного набора (defaultInputActions); к нему же
+// возвращает "Сбросить к стандартному".
 class YQLORA_API InputSettings final : public SettingsSection {
 public:
     YQLORA_TYPE(InputSettings, SettingsSection)
 
+    InputSettings();
+
     std::vector<InputAction> actions;
 };
 
-// Раздел Input открытого проекта, а без проекта - пустой.
+// Действия, которые нужны почти любой игре: движение, обзор, прыжок,
+// ускорение, присесть, стрельба, прицел, действие, пауза. Каждое привязано
+// и к клавиатуре с мышью, и к геймпаду.
+YQLORA_API std::vector<InputAction> defaultInputActions();
+
+// Раздел Input открытого проекта, а без проекта - стандартный набор действий.
 YQLORA_API const InputSettings& inputSettingsOf(const EngineServices& services);
 
 } // namespace yqlora

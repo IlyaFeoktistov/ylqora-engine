@@ -55,6 +55,25 @@ Status marks: see [README](README.md).
   past half way; Escape cancels. A list next to it holds every control,
   mouse axes included, which cannot be set by pressing.
 
+## Default actions [done]
+
+A new project starts with the actions almost every game needs; they are the
+default value of the Input section, so "Reset value to default" brings them
+back (`defaultInputActions`).
+
+| Action | Kind | Keyboard and mouse | Gamepad |
+|---|---|---|---|
+| MoveX | axis | D / A, Right / Left | left stick X |
+| MoveY | axis | W / S, Up / Down | left stick Y |
+| LookX, LookY | axis | mouse movement, scale 0.1 | right stick |
+| Jump | button | Space | South |
+| Sprint | button | LeftShift | left stick press |
+| Crouch | button | LeftCtrl, C | East |
+| Fire | button | MouseLeft | right trigger |
+| Aim | button | MouseRight | left trigger |
+| Interact | button | E | West |
+| Pause | button | Escape | Start |
+
 ## Gamepads [done]
 
 - `Gamepads` (platform) opens gamepads through SDL as they connect. There is

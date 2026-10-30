@@ -235,3 +235,28 @@ TEST_CASE("InputControl: gamepad and mouse axes by name, the mouse is not limite
     CHECK(input.actionValue("LookX") == 15.0f);
     CHECK(input.isActionDown("Fire"));
 }
+
+TEST_CASE("InputSettings: a new project starts with the default actions for keyboard, mouse and gamepad")
+{
+    const InputSettings settings;
+    CHECK(settings.actions.size() == defaultInputActions().size());
+    // Все привязки стандартного набора - настоящие органы управления.
+    for (const InputAction& action : settings.actions) {
+        CAPTURE(action.name);
+        CHECK_FALSE(action.bindings.empty());
+        for (const InputBinding& binding : action.bindings) {
+            CAPTURE(binding.control);
+            CHECK(controlFromName(binding.control));
+        }
+    }
+
+    Input input;
+    InputFeeder feeder(input);
+    feeder.gamepadConnected(true);
+    feeder.keyDown(Key::W);
+    feeder.gamepadButtonDown(GamepadButton::South);
+    feeder.updateActions(settings);
+    CHECK(input.actionValue("MoveY") == 1.0f);
+    CHECK(input.wasActionPressed("Jump"));
+    CHECK_FALSE(input.isActionDown("Fire"));
+}
