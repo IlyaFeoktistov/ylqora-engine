@@ -19,8 +19,9 @@ enum class InputActionKind : std::uint8_t {
     Axis,
 };
 
-// Привязка действия к органу управления: имя клавиши или кнопки мыши (см.
-// InputControl). У оси нажатый орган даёт scale: две клавиши с 1 и -1 - ось.
+// Привязка действия к органу управления по имени (см. InputControl). У оси
+// значение органа умножается на scale: две клавиши с 1 и -1 - ось, у мыши
+// scale - чувствительность.
 struct InputBinding {
     std::string control;
     float scale = 1.0f;

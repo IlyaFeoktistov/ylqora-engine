@@ -35,6 +35,18 @@ public:
     // Прокрутка колеса за кадр: больше нуля - от себя.
     float wheelDelta() const;
 
+    // Геймпад игрока: первый подключённый. Без геймпада ничего не нажато.
+    bool gamepadConnected() const
+    {
+        return m_gamepadConnected;
+    }
+
+    bool isGamepadButtonDown(GamepadButton button) const;
+    bool wasGamepadButtonPressed(GamepadButton button) const;
+    bool wasGamepadButtonReleased(GamepadButton button) const;
+    // Уже за вычетом мёртвой зоны: стик в покое даёт ровно 0.
+    float gamepadAxis(GamepadAxis axis) const;
+
     // Действия по имени (см. InputSettings). Неизвестное действие не нажато
     // и даёт 0.
     bool isActionDown(std::string_view action) const;
@@ -48,6 +60,8 @@ private:
 
     static constexpr std::size_t kKeyCount = static_cast<std::size_t>(Key::Count);
     static constexpr std::size_t kButtonCount = static_cast<std::size_t>(MouseButton::Count);
+    static constexpr std::size_t kGamepadButtonCount = static_cast<std::size_t>(GamepadButton::Count);
+    static constexpr std::size_t kGamepadAxisCount = static_cast<std::size_t>(GamepadAxis::Count);
 
     std::array<bool, kKeyCount> m_keysDown{};
     std::array<bool, kKeyCount> m_keysPressed{};
@@ -58,6 +72,11 @@ private:
     Vec2 m_mousePosition{0.0f};
     Vec2 m_mouseDelta{0.0f};
     float m_wheelDelta = 0.0f;
+    bool m_gamepadConnected = false;
+    std::array<bool, kGamepadButtonCount> m_gamepadDown{};
+    std::array<bool, kGamepadButtonCount> m_gamepadPressed{};
+    std::array<bool, kGamepadButtonCount> m_gamepadReleased{};
+    std::array<float, kGamepadAxisCount> m_gamepadAxes{};
 
     struct ActionState {
         bool down = false;

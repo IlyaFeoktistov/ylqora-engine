@@ -9,6 +9,7 @@
 #include "yqlora/i18n/Language.hpp"
 #include "yqlora/input/InputSettings.hpp"
 #include "yqlora/platform/FileDialogs.hpp"
+#include "yqlora/platform/Gamepads.hpp"
 #include "yqlora/platform/InputFeeder.hpp"
 #include "yqlora/platform/Platform.hpp"
 #include "yqlora/platform/Window.hpp"
@@ -73,6 +74,7 @@ int Application::run()
             .api = m_config.api,
         });
         m_dialogs = std::make_unique<FileDialogs>(*m_window);
+        m_gamepads = std::make_unique<Gamepads>();
         m_renderer = createRenderer(m_config.api, *m_window);
         if (m_config.mode == ApplicationMode::Tool) {
             m_ui = std::make_unique<UiLayer>(*m_renderer, userData / kUiLayoutFile);
@@ -93,6 +95,7 @@ int Application::run()
     m_ui.reset();
     // Рендерер держит контекст окна, поэтому уничтожаем строго в обратном порядке.
     m_renderer.reset();
+    m_gamepads.reset();
     m_dialogs.reset();
     m_window.reset();
     m_language.reset();
@@ -172,7 +175,7 @@ public:
     {
         m_input.beginFrame();
         m_app.m_dialogs->deliver();
-        m_app.m_window->pollEvents(m_events, m_input);
+        m_app.m_window->pollEvents(m_events, m_input, *m_app.m_gamepads);
         m_input.updateActions(inputSettingsOf(m_app.m_services));
 
         return m_app.m_running;

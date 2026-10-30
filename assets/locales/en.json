@@ -102,7 +102,7 @@
             "resetPart": "Reset",
             "copyPart": "Copy",
             "pastePart": "Paste into",
-            "pressControl": "Press a key or a mouse button..."
+            "pressControl": "Press a key, a mouse or gamepad button..."
         },
         "viewport": {
             "cameraPreview": "Preview of the selected camera"

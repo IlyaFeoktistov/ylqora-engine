@@ -13,6 +13,7 @@ union SDL_Event;
 
 namespace yqlora {
 
+class Gamepads;
 class InputFeeder;
 
 inline constexpr int kDefaultWindowWidth = 1280;
@@ -43,8 +44,8 @@ public:
     Window& operator=(const Window&) = delete;
 
     // Обрабатывает все накопившиеся события ОС: клавиатуру и мышь передаёт
-    // во ввод, остальное в обработчики.
-    void pollEvents(const WindowEvents& events, InputFeeder& input);
+    // во ввод, геймпады - в gamepads, остальное в обработчики.
+    void pollEvents(const WindowEvents& events, InputFeeder& input, Gamepads& gamepads);
 
     // Пока включено, курсор, дошедший до края окна, переносится к противоположному
     // краю, а смещение мыши считается без скачка. Так обзор камерой в редакторе

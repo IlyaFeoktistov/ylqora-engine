@@ -80,6 +80,40 @@
     ENTRY(Right)                                                                                                       \
     ENTRY(Middle)
 
+// Сдвиг мыши за кадр и колесо: органы управления для осей (обзор мышью).
+#define YQLORA_MOUSE_AXES(ENTRY)                                                                                       \
+    ENTRY(X)                                                                                                           \
+    ENTRY(Y)                                                                                                           \
+    ENTRY(Wheel)
+
+// Кнопки геймпада по расположению, а не по букве: South - нижняя кнопка
+// (A у Xbox, крестик у PlayStation).
+#define YQLORA_GAMEPAD_BUTTONS(ENTRY)                                                                                  \
+    ENTRY(South)                                                                                                       \
+    ENTRY(East)                                                                                                        \
+    ENTRY(West)                                                                                                        \
+    ENTRY(North)                                                                                                       \
+    ENTRY(Back)                                                                                                        \
+    ENTRY(Guide)                                                                                                       \
+    ENTRY(Start)                                                                                                       \
+    ENTRY(LeftStick)                                                                                                   \
+    ENTRY(RightStick)                                                                                                  \
+    ENTRY(LeftShoulder)                                                                                                \
+    ENTRY(RightShoulder)                                                                                               \
+    ENTRY(DpadUp)                                                                                                      \
+    ENTRY(DpadDown)                                                                                                    \
+    ENTRY(DpadLeft)                                                                                                    \
+    ENTRY(DpadRight)
+
+// Стики от -1 до 1 (вверх и вправо - плюс), курки от 0 до 1.
+#define YQLORA_GAMEPAD_AXES(ENTRY)                                                                                     \
+    ENTRY(LeftStickX)                                                                                                  \
+    ENTRY(LeftStickY)                                                                                                  \
+    ENTRY(RightStickX)                                                                                                 \
+    ENTRY(RightStickY)                                                                                                 \
+    ENTRY(LeftTrigger)                                                                                                 \
+    ENTRY(RightTrigger)
+
 namespace yqlora {
 
 // Собственные коды клавиш, чтобы игровой код не зависел от SDL.
@@ -90,22 +124,49 @@ enum class Key {
 };
 
 enum class MouseButton {
-    YQLORA_MOUSE_BUTTONS(YQLORA_ENUM_VALUE)
-#undef YQLORA_ENUM_VALUE
-    Count, // не кнопка, а число элементов
+    YQLORA_MOUSE_BUTTONS(YQLORA_ENUM_VALUE) Count, // не кнопка, а число элементов
 };
 
-// Имена по порядку перечислений: "Space", "A"; у кнопок мыши - с приставкой: "MouseLeft".
+enum class MouseAxis {
+    YQLORA_MOUSE_AXES(YQLORA_ENUM_VALUE) Count,
+};
+
+enum class GamepadButton {
+    YQLORA_GAMEPAD_BUTTONS(YQLORA_ENUM_VALUE) Count,
+};
+
+enum class GamepadAxis {
+    YQLORA_GAMEPAD_AXES(YQLORA_ENUM_VALUE)
+#undef YQLORA_ENUM_VALUE
+    Count,
+};
+
+// Имена по порядку перечислений: "Space", "A"; у мыши и геймпада - с
+// приставкой: "MouseLeft", "MouseX", "GamepadSouth", "GamepadLeftStickX".
 inline constexpr std::array<std::string_view, static_cast<std::size_t>(Key::Count)> kKeyNames{
 #define YQLORA_KEY_NAME(name) #name,
     YQLORA_KEYS(YQLORA_KEY_NAME)
 #undef YQLORA_KEY_NAME
 };
 
+#define YQLORA_MOUSE_NAME(name) "Mouse" #name,
+#define YQLORA_GAMEPAD_NAME(name) "Gamepad" #name,
 inline constexpr std::array<std::string_view, static_cast<std::size_t>(MouseButton::Count)> kMouseButtonNames{
-#define YQLORA_MOUSE_BUTTON_NAME(name) "Mouse" #name,
-    YQLORA_MOUSE_BUTTONS(YQLORA_MOUSE_BUTTON_NAME)
-#undef YQLORA_MOUSE_BUTTON_NAME
+    YQLORA_MOUSE_BUTTONS(YQLORA_MOUSE_NAME)
 };
+
+inline constexpr std::array<std::string_view, static_cast<std::size_t>(MouseAxis::Count)> kMouseAxisNames{
+    YQLORA_MOUSE_AXES(YQLORA_MOUSE_NAME)
+};
+
+inline constexpr std::array<std::string_view, static_cast<std::size_t>(GamepadButton::Count)> kGamepadButtonNames{
+    YQLORA_GAMEPAD_BUTTONS(YQLORA_GAMEPAD_NAME)
+};
+
+inline constexpr std::array<std::string_view, static_cast<std::size_t>(GamepadAxis::Count)> kGamepadAxisNames{
+    YQLORA_GAMEPAD_AXES(YQLORA_GAMEPAD_NAME)
+};
+#undef YQLORA_GAMEPAD_NAME
+#undef YQLORA_MOUSE_NAME
 
 } // namespace yqlora

@@ -29,6 +29,7 @@ add_library(yqlora SHARED
     src/i18n/Language.cpp
     src/i18n/Localization.cpp
     src/platform/FileDialogs.cpp
+    src/platform/Gamepads.cpp
     src/platform/Platform.cpp
     src/platform/Window.cpp
     src/platform/InputFeeder.cpp

@@ -18,6 +18,7 @@
 namespace yqlora {
 
 class FileDialogs;
+class Gamepads;
 class GameRuntime;
 class Language;
 class Renderer;
@@ -175,6 +176,8 @@ private:
     std::unique_ptr<Language> m_language;
     std::unique_ptr<Window> m_window;
     std::unique_ptr<FileDialogs> m_dialogs;
+    // Живут дольше окна: оно пересоздаётся при смене графического API.
+    std::unique_ptr<Gamepads> m_gamepads;
     std::unique_ptr<Renderer> m_renderer;
     // Только в режиме инструмента.
     std::unique_ptr<UiLayer> m_ui;

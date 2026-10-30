@@ -439,61 +439,66 @@ bool componentTypeCombo(std::string& value, const TypeRegistry& registry)
     return changed;
 }
 
-// Первая нажатая в этом кадре клавиша или кнопка мыши; Escape не считается:
-// им отменяют ожидание.
-std::optional<InputControl> pressedControl(const Input& input)
+// Первый орган, заданный в этом кадре нажатием (см. wasControlActivated);
+// Escape не считается: им отменяют ожидание.
+std::optional<InputControl> activatedControl(const Input& input)
 {
-    for (std::size_t i = 0; i < kKeyNames.size(); ++i) {
-        const auto key = static_cast<Key>(i);
-        if (key != Key::Unknown && key != Key::Escape && input.wasKeyPressed(key)) {
-            return key;
-        }
-    }
-    for (std::size_t i = 0; i < kMouseButtonNames.size(); ++i) {
-        const auto button = static_cast<MouseButton>(i);
-        if (input.wasMouseButtonPressed(button)) {
-            return button;
+    for (const InputControl& control : allInputControls()) {
+        if (control != InputControl{Key::Escape} && wasControlActivated(input, control)) {
+            return control;
         }
     }
 
     return std::nullopt;
 }
 
-// Привязка действия: кнопка с именем органа управления. Нажали кнопку - она
-// ждёт следующего нажатия клавиши или кнопки мыши и запоминает его; Escape
-// отменяет. Какое поле ждёт, хранится в памяти окна ImGui.
+// Привязка действия: кнопка с именем органа управления и список всех органов.
+// Нажали кнопку - она ждёт следующего нажатия клавиши, кнопки мыши или
+// геймпада или отклонения стика и запоминает его; Escape отменяет. Оси мыши
+// нажатием не задать - их выбирают из списка. Какое поле ждёт, хранится в
+// памяти окна ImGui.
 bool inputControlField(std::string& value, const Input& input)
 {
     ImGuiStorage& storage = *ImGui::GetStateStorage();
     const ImGuiID waitingKey = ImGui::GetID(kWaitingForControl);
     const bool waiting = storage.GetBool(waitingKey, false);
+    bool changed = false;
 
+    const float listWidth = ImGui::GetFrameHeight();
     std::string label = waiting         ? tr("editor.inspector.pressControl")
                         : value.empty() ? tr("editor.inspector.none")
                                         : value;
     label += "##control";
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::Button(label.c_str(), ImVec2(-FLT_MIN, 0.0f))) {
+    if (ImGui::Button(label.c_str(), ImVec2(ImGui::GetContentRegionAvail().x - listWidth, 0.0f))) {
         storage.SetBool(waitingKey, !waiting);
-
-        return false;
+    }
+    ImGui::SameLine(0.0f, 0.0f);
+    ImGui::SetNextItemWidth(listWidth);
+    if (ImGui::BeginCombo("##controls", nullptr, ImGuiComboFlags_NoPreview | ImGuiComboFlags_PopupAlignLeft)) {
+        for (const InputControl& control : allInputControls()) {
+            const std::string name(controlName(control));
+            if (ImGui::Selectable(name.c_str(), name == value)) {
+                value = name;
+                changed = true;
+            }
+        }
+        ImGui::EndCombo();
     }
     if (!waiting) {
-        return false;
+        return changed;
     }
     if (input.wasKeyPressed(Key::Escape)) {
         storage.SetBool(waitingKey, false);
 
-        return false;
+        return changed;
     }
-    const auto pressed = pressedControl(input);
-    if (!pressed) {
-        return false;
+    if (const auto activated = activatedControl(input)) {
+        storage.SetBool(waitingKey, false);
+        value = std::string(controlName(*activated));
+        changed = true;
     }
-    storage.SetBool(waitingKey, false);
-    value = std::string(controlName(*pressed));
 
-    return true;
+    return changed;
 }
 
 // Поля записи таблицей, как свойства в инспекторе. Описание полей - у свойства

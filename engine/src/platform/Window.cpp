@@ -1,6 +1,7 @@
 #include "yqlora/platform/Window.hpp"
 
 #include "yqlora/core/Log.hpp"
+#include "yqlora/platform/Gamepads.hpp"
 #include "yqlora/platform/InputFeeder.hpp"
 
 #include <SDL3/SDL.h>
@@ -100,12 +101,15 @@ Window::~Window()
     SDL_DestroyWindow(m_window);
 }
 
-void Window::pollEvents(const WindowEvents& events, InputFeeder& input)
+void Window::pollEvents(const WindowEvents& events, InputFeeder& input, Gamepads& gamepads)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         if (events.onEvent) {
             events.onEvent(event);
+        }
+        if (gamepads.handleEvent(event, input)) {
+            continue;
         }
         switch (event.type) {
         case SDL_EVENT_QUIT:

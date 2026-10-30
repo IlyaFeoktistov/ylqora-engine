@@ -61,6 +61,26 @@ float Input::wheelDelta() const
     return m_wheelDelta;
 }
 
+bool Input::isGamepadButtonDown(GamepadButton button) const
+{
+    return m_gamepadDown[static_cast<std::size_t>(button)];
+}
+
+bool Input::wasGamepadButtonPressed(GamepadButton button) const
+{
+    return m_gamepadPressed[static_cast<std::size_t>(button)];
+}
+
+bool Input::wasGamepadButtonReleased(GamepadButton button) const
+{
+    return m_gamepadReleased[static_cast<std::size_t>(button)];
+}
+
+float Input::gamepadAxis(GamepadAxis axis) const
+{
+    return m_gamepadAxes[static_cast<std::size_t>(axis)];
+}
+
 bool Input::isActionDown(std::string_view action) const
 {
     const ActionState* state = findAction(action);

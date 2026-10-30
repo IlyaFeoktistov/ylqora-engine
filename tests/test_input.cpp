@@ -5,6 +5,8 @@
 #include <yqlora/platform/InputFeeder.hpp>
 #include <yqlora/platform/MouseWrap.hpp>
 
+#include <algorithm>
+
 using namespace yqlora;
 
 TEST_CASE("Input: pressed and released last one frame, down lasts while held")
@@ -179,4 +181,57 @@ TEST_CASE("InputFeeder: actions from the settings, pressed and released by their
 
     CHECK_FALSE(input.isActionDown("NoSuchAction"));
     CHECK(input.actionValue("NoSuchAction") == 0.0f);
+}
+
+TEST_CASE("InputFeeder: gamepad axes with a dead zone, released on disconnect")
+{
+    Input input;
+    InputFeeder feeder(input);
+    feeder.gamepadConnected(true);
+    CHECK(input.gamepadConnected());
+
+    // Стик в покое чуть отклонён: это ноль.
+    feeder.gamepadAxisMoved(GamepadAxis::LeftStickX, 0.1f);
+    CHECK(input.gamepadAxis(GamepadAxis::LeftStickX) == 0.0f);
+    // За мёртвой зоной значение идёт от 0, без скачка, и доходит до 1.
+    feeder.gamepadAxisMoved(GamepadAxis::LeftStickX, 0.21f);
+    CHECK(input.gamepadAxis(GamepadAxis::LeftStickX) == doctest::Approx(0.0125f));
+    feeder.gamepadAxisMoved(GamepadAxis::LeftStickY, -1.0f);
+    CHECK(input.gamepadAxis(GamepadAxis::LeftStickY) == -1.0f);
+
+    feeder.gamepadButtonDown(GamepadButton::South);
+    CHECK(input.wasGamepadButtonPressed(GamepadButton::South));
+    feeder.gamepadConnected(false);
+    CHECK_FALSE(input.isGamepadButtonDown(GamepadButton::South));
+    CHECK(input.wasGamepadButtonReleased(GamepadButton::South));
+    CHECK(input.gamepadAxis(GamepadAxis::LeftStickY) == 0.0f);
+}
+
+TEST_CASE("InputControl: gamepad and mouse axes by name, the mouse is not limited")
+{
+    CHECK(controlFromName("GamepadSouth") == InputControl{GamepadButton::South});
+    CHECK(controlFromName("GamepadLeftStickX") == InputControl{GamepadAxis::LeftStickX});
+    CHECK(controlFromName("MouseX") == InputControl{MouseAxis::X});
+    CHECK(controlName(InputControl{GamepadAxis::RightTrigger}) == "GamepadRightTrigger");
+    // Escape есть, Unknown - нет.
+    const auto all = allInputControls();
+    CHECK(std::ranges::find(all, InputControl{Key::Escape}) != all.end());
+    CHECK(std::ranges::find(all, InputControl{Key::Unknown}) == all.end());
+
+    InputSettings settings;
+    settings.actions = {
+        {.name = "LookX",
+         .kind = InputActionKind::Axis,
+         .bindings = {{.control = "MouseX", .scale = 0.5f}, {.control = "GamepadRightStickX"}}},
+        {.name = "Fire", .kind = InputActionKind::Button, .bindings = {{.control = "GamepadRightTrigger"}}},
+    };
+    Input input;
+    InputFeeder feeder(input);
+    feeder.gamepadConnected(true);
+    feeder.mouseMoved({100.0f, 0.0f}, {30.0f, 0.0f});
+    feeder.gamepadAxisMoved(GamepadAxis::RightTrigger, 0.8f);
+    feeder.updateActions(settings);
+    // Сдвиг мыши с чувствительностью 0.5 - 15, без ограничения 1.
+    CHECK(input.actionValue("LookX") == 15.0f);
+    CHECK(input.isActionDown("Fire"));
 }
