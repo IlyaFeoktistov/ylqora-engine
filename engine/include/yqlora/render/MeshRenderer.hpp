@@ -3,7 +3,6 @@
 #include "yqlora/core/Export.hpp"
 #include "yqlora/math/Math.hpp"
 #include "yqlora/reflection/Property.hpp"
-#include "yqlora/resource/BuiltinResources.hpp"
 #include "yqlora/scene/Component.hpp"
 
 namespace yqlora {
@@ -13,8 +12,9 @@ class YQLORA_API MeshRenderer final : public Component {
 public:
     YQLORA_TYPE(MeshRenderer, Component)
 
-    // Ресурс меша. Пока работают только встроенные (см. builtin::kCubeMesh),
-    // с неизвестным мешем компонент ничего не рисует.
+    // Ресурс меша. Пустая ссылка (по умолчанию) - меша нет, и компонент ничего
+    // не рисует, как и с неизвестным мешем. Пока находятся только встроенные
+    // меши (builtin::kCubeMesh и другие).
     ResourceRef mesh() const
     {
         return m_mesh;
@@ -37,7 +37,7 @@ public:
     }
 
 private:
-    ResourceRef m_mesh{builtin::kCubeMesh};
+    ResourceRef m_mesh;
     Vec4 m_color{0.8f, 0.8f, 0.8f, 1.0f};
 };
 

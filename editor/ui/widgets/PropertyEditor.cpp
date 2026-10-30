@@ -6,7 +6,7 @@
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/reflection/Property.hpp"
-#include "yqlora/render/MeshData.hpp"
+#include "yqlora/render/BuiltinMeshes.hpp"
 #include "yqlora/resource/ResourceDatabase.hpp"
 #include "yqlora/scene/Layers.hpp"
 #include "yqlora/scene/Scene.hpp"
@@ -125,12 +125,16 @@ std::string resourceLabel(ResourceRef value, const ResourceDatabase* resources)
     return tr("editor.inspector.missing");
 }
 
-// Пока выбираются только встроенные меши: загрузка мешей из файлов будет позже.
+// "Нет" и встроенные меши; меши из файлов проекта добавятся с их загрузкой.
 bool meshCombo(ResourceRef& value, const ResourceDatabase* resources)
 {
     bool changed = false;
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (ImGui::BeginCombo("##value", resourceLabel(value, resources).c_str())) {
+        if (ImGui::Selectable(tr("editor.inspector.none").c_str(), value.id == 0)) {
+            value.id = 0;
+            changed = true;
+        }
         for (const BuiltinMesh& mesh : builtinMeshes()) {
             const std::string name(mesh.name);
             if (ImGui::Selectable(name.c_str(), mesh.id == value.id)) {

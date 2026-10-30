@@ -1,6 +1,4 @@
-#include "yqlora/render/MeshData.hpp"
-
-#include "yqlora/resource/BuiltinResources.hpp"
+#include "yqlora/render/PrimitiveMeshes.hpp"
 
 #include <glm/gtc/constants.hpp>
 
@@ -25,6 +23,8 @@ void addQuad(MeshData& mesh, const Vec3& center, const Vec3& right, const Vec3& 
     mesh.vertices.push_back({center - halfRight + halfUp, normal});
     mesh.indices.insert(mesh.indices.end(), {first, first + 1, first + 2, first, first + 2, first + 3});
 }
+
+} // namespace
 
 MeshData makeCube()
 {
@@ -78,33 +78,6 @@ MeshData makeSphere()
     }
 
     return mesh;
-}
-
-} // namespace
-
-std::span<const BuiltinMesh> builtinMeshes()
-{
-    static constexpr BuiltinMesh kMeshes[] = {
-        {builtin::kCubeMesh, "cube"},
-        {builtin::kSphereMesh, "sphere"},
-        {builtin::kPlaneMesh, "plane"},
-    };
-
-    return kMeshes;
-}
-
-const MeshData* findBuiltinMesh(ResourceId id)
-{
-    static const MeshData cube = makeCube();
-    static const MeshData sphere = makeSphere();
-    static const MeshData plane = makePlane();
-
-    switch (id) {
-    case builtin::kCubeMesh: return &cube;
-    case builtin::kSphereMesh: return &sphere;
-    case builtin::kPlaneMesh: return &plane;
-    default: return nullptr;
-    }
 }
 
 } // namespace yqlora

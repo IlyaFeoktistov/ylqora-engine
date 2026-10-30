@@ -56,7 +56,8 @@ add_library(yqlora SHARED
     src/reflection/TypeRegistry.cpp
     src/render/Camera3D.cpp
     src/render/FrameBuilder.cpp
-    src/render/MeshData.cpp
+    src/render/BuiltinMeshes.cpp
+    src/render/PrimitiveMeshes.cpp
     src/render/RenderSystem.cpp
     src/render/RenderTypes.cpp
     src/render/RendererFactory.cpp
