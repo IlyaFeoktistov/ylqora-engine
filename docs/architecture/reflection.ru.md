@@ -1,0 +1,66 @@
+# Типы и рефлексия
+
+[English version](reflection.md)
+
+Реестр типов описывает каждый тип узла, компонента и системы сцены: имя,
+базу, модуль, свойства, методы и правила компонента. По нему редактор строит
+меню и инспектор, файлы сцен создают объекты по имени типа, из него
+генерируются привязки скриптов и палитра визуальных скриптов.
+
+Пометки статуса: см. [README](README.ru.md).
+
+## Типы [done]
+
+- У типа есть имя, база того же вида (`TypeKind::Node`, `Component`,
+  `System`) и модуль, который его зарегистрировал. У корней `Node`,
+  `Component` и `SceneSystem` базы нет; база регистрируется раньше
+  наследников.
+- C++-класс называет себя и свою базу один раз, через
+  `YQLORA_TYPE(Class, Base)`; `registerNode<T>()`, `registerComponent<T>()` и
+  `registerSystem<T>()` берут оба оттуда.
+- Модуль - это движок (`engine`), игра (`TypeRegistry::ModuleScope`), позже
+  скрипты Luau и визуальные скрипты. `removeModule` убирает все типы модуля
+  до выгрузки его кода.
+- Правила компонента (`requiresNode`, `requiresComponent`, `allowMultiple`,
+  порядок выполнения) - часть типа, см. [сцену](scene.ru.md).
+
+## Свойства [done]
+
+- Свойство (`Property`) - это имя, тип из `PropertyValue` (bool, int, float,
+  строка, векторы, перечисление, ссылка на узел, ссылка на ресурс), подсказка
+  инспектору (`PropertyHint`) и функции чтения и записи значения.
+  `ClassTypeBuilder::property` делает их из getter и setter или из поля.
+- Зарегистрированные свойства - это то, что сохраняют файлы сцен, показывает
+  инспектор и видят скрипты.
+
+## Методы [done]
+
+```cpp
+registry.registerComponent<Transform3D>()
+    .method("lookAt", &Transform3D::lookAt, {{"target"}, {"up", math::kWorldUp}});
+
+const std::vector<PropertyValue> arguments{target};
+MethodCallResult result = lookAt.call(transform, arguments); // called is false if the arguments do not fit
+```
+
+- Метод (`Method`), как и свойство, - функция над `PropertyValue`: имя,
+  параметры с типами и необязательными значениями по умолчанию в конце, тип
+  результата. `ClassTypeBuilder::method` берёт типы из сигнатуры C++, а от
+  вызывающего только имена параметров, `Method::forComponent` описывает метод
+  типа, объявленного во время выполнения. Возвращённый указатель на узел
+  становится `NodeRef`.
+- Методы движка пока: `Node.findChild`, `Node3D.worldPosition` /
+  `setWorldPosition` / `toWorld` / `toLocal` / `worldForward` / `worldRight` /
+  `worldUp`, `Transform3D.lookAt`.
+- Свойства и методы - один список для привязок Luau, палитры визуальных
+  скриптов и документации API.
+
+## Типы, объявленные во время выполнения [done]
+
+Скрипт Luau или граф визуального скрипта - тип без своего C++-класса.
+`registry.registerType(name, kind, base)` возвращает `TypeBuilder`, которому
+задают фабрику, фазы кадра, свойства из функций (`Property::forComponent`) и
+методы (`Method::forComponent`); экземпляр сам возвращает имя своего типа из
+`typeName()`. Типы C++-классов идут тем же путём (`ClassTypeBuilder`
+переводит члены класса в эти значения), а сцена индексирует компоненты по
+имени типа, так что у каждого такого типа свои списки.

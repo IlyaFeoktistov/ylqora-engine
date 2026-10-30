@@ -1,13 +1,12 @@
-# Scene architecture: nodes, components, resources
+# Scene: nodes, components, resources
 
 [Русская версия](scene.ru.md)
 
 This is the contract for everything that lives in a scene: what is a node,
-what is a component, how types are registered, the lifecycle, and how scripts,
-the editor and hot reload rely on it. It changes together with the code.
+what is a component, the lifecycle, references and serialization. It changes
+together with the code.
 
-Status marks: **[done]** implemented, **[next]** the next stage of work
-(before C++ scripts), **[planned]** later, with the step it belongs to.
+Status marks: see [README](README.md).
 
 ## Design decisions
 
@@ -25,8 +24,6 @@ Status marks: **[done]** implemented, **[next]** the next stage of work
 5. **Rendering, physics and audio are components on a node, not node types.**
    A mesh is `MeshRenderer` on a `Node3D`; a 2D sprite will be `SpriteRenderer`
    on a `Node2D`.
-6. **Scripting languages:** C++ first (MVP), then Luau after the MVP, then
-   visual scripts after 2D.
 
 ## Core concepts
 
@@ -117,243 +114,6 @@ The checks themselves are free functions in `ComponentRules.hpp` (`canAttach`,
 
 A spatial node creates its transform in the constructor (`Transform3D` for
 `Node3D`). It cannot be removed and is not offered in "Add component".
-
-## Scripts in C++ [planned, step 2]
-
-```cpp
-class Player : public yqlora::Script {
-public:
-    YQLORA_TYPE(Player, Script)
-
-    float speed = 5.0f;
-
-protected:
-    void onUpdate(float deltaSeconds) override;
-};
-
-// In the game module:
-registry.registerComponent<Player>().property("speed", &Player::speed);
-```
-
-- `Script` is a `Component` with the full lifecycle and access to the engine
-  context. Scripts are registered in the game module (`TypeRegistry::ModuleScope`)
-  and allow several per node by default.
-- A script source file is a resource; the scene refers to the script by its
-  component type name.
-- An exception thrown from a lifecycle call is caught: the component is
-  disabled and the error goes to the log. The game loop goes on. A memory
-  error in native code cannot be caught; that is the price of C++ scripts.
-
-## Scripts in Luau [planned, after MVP]
-
-[Luau](https://luau.org) (MIT): Lua 5.1 with gradual typing, a built-in
-sandbox and a language server.
-
-- Every `.luau` script registers **its own component type** in the registry,
-  named after the script, with the properties declared in the script. All of
-  them create instances of one C++ class, `LuauScript`, bound to the script
-  resource. The registry accepts such types **[done]**:
-  `registry.registerType(name, kind, base)` returns a `TypeBuilder` that takes
-  the factory, the lifecycle phases and properties made of functions
-  (`Property::forComponent`); a script instance returns its own type name from
-  `typeName()`. Types of C++ classes go through the same path
-  (`ClassTypeBuilder` turns members into those values), and the scene indexes
-  components by type name, so all `LuauScript` types get lists of their own.
-- Bindings are generated from the registry: properties plus **registered
-  methods** of engine types **[done]**. A method (`Method`) is, like a
-  property, a function over `PropertyValue`: name, parameters with types and
-  optional trailing defaults, result type. `ClassTypeBuilder::method` takes the
-  types from the C++ signature and only the parameter names from the caller,
-  `Method::forComponent` describes a method of a runtime type. A returned node
-  pointer becomes a `NodeRef`. Engine methods so far: `Node.findChild`,
-  `Node3D.worldPosition` / `setWorldPosition` / `toWorld` / `toLocal` /
-  `worldForward` / `worldRight` / `worldUp`, `Transform3D.lookAt`. One list
-  serves Luau, the inspector and the API documentation. The same list produces type definition files for
-  luau-lsp, which gives completion and type checking in an editor.
-- Sandbox: Luau's own (`luaL_sandbox`: read-only globals, no `io` / `os`
-  access), an interrupt callback against endless loops, an allocator with a
-  memory limit.
-- A Luau error disables the component and goes to the log, like a C++
-  exception.
-- Luau scripts are their own type module (`luau`), reloaded like `game.dll`.
-
-## Visual scripts [planned, after 2D]
-
-For those who do not write code: a script is built from blocks connected by
-links, then attached to a node and works like a C++ or Luau script.
-
-- A graph is a resource (a file of the project): blocks, their pins and the
-  links between them. Execution links set the order of actions, data links
-  carry values.
-- Every graph registers **its own component type**, like a Luau script, with
-  the properties declared in the graph. All of them create instances of one
-  C++ class, `VisualScript`, bound to the graph resource.
-- Entry blocks are the lifecycle calls (`onStart`, `onUpdate`, `onStop`) and
-  later events (input, collisions).
-- The block palette is generated from the same registry list as the Luau
-  bindings: properties and registered methods of engine and game types. A new
-  method of a type becomes a block without extra work.
-- The engine interprets the graph. A limit on steps per call guards against
-  endless loops; an error disables the component and goes to the log, like a
-  C++ exception.
-- Visual scripts are their own type module (`visual`), reloaded when a graph
-  is saved.
-- The graph editor is a panel of the editor; editing logic lives apart from
-  ImGui, like the rest of the editor.
-
-## Engine context
-
-Three levels: what the process shares, what every scene owns, what a component
-sees.
-
-```
-Owner (game / editor / test)
- └─ EngineServices     shared by the process: input, project, type registry, scene requests
-     └─ Scene          owned by every scene
-         ├─ GameTime        game time, time scale, fixed step
-         ├─ systems         render, physics, audio... (pluggable)
-         ├─ phase lists     components to call in fixedUpdate / update / lateUpdate
-         └─ node tree
-             └─ Component → owner()->scene() → services(), time(), system<T>()
-```
-
-### Engine services [done]
-
-```cpp
-class EngineServices {
-public:
-    const Input& input() const;          // raw state + actions from the project settings
-    const Project* project() const;      // settings and resources; nullptr when there is none
-    const TypeRegistry& registry() const;
-    SceneRequests& scenes();             // "load a level": done between frames  [planned, step 9]
-};
-```
-
-- A scene gets its services when it is created: `Scene(const EngineServices&)`.
-  Tests and empty scenes get services with nothing pressed and an empty
-  project, so no code checks for `nullptr`.
-- No `Application::instance()`. Log and translation stay global by design.
-- The registry in the services is what lets `Node::addComponent` check the
-  component rules itself and what tells the scene the lifecycle phases of a
-  type.
-- In the editor the Play copy has its own services with its own `Input`: it
-  sees the input of the application only while the Game window is focused,
-  so keys typed in the inspector do not move the player.
-
-### Game time [done]
-
-```cpp
-class GameTime {
-public:
-    double elapsed() const;          // since the game started, scaled
-    float delta() const;             // this frame, scaled
-    float unscaledDelta() const;     // real step: editor, HUD animations
-    float fixedStep() const;         // from the Time section of the project settings
-    float scale() const;
-    void setScale(float scale);      // 0 stops the game, 0.5 is slow motion
-    std::uint64_t frame() const;
-};
-```
-
-Every scene has its own; the Play copy starts at zero and pause stops it. The
-real frame length comes from `FrameClock`, game time is derived from it.
-
-### Scene systems [done]
-
-The main extension point: a module adds a system and its components; `Scene`,
-the frame loop and the application do not change.
-
-```cpp
-class PhysicsWorld : public SceneSystem {
-public:
-    YQLORA_TYPE(PhysicsWorld, SceneSystem)
-    explicit PhysicsWorld(Scene& scene);
-
-    void fixedUpdate(float step) override;     // physics steps here
-    // also update, lateUpdate (after scripts: render list, audio)
-    // and updateTransforms (after the simulation, before extract)
-};
-
-// A module registers the type once; every new scene gets an instance:
-registry.registerSystem<PhysicsWorld>();
-scene.system<PhysicsWorld>()                    // a component registers its body in onEnterScene
-```
-
-- Systems are types of the registry (`TypeKind::System`), so they belong to a
-  module and leave with it like components. A scene creates one instance of
-  every system type when it is constructed; on a reload of the game module the
-  scene is recreated together with its tree **[planned, step 3]**.
-- Systems are called in the order of registration. An explicit order comes
-  with the first pair of systems that needs one.
-- The edited scene in the editor has its systems too (bodies exist, colliders
-  can be drawn), but only the Play copy is stepped.
-- `TransformSystem3D` is the first system: it keeps the world matrices of 3D
-  nodes fresh, see the frame pipeline.
-
-### One frame [done]
-
-The order lives in one place, `Scene::advance`:
-
-```
-scene.advance(realDelta):
-    time.advance(realDelta)                       scale, fixed-step accumulator
-    while a fixed step is accumulated:
-        systems.fixedUpdate, then components.onFixedUpdate
-    components.onUpdate
-    systems.update
-    components.onLateUpdate
-    systems.lateUpdate
-    apply deferred tree changes                   destroy, change of parent
-```
-
-The game (`Application`) calls `advance` every frame, the editor's `PlayMode`
-calls it for the Play copy when not paused, tests call it directly.
-
-## Frame pipeline
-
-The whole engine frame, not only the scene part. Each stage has one owner;
-the order lives in one frame loop class that knows only the order
-**[done]**: `FrameLoop` calls the stages of `FrameStages`, the owner (the
-game's `Application`, a test) says what each stage does.
-
-```
-1. Begin       FrameClock: frame length
-2. Input       window events -> raw input -> actions from the project settings
-3. Simulate    scene.advance: fixed steps (physics) -> update -> late update
-               -> deferred tree changes
-4. Transforms  world matrices of changed nodes, one pass with a dirty flag
-5. Extract     the render system takes a snapshot of the scene: views (cameras),
-               what to draw, lights. Nothing reads the scene after this.
-6. Render      prepare: culling by visibility and layer mask per view, sorting
-               (opaque front to back, transparent back to front)
-               graph: render passes (shadows, opaque, sky, transparent,
-               post-processing, HUD) through the RHI
-7. Interface   ImGui of the editor and tools
-8. Present
-```
-
-- **In the editor** the scene windows (viewport, game, camera preview) do
-  their own extract and render during the interface stage: each has its own
-  camera and texture. The Play copy is simulated and its transforms are
-  updated in the simulate stage, by `PlayMode`, in the same order.
-
-- **The snapshot from Extract** is all the renderer reads; it never touches
-  the scene. Later the renderer can move to its own thread (the game computes
-  frame N+1 while frame N is drawn) without changing game code. Extract is
-  `extractFrame(scene, ...)`: the views of the render system's cameras and
-  what to draw, with layers **[done]**.
-- **World matrices** are cached with a dirty flag: a change of a transform
-  marks the node and its branch, a read recomputes only what is stale
-  **[done]**. `TransformSystem3D` queues the top changed node of every branch
-  and refreshes them in one pass between simulation and extract
-  (`scene.updateTransforms()`), so extract reads ready values **[done]**.
-- **The render graph**: a pass declares what it reads and writes, the graph
-  orders the passes. A new effect is one more pass, not a change of the
-  renderer. The editor adds its own passes (grid, selection outline) to the
-  graph, which removes `FrameData::editor`. Culling and sorting come with it
-  **[planned, RHI]**.
-- **The render thread** comes when it is needed; the snapshot from Extract
-  already allows it **[planned, later]**.
 
 ## Lifecycle
 
@@ -460,42 +220,6 @@ the hand; a wagon hooked to a train must not move in the world.
 - Nodes without a transform (`Node`) and parents that are not `Node3D` have
   nothing to recompute: the flag changes nothing there.
 
-## Cameras and rendering [done]
-
-Prepared for several cameras (for example the player's arms drawn by a second
-camera over the world, so they never go into walls); the arms themselves are
-not part of this.
-
-- `Camera3D` has an **order** (lower is drawn first), a **culling mask** of
-  layers, a **clear mode** (colour and depth, depth only, nothing) and a
-  **background** colour for the first mode. The background is the camera's,
-  not the scene's: a second camera clearing colour and depth uses its own.
-- `RenderSystem` keeps the cameras of the scene (a camera adds itself when
-  it enters the scene) and gives those with an active node, sorted by order. The frame data carries a list of views instead of one camera; the
-  backend draws them in turn, each with its own clear and only the items whose
-  layer is in its mask.
-- The **main camera** is the first one in that order, the one the game is
-  seen through: `scene.system<RenderSystem>()->mainCamera()`. It is not
-  stored anywhere, neither in `Scene` nor in the scene file; to change it,
-  change the order or deactivate a camera. A camera that leaves the scene
-  drops out of the list by itself.
-- The editor's own camera (no game camera, or not playing) is drawn as one
-  view with the background from the editor theme.
-- **Camera preview** in the editor, as in Unity: while a camera is selected, a
-  small window in the corner of the viewport shows the picture through it, so
-  the camera can be placed by eye. A button on the viewport toggles it, the
-  choice is an editor setting (`EditorSettings`, a file in the user folder)
-  **[done]**.
-- **Two windows during Play**, as in Unity: "Game" shows the main camera,
-  "Scene" keeps the free editor camera, where nodes are selected and changed
-  while the game runs. Changes made during Play belong to the Play copy and
-  are gone after Stop **[done]**. The Game window comes forward and takes the
-  input on Play; without a game it shows the edited scene through its main
-  camera. Mouse position relative to the Game window comes with the HUD
-  **[planned, step 8]**.
-- A scene switch requested by a script happens between frames, never in the
-  middle of an update **[planned, step 9]**.
-
 ## References, state and serialization
 
 - A reference to a node is a `NodeId`, to a resource a `ResourceId`; both are
@@ -509,21 +233,6 @@ not part of this.
   system registrations and resources are released in `onStop` /
   `onExitScene` before a module is unloaded.
 
-## Hot reload [planned, step 3]
-
-1. Stop the game if it is running.
-2. Serialize the scene; take the whole tree out of it, so every component
-   gets `onExitScene` and no code of the old module runs afterwards.
-3. Destroy the tree, `TypeRegistry::removeModule`, clean the per-type
-   component index of the scene (keyed by `std::type_index` today, which would
-   point into the unloaded code), unload the library.
-4. Load the new library, register its types, load the scene back.
-
-A component whose type is missing (the game failed to compile, a script was
-deleted) is kept as a placeholder holding its raw data, shown in the inspector
-as missing, and written back unchanged on save. Otherwise saving the scene
-would silently drop the data **[planned, step 3]**.
-
 ## Editor integration
 
 - The inspector is built from properties and their hints (`PropertyHint`). A
@@ -532,20 +241,3 @@ would silently drop the data **[planned, step 3]**.
   one-per-node rule and requirements that can be met **[done]**.
 - Gizmos for a type live in `editor/ui/gizmos` (like `CameraGizmo`); the engine
   knows nothing about them.
-- The editor overlay (grid, selection outline) leaves engine frame data when
-  the render hardware interface arrives, before step 5.
-
-## Code layout
-
-Each system is a separate folder with its own type registration;
-`registerEngineTypes` only calls them.
-
-```
-engine/include/yqlora/scene/     Node, Node3D, Transform3D, Component, Script, Scene
-engine/include/yqlora/render/    MeshRenderer, Camera3D, lights
-engine/include/yqlora/physics/   RigidBody, colliders, PhysicsWorld      [step 6]
-engine/include/yqlora/audio/     AudioSource, AudioListener, AudioWorld  [step 7]
-engine/include/yqlora/ui/        Control, Label, Button                  [step 8]
-```
-
-Moving `MeshRenderer` and `Camera3D` into `render/` is part of the next stage.

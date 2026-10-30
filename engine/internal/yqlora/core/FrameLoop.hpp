@@ -25,7 +25,7 @@ public:
     virtual void present() = 0;
 };
 
-// Порядок кадра в одном месте, см. "Frame pipeline" в docs/architecture/scene.md.
+// Порядок кадра в одном месте, см. "Frame pipeline" в docs/architecture/frame.md.
 // Длину кадра считает сам, по часам платформы.
 class YQLORA_API FrameLoop {
 public:

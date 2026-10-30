@@ -6,7 +6,7 @@ Settings of a game that live in its project folder, are shared by everyone who
 works on it and go to version control: input actions, time step, graphics API,
 physics, build targets. In the editor: **Project → Project Settings**.
 
-Status marks as in [scene.md](scene.md): **[done]**, **[next]** (before C++
+Status marks as in [README](README.md): **[done]**, **[next]** (before C++
 scripts), **[planned, step N]**.
 
 Not to be confused with **editor preferences** (theme, language, camera
@@ -41,7 +41,7 @@ never go into the project.
 | General | game name, version, company, icon, startup scene | **[next]** |
 | Time | fixed time step, longest frame (today the constant `kMaxFrameSeconds`) | **[next]**, with the fixed step |
 | Input | actions and axes, their bindings to keys, mouse buttons, gamepad | **[next]** |
-| Execution Order | order of component types inside every lifecycle phase, overriding the default from code (see [scene.md](scene.md)) | **[next]** |
+| Execution Order | order of component types inside every lifecycle phase, overriding the default from code (see [scene](scene.md)) | **[next]** |
 | Layers | names of the 32 node layers used by camera masks and physics | **[next]** |
 | Graphics | graphics API per platform (OpenGL; Vulkan and D3D12 come with the RHI), vsync | **[next]** |
 | Scripts | C++ build: compiler, configuration; Luau later | **[planned, step 3]** |
