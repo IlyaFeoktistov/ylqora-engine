@@ -26,6 +26,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 option(YQLORA_BACKEND_OPENGL "Build the OpenGL renderer backend" ON)
 option(YQLORA_BUILD_TESTS "Build unit tests" ON)
+option(YQLORA_BUILD_EXAMPLES "Build the example game modules" ON)
 
 include(cmake/Dependencies.cmake)
 include(cmake/CompilerWarnings.cmake)
@@ -47,6 +48,10 @@ add_subdirectory(editor)
 
 # Программы. Сейчас только редактор, позже рядом встанет запуск игры без редактора.
 add_subdirectory(apps/editor)
+
+if(YQLORA_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
 
 if(YQLORA_BUILD_TESTS)
     enable_testing()

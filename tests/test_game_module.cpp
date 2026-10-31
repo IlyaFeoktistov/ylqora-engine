@@ -143,3 +143,23 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: the game library of the project loads
         return dynamic_cast<const MissingComponent*>(component.get()) != nullptr;
     }));
 }
+
+#ifdef YQLORA_EXAMPLE_SCRIPTS_MODULE
+TEST_CASE_FIXTURE(Fixture, "GameModule: the example Rotator turns its node in play")
+{
+    REQUIRE(module.load(YQLORA_EXAMPLE_SCRIPTS_MODULE));
+    const TypeInfo* type = registry.find("Rotator");
+    REQUIRE(type);
+    CHECK(type->requiredNode() == "Node3D");
+
+    Scene scene{services};
+    auto& root = scene.createRoot<Node3D>("Spinning");
+    root.addComponent(type->createComponent());
+    const Quat before = root.transform().rotation();
+    scene.advance(0.5f);
+    CHECK(root.transform().rotation() != before);
+
+    const std::array<Scene*, 1> scenes{&scene};
+    module.unload(scenes);
+}
+#endif

@@ -46,6 +46,13 @@ target_compile_definitions(yqlora_tests PRIVATE
 )
 # Тесты загружают его сами, во время работы, поэтому только зависимость сборки.
 add_dependencies(yqlora_tests yqlora_test_game)
+# Примеры тоже проходят через загрузку модуля, если их собирают.
+if(TARGET yqlora_example_scripts)
+    target_compile_definitions(yqlora_tests PRIVATE
+        YQLORA_EXAMPLE_SCRIPTS_MODULE="$<TARGET_FILE:yqlora_example_scripts>"
+    )
+    add_dependencies(yqlora_tests yqlora_example_scripts)
+endif()
 yqlora_set_warnings(yqlora_tests)
 
 add_test(NAME yqlora_tests COMMAND yqlora_tests)

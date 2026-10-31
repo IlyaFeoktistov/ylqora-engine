@@ -64,7 +64,7 @@ struct Fixture {
         registrar.registerScript<Spinner>();
     }
 
-    Json roundTrip(const Scene& scene) const
+    Json saved() const
     {
         return Json::parse(serializer.toJson(scene));
     }
@@ -85,13 +85,13 @@ TEST_CASE_FIXTURE(Fixture, "Missing type: the component is kept as read and writ
     // В списках сцены заглушка не выдаёт себя за пропавший тип.
     CHECK(scene.componentsOfType("Spinner").empty());
 
-    CHECK(componentJson(roundTrip(scene), kSpinnerLoaded) == componentJson(kScene, kSpinnerInFile));
+    CHECK(componentJson(saved(), kSpinnerLoaded) == componentJson(kScene, kSpinnerInFile));
 }
 
 TEST_CASE_FIXTURE(Fixture, "Missing type: properties a known type does not have are kept and written back")
 {
     REQUIRE(serializer.fromJson(scene, kScene.dump()));
-    const Json transform = componentJson(roundTrip(scene), kTransformLoaded);
+    const Json transform = componentJson(saved(), kTransformLoaded);
     CHECK(transform["properties"]["skew"] == 0.5);
     CHECK(transform["properties"]["position"] == componentJson(kScene, kTransformInFile)["properties"]["position"]);
 }
@@ -109,7 +109,7 @@ TEST_CASE_FIXTURE(Fixture, "Missing type: the component comes back when its type
 
     // Свойство, которого у скрипта нет, пережило оживление; ключ рядом со
     // свойствами - нет: это уже данные компонента, а не заглушки.
-    const Json spinner = componentJson(roundTrip(scene), kSpinnerLoaded);
+    const Json spinner = componentJson(saved(), kSpinnerLoaded);
     CHECK(spinner["properties"]["oldField"] == Json::array({1, 2}));
     CHECK(spinner["properties"]["speed"] == 4.0);
     CHECK_FALSE(spinner.contains("extra"));

@@ -188,8 +188,8 @@ The component lifecycle of the [scene](scene.md), as scripts see it:
      fields in the inspector with their attributes, saving and loading of
      field values **[done]**.
    - 4c. An example game module in `examples/`, built with the repository: a
-     `Rotator` script with fields (speed, axis). A movement example is
-     physics-based and comes with step 6.
+     `Rotator` script with fields (speed, axis) **[done]**. A movement
+     example is physics-based and comes with step 6.
 5. Documents: this one, the game module, a "first script" guide and the
    limits (native code can crash the editor; one game module per project;
    how Luau and graphs fit the same boundaries).

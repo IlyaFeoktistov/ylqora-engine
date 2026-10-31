@@ -46,10 +46,12 @@ engine/include/yqlora/core/        engine services, engine types, log, version
 engine/include/yqlora/reflection/  TypeRegistry, Property, Method, component rules
 engine/include/yqlora/scene/       Node, Node3D, Transform3D, Component, Scene, scene systems
 engine/include/yqlora/project/     Project, ProjectSettings, SettingsSection, GeneralSettings
+engine/include/yqlora/scripting/   Script, ModuleRegistrar; GameModule in internal/
 engine/include/yqlora/render/      Camera3D, MeshRenderer, RenderSystem; lights        [step 5]
 engine/include/yqlora/physics/     RigidBody, colliders, PhysicsWorld                  [step 6]
 engine/include/yqlora/audio/       AudioSource, AudioListener, AudioWorld              [step 7]
 engine/include/yqlora/ui/          Control, Label, Button                              [step 8]
+examples/scripts/                  example game module (Rotator), built as game.dll / libgame.so
 ```
 
 Platform and interface **[done]**: the interface layer (`UiLayer`, Dear
