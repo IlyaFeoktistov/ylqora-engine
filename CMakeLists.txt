@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.24)
+# 3.26: copy_directory_if_different для SDK.
+cmake_minimum_required(VERSION 3.26)
 
 project(yqlora VERSION 0.0.1 LANGUAGES C CXX)
 
@@ -30,6 +31,15 @@ option(YQLORA_BUILD_EXAMPLES "Build the example game modules" ON)
 
 include(cmake/Dependencies.cmake)
 include(cmake/CompilerWarnings.cmake)
+include(cmake/YqloraGameModule.cmake)
+
+# Определения, без которых заголовки движка понимаются иначе: их получает и
+# всё, что подключает движок в дереве, и SDK.
+set(YQLORA_PUBLIC_DEFINITIONS
+    # Кватернионы и углы в радианах: единые правила для всего движка.
+    GLM_FORCE_RADIANS
+    GLM_ENABLE_EXPERIMENTAL
+)
 
 add_subdirectory(third_party/glad)
 add_subdirectory(engine)

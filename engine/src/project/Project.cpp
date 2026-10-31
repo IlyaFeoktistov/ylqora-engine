@@ -26,7 +26,11 @@ constexpr FileFormat kFormat{"Project", kFirstFormatVersion, kMigrations};
 constexpr const char* kNameKey = "name";
 constexpr const char* kEngineVersionKey = "engine";
 
-constexpr std::array<std::string_view, 2> kReservedNames{Project::fileName(), ProjectSettings::directoryName()};
+constexpr std::array<std::string_view, 3> kReservedNames{
+    Project::fileName(),
+    ProjectSettings::directoryName(),
+    Project::scriptsDirectoryName(),
+};
 
 std::optional<Json> readFile(const std::filesystem::path& directory)
 {

@@ -70,12 +70,12 @@ void LogPanel::draw(EditorContext& context)
 
 void LogPanel::drawToolbar(const EditorColors& colors)
 {
-    if (ImGui::SmallButton(icons::kClear)) {
+    if (ImGui::Button(icons::kClear)) {
         m_buffer.clear();
     }
     ImGui::SetItemTooltip("%s", tr("editor.log.clear").c_str());
     ImGui::SameLine();
-    if (ImGui::SmallButton(icons::kCopy)) {
+    if (ImGui::Button(icons::kCopy)) {
         std::string text;
         for (const std::size_t index : m_shown) {
             text += m_buffer.entries()[index].message;
@@ -94,7 +94,7 @@ void LogPanel::drawToolbar(const EditorColors& colors)
             ImGuiCol_Text,
             shown ? colorOf(level, colors) : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled)
         );
-        if (ImGui::SmallButton(label.c_str())) {
+        if (ImGui::Button(label.c_str())) {
             shown = !shown;
         }
         ImGui::PopStyleColor();

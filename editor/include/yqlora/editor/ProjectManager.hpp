@@ -48,7 +48,11 @@ public:
     };
 
     // listFile - файл списка проектов в папке пользователя.
-    ProjectManager(std::filesystem::path listFile, const SceneSerializer& serializer);
+    ProjectManager(
+        std::filesystem::path listFile,
+        const SceneSerializer& serializer,
+        std::filesystem::path scriptsTemplate
+    );
 
     std::span<const Row> rows() const
     {
@@ -81,6 +85,7 @@ private:
 
     ProjectList m_list;
     const SceneSerializer& m_serializer;
+    std::filesystem::path m_scriptsTemplate;
     std::vector<Row> m_rows;
 };
 

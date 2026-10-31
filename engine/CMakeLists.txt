@@ -8,9 +8,7 @@ add_library(yqlora_engine_code INTERFACE)
 target_include_directories(yqlora_engine_code INTERFACE include internal)
 target_link_libraries(yqlora_engine_code INTERFACE glm::glm imgui_headers)
 target_compile_definitions(yqlora_engine_code INTERFACE
-    # Кватернионы и углы в радианах: единые правила для всего движка.
-    GLM_FORCE_RADIANS
-    GLM_ENABLE_EXPERIMENTAL
+    ${YQLORA_PUBLIC_DEFINITIONS}
     YQLORA_BUILDING_ENGINE
     "IMGUI_API=${YQLORA_DLL_EXPORT}"
 )
@@ -101,8 +99,7 @@ target_link_libraries(yqlora
 )
 target_compile_definitions(yqlora PRIVATE YQLORA_ENGINE_VERSION="${PROJECT_VERSION}")
 target_compile_definitions(yqlora INTERFACE
-    GLM_FORCE_RADIANS
-    GLM_ENABLE_EXPERIMENTAL
+    ${YQLORA_PUBLIC_DEFINITIONS}
     "IMGUI_API=${YQLORA_DLL_IMPORT}"
 )
 if(UNIX AND NOT APPLE)
@@ -119,3 +116,5 @@ add_library(yqlora::internal ALIAS yqlora_internal)
 target_include_directories(yqlora_internal INTERFACE internal)
 # Внутренние заголовки построены на nlohmann/json (только заголовки).
 target_link_libraries(yqlora_internal INTERFACE yqlora::yqlora nlohmann_json::nlohmann_json)
+
+include(${PROJECT_SOURCE_DIR}/cmake/Sdk.cmake)

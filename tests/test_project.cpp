@@ -44,7 +44,7 @@ TEST_CASE("Project: create makes a folder with the project file and a starter sc
     const auto location = freshDirectory("project_create");
 
     std::string error;
-    const auto project = createProject(location, "My Game", serializer, error);
+    const auto project = createProject(location, "My Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
     REQUIRE(project);
     CHECK(project->directory() == location / "My Game");
     CHECK(std::filesystem::exists(project->projectFile()));
@@ -64,8 +64,65 @@ TEST_CASE("Project: create makes a folder with the project file and a starter sc
     CHECK(dynamic_cast<Camera3D*>(scene.root()->findChild("Camera")) != nullptr);
 
     // Второй раз в ту же папку нельзя.
-    CHECK_FALSE(createProject(location, "My Game", serializer, error));
+    CHECK_FALSE(createProject(location, "My Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error));
     CHECK(error == "projects.error.exists");
+}
+
+TEST_CASE("Project: a new project gets the scripts folder, which is not a resource")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    const SceneSerializer serializer(registry);
+
+    std::string error;
+    const auto project = createProject(
+        freshDirectory("project_scripts"),
+        "Game",
+        serializer,
+        YQLORA_SCRIPTS_TEMPLATE_DIR,
+        error
+    );
+    REQUIRE(project);
+    const auto scripts = project->directory() / Project::scriptsDirectoryName();
+    CHECK(std::filesystem::is_regular_file(scripts / "CMakeLists.txt"));
+    CHECK(std::filesystem::is_regular_file(scripts / "Module.cpp"));
+    for (const auto& [id, path] : project->resources().paths()) {
+        CHECK(*path.begin() != Project::scriptsDirectoryName());
+    }
+}
+
+TEST_CASE("createScriptsFolder: adds the folder to an old project, never overwrites one")
+{
+    TypeRegistry registry;
+    registerEngineTypes(registry);
+    const SceneSerializer serializer(registry);
+
+    std::string error;
+    const auto project = createProject(
+        freshDirectory("project_old_scripts"),
+        "Game",
+        serializer,
+        YQLORA_SCRIPTS_TEMPLATE_DIR,
+        error
+    );
+    REQUIRE(project);
+    const auto scripts = project->directory() / Project::scriptsDirectoryName();
+    const auto module = scripts / "Module.cpp";
+    std::ofstream(module) << "// my code";
+
+    CHECK_FALSE(createScriptsFolder(project->directory(), YQLORA_SCRIPTS_TEMPLATE_DIR, error));
+    CHECK(error == "projects.error.scriptsExist");
+    CHECK(std::filesystem::file_size(module) == std::string_view("// my code").size());
+
+    std::filesystem::remove_all(scripts);
+    CHECK(createScriptsFolder(project->directory(), YQLORA_SCRIPTS_TEMPLATE_DIR, error));
+    CHECK(std::filesystem::file_size(module) > std::string_view("// my code").size());
+
+    // Без шаблона папка не появляется вовсе, а не наполовину.
+    std::filesystem::remove_all(scripts);
+    CHECK_FALSE(createScriptsFolder(project->directory(), project->directory() / "no-template", error));
+    CHECK(error == "projects.error.cannotCreateScripts");
+    CHECK_FALSE(std::filesystem::exists(scripts));
 }
 
 TEST_CASE("isValidFileName: names must be usable as file and folder names everywhere")
@@ -126,7 +183,8 @@ TEST_CASE("EditorSession: open, change, save and reopen a project")
     registerEngineTypes(registry);
     const SceneSerializer serializer(registry);
     std::string error;
-    const auto project = createProject(freshDirectory("session"), "Game", serializer, error);
+    const auto
+        project = createProject(freshDirectory("session"), "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
     REQUIRE(project);
 
     Input input;
@@ -159,7 +217,13 @@ TEST_CASE("EditorSession: a project with a broken scene opens with an empty scen
     registerEngineTypes(registry);
     const SceneSerializer serializer(registry);
     std::string error;
-    const auto project = createProject(freshDirectory("session_broken"), "Game", serializer, error);
+    const auto project = createProject(
+        freshDirectory("session_broken"),
+        "Game",
+        serializer,
+        YQLORA_SCRIPTS_TEMPLATE_DIR,
+        error
+    );
     REQUIRE(project);
     std::filesystem::remove(project->directory() / *project->startupScenePath());
 
@@ -183,7 +247,7 @@ TEST_CASE("deleteProjectFolder: removes only real project folders")
     const SceneSerializer serializer(registry);
     const auto location = freshDirectory("project_delete");
     std::string error;
-    const auto project = createProject(location, "Game", serializer, error);
+    const auto project = createProject(location, "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
     REQUIRE(project);
 
     const auto notProject = location / "Photos";
@@ -202,7 +266,13 @@ TEST_CASE("Project: the version tells whether a project opens, needs an upgrade 
     registerEngineTypes(registry);
     const SceneSerializer serializer(registry);
     std::string error;
-    const auto project = createProject(freshDirectory("project_version"), "Game", serializer, error);
+    const auto project = createProject(
+        freshDirectory("project_version"),
+        "Game",
+        serializer,
+        YQLORA_SCRIPTS_TEMPLATE_DIR,
+        error
+    );
     REQUIRE(project);
 
     const auto info = Project::readInfo(project->directory());
@@ -233,7 +303,13 @@ TEST_CASE("Project: upgrading a current project rewrites it and keeps it working
     registerEngineTypes(registry);
     const SceneSerializer serializer(registry);
     std::string error;
-    const auto project = createProject(freshDirectory("project_upgrade"), "Game", serializer, error);
+    const auto project = createProject(
+        freshDirectory("project_upgrade"),
+        "Game",
+        serializer,
+        YQLORA_SCRIPTS_TEMPLATE_DIR,
+        error
+    );
     REQUIRE(project);
 
     REQUIRE(upgradeProject(project->directory(), serializer));

@@ -35,7 +35,7 @@ Architecture: [overview and documents by subsystem](docs/architecture/README.md)
 
 ## Building
 
-Requirements: CMake 3.24+, a C++20 compiler (GCC 13+, MinGW-w64 or Visual Studio 2022), Ninja.
+Requirements: CMake 3.26+, a C++20 compiler (GCC 13+, MinGW-w64 or Visual Studio 2022), Ninja.
 Libraries are downloaded by CMake during configuration.
 
 ### Linux / WSL

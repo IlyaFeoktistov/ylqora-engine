@@ -65,7 +65,7 @@ TEST_CASE_FIXTURE(Fixture, "SceneDocument: a scene that cannot be read leaves th
     std::filesystem::remove_all(location);
     std::filesystem::create_directories(location);
     std::string error;
-    Project project = *createProject(location, "Game", serializer, error);
+    Project project = *createProject(location, "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
 
     SceneDocument document{EngineServices::none(), serializer};
     const Scene& documentScene = document.scene();

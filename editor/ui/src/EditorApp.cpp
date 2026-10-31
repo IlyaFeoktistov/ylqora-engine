@@ -16,6 +16,7 @@
 #include "yqlora/core/AppPaths.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
+#include "yqlora/editor/ProjectSetup.hpp"
 #include "yqlora/i18n/Language.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/platform/Platform.hpp"
@@ -99,7 +100,11 @@ void EditorApp::onStart()
         m_languages.emplace_back(code, localization.displayName(code));
     }
 
-    m_projects = std::make_unique<ProjectManager>(userData / kProjectListFile, m_serializer);
+    m_projects = std::make_unique<ProjectManager>(
+        userData / kProjectListFile,
+        m_serializer,
+        scriptsTemplateDirectory(assets)
+    );
     m_settings = std::make_unique<EditorSettings>(userData / kEditorSettingsFile);
     m_settings->load();
     m_projectManager = std::make_unique<ProjectManagerPanel>(*m_projects, m_theme);

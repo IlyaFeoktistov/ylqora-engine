@@ -295,7 +295,9 @@ field values; compiler errors show in the editor log.
   `yqloraConfig.cmake`); every path in it is computed from the location of
   the package, never written absolute, so a moved editor still builds
   projects. `find_package(yqlora)` gives `yqlora::yqlora`, and
-  `yqlora_add_game_module(<sources>)` holds every rule of a game library.
+  `yqlora_add_game_module(<target> <sources>)` holds every rule of a game
+  library. The SDK carries glm but not ImGui: game code draws through the
+  engine, not through the editor's toolkit.
 - **CMake names the result.** The package records `$<TARGET_FILE>` of the
   game module in the build folder; the editor reads the path from there and
   never builds a library name itself.
@@ -365,7 +367,13 @@ Failures:
    `scripts/CMakeLists.txt`, `scripts/Module.cpp` (the entry function) and an
    example script; `scripts/` is not a resource; "Create scripts folder" for
    an existing project; `examples/` moves to `yqlora_add_game_module`; CI
-   builds the template against the fresh engine on Linux and Windows.
+   builds the template against the fresh engine on Linux and Windows
+   **[done]**. The SDK is `bin/sdk/` (`cmake/Sdk.cmake`), the record is
+   `sdk/toolchain.json`; the package refuses another compiler family and
+   warns about another version. The template lives in
+   `assets/templates/scripts/` with the `Pulse` script; the
+   `yqlora_scripts_template` test builds it with the engine's compilers and
+   flags. The menu item comes with phase 5.
 3. The build: `platform::Process`, `CompilerDiagnostics`, `ScriptBuild`
    (configure only when needed, a fresh folder on a toolchain change, one
    build and one pending flag); Build (Ctrl+B), a build when the editor

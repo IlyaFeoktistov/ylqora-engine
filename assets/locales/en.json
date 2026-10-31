@@ -228,6 +228,8 @@
             "cannotCreate": "Could not create the project folder",
             "notProject": "There is no project.yqlora in this folder",
             "cannotDelete": "Could not delete the project folder",
+            "scriptsExist": "The project already has a scripts folder",
+            "cannotCreateScripts": "Could not create the scripts folder",
             "newer": "The project was saved by a newer engine version. Update the engine.",
             "unsupported": "Unknown project format version: it cannot be upgraded.",
             "upgradeFailed": "The project was not upgraded, files are unchanged. See the log for details."

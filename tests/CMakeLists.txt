@@ -1,6 +1,9 @@
 # Модуль игры, который тесты загружают, как редактор загружает game.dll проекта.
-add_library(yqlora_test_game SHARED game_module/TestGame.cpp)
-target_link_libraries(yqlora_test_game PRIVATE yqlora::yqlora)
+yqlora_add_game_module(yqlora_test_game game_module/TestGame.cpp)
+set_target_properties(yqlora_test_game PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests/game_module
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests/game_module
+)
 yqlora_set_warnings(yqlora_test_game)
 
 add_executable(yqlora_tests
@@ -43,6 +46,7 @@ add_executable(yqlora_tests
 target_link_libraries(yqlora_tests PRIVATE yqlora::internal yqlora::editor doctest::doctest)
 target_compile_definitions(yqlora_tests PRIVATE
     YQLORA_LOCALES_DIR="${PROJECT_SOURCE_DIR}/assets/locales"
+    YQLORA_SCRIPTS_TEMPLATE_DIR="${PROJECT_SOURCE_DIR}/assets/templates/scripts"
     YQLORA_TEST_GAME_MODULE="$<TARGET_FILE:yqlora_test_game>"
 )
 # Тесты загружают его сами, во время работы, поэтому только зависимость сборки.
@@ -57,3 +61,20 @@ endif()
 yqlora_set_warnings(yqlora_tests)
 
 add_test(NAME yqlora_tests COMMAND yqlora_tests)
+
+# Шаблон scripts/ собирается против SDK так же, как в проекте. Только Ninja:
+# им собирает и редактор.
+if(CMAKE_GENERATOR STREQUAL "Ninja")
+    add_test(NAME yqlora_scripts_template
+        COMMAND ${CMAKE_COMMAND}
+            -DTEMPLATE_DIR=${PROJECT_SOURCE_DIR}/assets/templates/scripts
+            -DBUILD_DIR=${CMAKE_BINARY_DIR}/tests/scripts_template
+            -DSDK_DIR=$<TARGET_FILE_DIR:yqlora>/sdk
+            -DGENERATOR=${CMAKE_GENERATOR}
+            -DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
+            -DCXX_COMPILER=${CMAKE_CXX_COMPILER}
+            "-DCXX_FLAGS=${CMAKE_CXX_FLAGS}"
+            "-DLINKER_FLAGS=${CMAKE_SHARED_LINKER_FLAGS}"
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/sdk/BuildTemplate.cmake
+    )
+endif()

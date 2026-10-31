@@ -99,7 +99,7 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: the game library of the project loads
     std::filesystem::remove_all(location);
     SceneSerializer serializer{registry};
     std::string error;
-    const auto created = createProject(location, "Game", serializer, error);
+    const auto created = createProject(location, "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
     REQUIRE(created);
     const auto library = gameLibraryPath(created->directory());
     std::filesystem::create_directories(library.parent_path());

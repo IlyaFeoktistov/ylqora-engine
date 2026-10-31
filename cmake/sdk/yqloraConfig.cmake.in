@@ -1,0 +1,44 @@
+# Пакет движка yqlora @PROJECT_VERSION@ для сборки модуля игры. Пути - от
+# места самого пакета: sdk/cmake/ лежит в папке библиотеки движка.
+
+cmake_path(GET CMAKE_CURRENT_LIST_DIR PARENT_PATH _yqlora_sdk)
+cmake_path(GET _yqlora_sdk PARENT_PATH _yqlora_bin)
+
+# Модуль игры живёт в процессе движка: другой компилятор - другой ABI.
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "@CMAKE_CXX_COMPILER_ID@")
+    message(FATAL_ERROR
+        "yqlora is built with @CMAKE_CXX_COMPILER_ID@, the game module with ${CMAKE_CXX_COMPILER_ID}: "
+        "use the compiler from sdk/toolchain.json"
+    )
+endif()
+if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL "@CMAKE_CXX_COMPILER_VERSION@")
+    message(WARNING
+        "yqlora is built with @CMAKE_CXX_COMPILER_ID@ @CMAKE_CXX_COMPILER_VERSION@, "
+        "the game module with ${CMAKE_CXX_COMPILER_VERSION}"
+    )
+endif()
+
+if(NOT TARGET yqlora::yqlora)
+    add_library(yqlora::yqlora SHARED IMPORTED)
+    set_target_properties(yqlora::yqlora PROPERTIES
+        IMPORTED_LOCATION "${_yqlora_bin}/$<TARGET_FILE_NAME:yqlora>"
+        INTERFACE_INCLUDE_DIRECTORIES "${_yqlora_sdk}/include"
+        INTERFACE_COMPILE_DEFINITIONS "@YQLORA_PUBLIC_DEFINITIONS@"
+        INTERFACE_COMPILE_FEATURES cxx_std_20
+    )
+    if(WIN32)
+        set_target_properties(yqlora::yqlora PROPERTIES
+            IMPORTED_IMPLIB "${_yqlora_sdk}/lib/$<TARGET_LINKER_FILE_NAME:yqlora>"
+        )
+    endif()
+endif()
+
+set(YQLORA_MSVC_RUNTIME_LIBRARY "@YQLORA_MSVC_RUNTIME@")
+if(YQLORA_MSVC_RUNTIME_LIBRARY STREQUAL "")
+    unset(YQLORA_MSVC_RUNTIME_LIBRARY)
+endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/YqloraGameModule.cmake")
+
+unset(_yqlora_sdk)
+unset(_yqlora_bin)

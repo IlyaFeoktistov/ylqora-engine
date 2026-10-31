@@ -27,7 +27,7 @@ struct Fixture {
         std::filesystem::remove_all(location);
         std::filesystem::create_directories(location);
         std::string error;
-        project = *createProject(location, "Game", serializer, error);
+        project = *createProject(location, "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
     }
 
     TypeRegistry registry;
