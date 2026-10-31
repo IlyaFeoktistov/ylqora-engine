@@ -1,12 +1,14 @@
 #pragma once
 
 #include "yqlora/core/Export.hpp"
+#include "yqlora/reflection/TypeName.hpp"
 #include "yqlora/scene/SceneSystem.hpp"
 
 #include <concepts>
+#include <functional>
+#include <map>
 #include <memory>
-#include <typeindex>
-#include <unordered_map>
+#include <string>
 #include <vector>
 
 namespace yqlora {
@@ -24,11 +26,12 @@ public:
     SceneSystems(const SceneSystems&) = delete;
     SceneSystems& operator=(const SceneSystems&) = delete;
 
-    // nullptr, если такой системы в сцене нет.
+    // nullptr, если такой системы в сцене нет. По имени типа, а не по typeid:
+    // см. TypeRegistry::find<T>.
     template <std::derived_from<SceneSystem> T>
     T* get() const
     {
-        const auto it = m_byType.find(std::type_index(typeid(T)));
+        const auto it = m_byType.find(typeNameOf<T>());
 
         return it != m_byType.end() ? static_cast<T*>(it->second) : nullptr;
     }
@@ -40,7 +43,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<SceneSystem>> m_systems;
-    std::unordered_map<std::type_index, SceneSystem*> m_byType;
+    std::map<std::string, SceneSystem*, std::less<>> m_byType;
 };
 
 } // namespace yqlora

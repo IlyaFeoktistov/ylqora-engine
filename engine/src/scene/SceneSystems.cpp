@@ -11,7 +11,7 @@ SceneSystems::SceneSystems(Scene& scene, const TypeRegistry& registry)
             continue;
         }
         if (std::unique_ptr<SceneSystem> system = type->createSystem(scene)) {
-            m_byType.emplace(std::type_index(typeid(*system)), system.get());
+            m_byType.emplace(type->name(), system.get());
             m_systems.push_back(std::move(system));
         }
     }

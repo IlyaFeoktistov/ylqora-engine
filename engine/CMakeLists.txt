@@ -34,6 +34,7 @@ add_library(yqlora SHARED
     src/platform/Window.cpp
     src/platform/InputFeeder.cpp
     src/platform/MouseWrap.cpp
+    src/platform/SharedLibrary.cpp
     src/input/Input.cpp
     src/input/InputControl.cpp
     src/input/InputSettings.cpp
@@ -81,6 +82,7 @@ add_library(yqlora SHARED
     src/render/RendererFactory.cpp
     src/resource/ResourceDatabase.cpp
     src/runtime/GameRuntime.cpp
+    src/scripting/GameModule.cpp
     src/scripting/ModuleRegistrar.cpp
     src/scripting/Script.cpp
     src/scripting/ScriptingTypes.cpp

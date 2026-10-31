@@ -143,7 +143,6 @@ TEST_CASE_FIXTURE(Fixture, "Script: a type name taken by another module is rejec
     CHECK(rejected[0].name == "Camera3D");
     CHECK(rejected[0].takenBy == TypeRegistry::engineModule());
     CHECK(registry.find("Camera3D")->module() == TypeRegistry::engineModule());
-    CHECK(registry.find<Camera3D>() == nullptr);
     CHECK(registry.find("Ignored") == nullptr);
 
     // Тот же скрипт второй раз - имя занято уже своим модулем.

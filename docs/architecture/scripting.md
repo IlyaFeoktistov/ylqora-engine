@@ -166,7 +166,14 @@ The component lifecycle of the [scene](scene.md), as scripts see it:
    unloading, every instance of its types is destroyed (scenes of the editor
    and of Play), then `removeModule`, then the library goes. A test module
    built by the repository goes through the whole cycle on Linux and
-   Windows: load, register, create, lifecycle calls, destroy, unload.
+   Windows: load, register, create, lifecycle calls, destroy, unload
+   **[done]**. The library is found by `kModuleEntrySymbol`, the name
+   `YQLORA_MODULE_ENTRY` defines. `GameModule::unload` destroys the
+   components in the scenes it is given; instances outside scenes (the edit
+   history) are the owner's to destroy first. Types are looked up by name,
+   never by `typeid`: `type_info` comparison across libraries is unreliable
+   on MinGW, so `TypeRegistry::find<T>()` and `Scene::system<T>()` use the
+   `YQLORA_TYPE` name.
 4. Editor: scripts in "Add component" as their own group (by the mark),
    fields in the inspector with their attributes, saving and loading of field values; a component whose type is
    missing (module not built, script deleted) is kept as a placeholder with
@@ -232,9 +239,8 @@ links, then attached to a node and works like a C++ or Luau script.
 1. Stop the game if it is running.
 2. Serialize the scene; take the whole tree out of it, so every component
    gets `onExitScene` and no code of the old module runs afterwards.
-3. Destroy the tree, `TypeRegistry::removeModule`, clean the per-type
-   component index of the scene (keyed by `std::type_index` today, which would
-   point into the unloaded code), unload the library.
+3. Destroy the tree, `TypeRegistry::removeModule`, unload the library
+   (`GameModule::unload`).
 4. Load the new library, register its types, load the scene back.
 
 A component whose type is missing (the game failed to compile, a script was

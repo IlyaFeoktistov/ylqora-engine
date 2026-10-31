@@ -26,9 +26,16 @@ class ModuleRegistrar;
 //       registrar.registerScript<Player>();
 //   }
 #define YQLORA_MODULE_ENTRY(registrar)                                                                                 \
-    extern "C" YQLORA_MODULE_EXPORT void yqloraModuleEntry(::yqlora::ModuleRegistrar& registrar)
+    extern "C" YQLORA_MODULE_EXPORT void YQLORA_MODULE_ENTRY_NAME(::yqlora::ModuleRegistrar& registrar)
+
+// Имя входной функции: одно и для макроса, и для поиска в библиотеке (kModuleEntrySymbol).
+#define YQLORA_MODULE_ENTRY_NAME yqloraModuleEntry
+#define YQLORA_DETAIL_STRING(text) #text
+#define YQLORA_DETAIL_EXPANDED_STRING(macro) YQLORA_DETAIL_STRING(macro)
 
 using ModuleEntry = void (*)(ModuleRegistrar&);
+
+inline constexpr const char* kModuleEntrySymbol = YQLORA_DETAIL_EXPANDED_STRING(YQLORA_MODULE_ENTRY_NAME);
 
 // Регистрация, которую реестр не принял: имя уже занято типом модуля takenBy.
 struct RejectedType {

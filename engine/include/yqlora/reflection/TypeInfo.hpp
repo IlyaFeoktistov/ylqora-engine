@@ -163,6 +163,8 @@ private:
     std::vector<std::string> m_requiredComponents;
     bool m_allowMultiple = false;
     bool m_script = false;
+    // Тип - C++-класс (TypeRegistry::find<T>), а не описанный во время выполнения.
+    bool m_cppClass = false;
     LifecyclePhases m_phases = 0;
     int m_executionOrder = 0;
 };

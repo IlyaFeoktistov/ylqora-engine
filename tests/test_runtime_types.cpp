@@ -45,6 +45,12 @@ private:
 };
 
 constexpr std::string_view kSpinnerType = "Spinner";
+
+// C++-класс с тем же именем, что у типа, описанного во время выполнения; не зарегистрирован.
+class Spinner final : public Component {
+public:
+    YQLORA_TYPE(Spinner, Component)
+};
 constexpr std::string_view kSpeedProperty = "speed";
 constexpr float kDefaultSpeed = 1.0f;
 constexpr float kChangedSpeed = 4.5f;
@@ -125,8 +131,8 @@ TEST_CASE_FIXTURE(Fixture, "Runtime type: registered without a C++ class of its 
         names.push_back(property->name());
     }
     CHECK(names == std::vector<std::string>{"enabled", std::string(kSpeedProperty)});
-    // Своего C++-класса нет: по классу его не найти.
-    CHECK(registry.find<ScriptStub>() == nullptr);
+    // Своего C++-класса нет: класс с тем же именем его не находит.
+    CHECK(registry.find<Spinner>() == nullptr);
 }
 
 TEST_CASE_FIXTURE(Fixture, "Runtime type: takes part in the frame and is found in the scene by its name")

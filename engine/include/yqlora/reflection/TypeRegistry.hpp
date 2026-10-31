@@ -18,7 +18,6 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <typeindex>
 #include <utility>
 #include <vector>
 
@@ -134,12 +133,15 @@ public:
     const TypeInfo* find(std::string_view name) const;
 
     // Только типы - C++-классы; у типов, описанных во время выполнения, своего класса нет.
+    // По имени из YQLORA_TYPE, а не по typeid: сравнение type_info между
+    // библиотеками (движок и dll игры) на MinGW ненадёжно. Два класса с одним
+    // именем в реестре не бывают: второй отклоняется (ModuleRegistrar).
     template <typename T>
     const TypeInfo* find() const
     {
-        const auto it = m_byCppType.find(std::type_index(typeid(T)));
+        const auto it = m_byName.find(typeNameOf<T>());
 
-        return it != m_byCppType.end() ? it->second : nullptr;
+        return it != m_byName.end() && it->second->m_cppClass ? it->second : nullptr;
     }
 
     // Все типы в порядке регистрации.
@@ -176,7 +178,7 @@ private:
             base = std::string(typeNameOf<Base>());
         }
         TypeInfo& info = addType(std::string(typeNameOf<T>()), kind, std::move(base));
-        m_byCppType.emplace(std::type_index(typeid(T)), &info);
+        info.m_cppClass = true;
 
         return info;
     }
@@ -186,7 +188,6 @@ private:
 
     std::vector<std::unique_ptr<TypeInfo>> m_types;
     std::map<std::string, TypeInfo*, std::less<>> m_byName;
-    std::map<std::type_index, TypeInfo*> m_byCppType;
     std::string m_module{engineModule()};
 };
 

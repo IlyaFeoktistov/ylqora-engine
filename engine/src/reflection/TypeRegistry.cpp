@@ -100,9 +100,6 @@ std::size_t TypeRegistry::removeModule(std::string_view module)
     std::erase_if(m_byName, [&](const auto& entry) {
         return entry.second->module() == module;
     });
-    std::erase_if(m_byCppType, [&](const auto& entry) {
-        return entry.second->module() == module;
-    });
 
     return std::erase_if(m_types, inModule);
 }

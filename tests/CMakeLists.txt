@@ -1,3 +1,8 @@
+# Модуль игры, который тесты загружают, как редактор загружает game.dll проекта.
+add_library(yqlora_test_game SHARED game_module/TestGame.cpp)
+target_link_libraries(yqlora_test_game PRIVATE yqlora::yqlora)
+yqlora_set_warnings(yqlora_test_game)
+
 add_executable(yqlora_tests
     main.cpp
     test_transform.cpp
@@ -31,11 +36,15 @@ add_executable(yqlora_tests
     test_play_document.cpp
     test_project_manager.cpp
     test_frame_clock.cpp
+    test_game_module.cpp
 )
 target_link_libraries(yqlora_tests PRIVATE yqlora::internal yqlora::editor doctest::doctest)
 target_compile_definitions(yqlora_tests PRIVATE
     YQLORA_LOCALES_DIR="${PROJECT_SOURCE_DIR}/assets/locales"
+    YQLORA_TEST_GAME_MODULE="$<TARGET_FILE:yqlora_test_game>"
 )
+# Тесты загружают его сами, во время работы, поэтому только зависимость сборки.
+add_dependencies(yqlora_tests yqlora_test_game)
 yqlora_set_warnings(yqlora_tests)
 
 add_test(NAME yqlora_tests COMMAND yqlora_tests)
