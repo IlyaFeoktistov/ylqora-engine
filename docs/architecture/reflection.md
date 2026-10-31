@@ -18,9 +18,13 @@ Status marks: see [README](README.md).
 - A C++ class names itself and its base once, with `YQLORA_TYPE(Class, Base)`;
   `registerNode<T>()`, `registerComponent<T>()` and `registerSystem<T>()` take
   both from there.
-- A module is the engine (`engine`), the game (`TypeRegistry::ModuleScope`),
+- A module is the engine (`engine`), the game (`TypeRegistry::ModuleScope`,
+  for a game library through `ModuleRegistrar`, see [scripts](scripting.md)),
   later Luau scripts and visual scripts. `removeModule` takes all types of a
   module out before its code is unloaded.
+- A renamed type keeps its old name with `formerTypeName("Old")`
+  (`formerly` for scripts): `find` falls back to former names, so files
+  written under the old name load, and the new name is written.
 - Component rules (`requiresNode`, `requiresComponent`, `allowMultiple`,
   execution order) are part of the type, see [scene](scene.md).
 

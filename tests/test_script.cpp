@@ -11,10 +11,13 @@
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 #include <yqlora/scene/Transform3D.hpp>
+#include <yqlora/scripting/ModuleRegistrar.hpp>
 #include <yqlora/scripting/Script.hpp>
 
 #include <algorithm>
 #include <string>
+#include <string_view>
+#include <vector>
 
 using namespace yqlora;
 
@@ -53,10 +56,32 @@ private:
     float m_bonus = 1.0f;
 };
 
+// Имя скрипта игры совпадает с типом движка.
+class Camera3D : public Script {
+public:
+    YQLORA_SCRIPT(Camera3D)
+};
+
+constexpr std::string_view kGameModule = "game";
+
+} // namespace
+
+// Входная функция модуля, как в библиотеке игры; вне безымянного пространства
+// имён, потому что она экспортируется.
+YQLORA_MODULE_ENTRY(registrar)
+{
+    registrar.registerScript<Mover>().formerly("Walker").executionOrder(-1);
+    registrar.registerScript<Camera3D>().formerly("Ignored");
+}
+
+namespace {
+
 struct Fixture {
     Fixture()
     {
-        registerScript<Mover>(registry);
+        ModuleRegistrar registrar(registry, std::string(kGameModule));
+        yqloraModuleEntry(registrar);
+        rejected.assign(registrar.rejected().begin(), registrar.rejected().end());
     }
 
     const Property& property(std::string_view name) const
@@ -67,6 +92,7 @@ struct Fixture {
     }
 
     test::EngineRegistry registry;
+    std::vector<RejectedType> rejected;
     Input input;
     EngineServices services{input, registry};
 };
@@ -94,6 +120,37 @@ TEST_CASE_FIXTURE(Fixture, "Script: registered as a script with its fields and t
     Mover mover;
     CHECK(property("bonus").set(mover, PropertyValue{3.0f}));
     CHECK(property("bonus").get(mover) == PropertyValue{3.0f});
+}
+
+TEST_CASE_FIXTURE(Fixture, "Script: the module entry registers scripts under the module")
+{
+    const TypeInfo& type = *registry.find<Mover>();
+    CHECK(type.module() == kGameModule);
+    CHECK(type.executionOrder() == -1);
+    CHECK(registry.find("Script")->module() == TypeRegistry::engineModule());
+
+    // Тип со старым именем из файла находится, а пишется под новым.
+    CHECK(registry.find("Walker") == &type);
+    CHECK(Mover().typeName() == "Mover");
+
+    CHECK(registry.removeModule(kGameModule) == 1);
+    CHECK(registry.find("Walker") == nullptr);
+}
+
+TEST_CASE_FIXTURE(Fixture, "Script: a type name taken by another module is rejected, not replaced")
+{
+    REQUIRE(rejected.size() == 1);
+    CHECK(rejected[0].name == "Camera3D");
+    CHECK(rejected[0].takenBy == TypeRegistry::engineModule());
+    CHECK(registry.find("Camera3D")->module() == TypeRegistry::engineModule());
+    CHECK(registry.find<Camera3D>() == nullptr);
+    CHECK(registry.find("Ignored") == nullptr);
+
+    // Тот же скрипт второй раз - имя занято уже своим модулем.
+    ModuleRegistrar again(registry, std::string(kGameModule));
+    again.registerScript<Mover>();
+    REQUIRE(again.rejected().size() == 1);
+    CHECK(again.rejected()[0].takenBy == kGameModule);
 }
 
 TEST_CASE_FIXTURE(Fixture, "Script: fields are saved by name, read under a former name, unsaved ones skipped")

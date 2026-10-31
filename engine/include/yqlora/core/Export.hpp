@@ -13,3 +13,11 @@
 #else
 #define YQLORA_API __attribute__((visibility("default")))
 #endif
+
+// YQLORA_MODULE_EXPORT помечает входную функцию модуля игры (YQLORA_MODULE_ENTRY):
+// её ищет по имени движок, загрузивший библиотеку.
+#if defined(_WIN32)
+#define YQLORA_MODULE_EXPORT __declspec(dllexport)
+#else
+#define YQLORA_MODULE_EXPORT __attribute__((visibility("default")))
+#endif

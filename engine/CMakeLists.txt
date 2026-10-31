@@ -81,6 +81,7 @@ add_library(yqlora SHARED
     src/render/RendererFactory.cpp
     src/resource/ResourceDatabase.cpp
     src/runtime/GameRuntime.cpp
+    src/scripting/ModuleRegistrar.cpp
     src/scripting/Script.cpp
     src/scripting/ScriptingTypes.cpp
     src/ui/UiLayer.cpp

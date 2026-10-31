@@ -96,9 +96,9 @@ private:
 
 // The one entry point of the game module, written by hand in step 2 and by
 // the generator in step 3.
-YQLORA_MODULE_ENTRY(registry)
+YQLORA_MODULE_ENTRY(registrar)
 {
-    registry.registerScript<Player>();
+    registrar.registerScript<Player>();
 }
 ```
 
@@ -117,9 +117,15 @@ YQLORA_MODULE_ENTRY(registry)
   string, vectors, colour, enums, `NodeRef`, `ResourceRef`, lists and
   records. Node and resource references are stable IDs, never pointers.
 - **Explicit registration per module**: one entry function of the library
-  registers its scripts under `TypeRegistry::ModuleScope`; no global static
-  registrars, no dependence on the order of static initialization. A type
-  name already taken by another module is refused with an error.
+  (`YQLORA_MODULE_ENTRY`) registers its scripts through the
+  `ModuleRegistrar` it is given, which records them under the module; no
+  global static registrars, no dependence on the order of static
+  initialization. A type name already taken (by another module, by the same
+  module twice, or as a former name) is not registered: it goes to
+  `rejected()` with the module that holds it, so the loader reports it
+  instead of crashing the editor. After `registerScript<T>()` only type rules
+  chain: `formerly`, `requiresNode`, `requiresComponent`, `executionOrder`;
+  fields come from `YQLORA_FIELDS`.
 - **The script API** (`node()`, `transform()`, `input()`, `time()`,
   `scene()`, finding nodes, the log) is a convenience over the engine
   context the component already has through its scene; `Script` owns no
@@ -155,7 +161,7 @@ The component lifecycle of the [scene](scene.md), as scripts see it:
    mark in the registry (for every language); `Script`, its API,
    `YQLORA_SCRIPT`, `YQLORA_FIELDS`, `registerScript` **[done]**.
 2. Module registration: the entry function, `registerScript` (with
-   `formerly`), refusal of a type name taken by another module.
+   `formerly`), refusal of a type name taken by another module **[done]**.
 3. `GameModule`: load a shared library, register its types, unload. Before
    unloading, every instance of its types is destroyed (scenes of the editor
    and of Play), then `removeModule`, then the library goes. A test module

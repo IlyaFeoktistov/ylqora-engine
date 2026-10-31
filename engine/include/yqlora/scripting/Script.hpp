@@ -2,7 +2,7 @@
 
 #include "yqlora/core/Export.hpp"
 #include "yqlora/reflection/Record.hpp"
-#include "yqlora/reflection/TypeRegistry.hpp"
+#include "yqlora/reflection/TypeName.hpp"
 #include "yqlora/scene/Component.hpp"
 
 #include <string_view>
@@ -68,7 +68,7 @@ protected:
     Node* findNode(std::string_view name) const;
 };
 
-// Доступ к закрытому списку полей скрипта (YQLORA_FIELDS) для регистрации.
+// Доступ к закрытому списку полей скрипта (YQLORA_FIELDS) для регистрации (ModuleRegistrar).
 struct ScriptFields {
     template <typename T>
     static auto of()
@@ -80,32 +80,5 @@ struct ScriptFields {
         }
     }
 };
-
-// Регистрирует скрипт на C++: тип с пометкой "скрипт", несколько на узле, и
-// его поля из YQLORA_FIELDS со всеми атрибутами.
-template <std::derived_from<Script> T>
-ClassTypeBuilder<T, Component> registerScript(TypeRegistry& registry)
-{
-    auto builder = registry.registerComponent<T>();
-    builder.script().allowMultiple();
-    std::apply(
-        [&](const auto&... fields) {
-            (
-                [&] {
-                    builder.property(std::string(fields.name), fields.member, fields.hint);
-                    if (!fields.enumNames.empty()) {
-                        builder.enumNames(
-                            std::vector<std::string_view>(fields.enumNames.begin(), fields.enumNames.end())
-                        );
-                    }
-                    builder.withAttributes(fields.attributes);
-                }(),
-                ...);
-        },
-        ScriptFields::of<T>()
-    );
-
-    return builder;
-}
 
 } // namespace yqlora

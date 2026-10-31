@@ -1,5 +1,6 @@
 #include "yqlora/reflection/TypeRegistry.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <ranges>
 
@@ -34,9 +35,14 @@ TypeInfo& TypeRegistry::addType(std::string name, TypeKind kind, std::string bas
 
 const TypeInfo* TypeRegistry::find(std::string_view name) const
 {
-    const auto it = m_byName.find(name);
+    if (const auto it = m_byName.find(name); it != m_byName.end()) {
+        return it->second;
+    }
+    const auto renamed = std::ranges::find_if(m_types, [&](const std::unique_ptr<TypeInfo>& type) {
+        return std::ranges::find(type->formerNames(), name) != type->formerNames().end();
+    });
 
-    return it != m_byName.end() ? it->second : nullptr;
+    return renamed != m_types.end() ? renamed->get() : nullptr;
 }
 
 std::vector<const TypeInfo*> TypeRegistry::chain(const TypeInfo& type) const

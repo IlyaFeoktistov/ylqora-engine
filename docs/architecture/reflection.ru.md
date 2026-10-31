@@ -18,9 +18,13 @@
 - C++-класс называет себя и свою базу один раз, через
   `YQLORA_TYPE(Class, Base)`; `registerNode<T>()`, `registerComponent<T>()` и
   `registerSystem<T>()` берут оба оттуда.
-- Модуль - это движок (`engine`), игра (`TypeRegistry::ModuleScope`), позже
-  скрипты Luau и визуальные скрипты. `removeModule` убирает все типы модуля
-  до выгрузки его кода.
+- Модуль - это движок (`engine`), игра (`TypeRegistry::ModuleScope`, у
+  библиотеки игры через `ModuleRegistrar`, см. [скрипты](scripting.ru.md)),
+  позже скрипты Luau и визуальные скрипты. `removeModule` убирает все типы
+  модуля до выгрузки его кода.
+- Переименованный тип хранит старое имя через `formerTypeName("Old")` (у
+  скриптов `formerly`): `find` ищет и по прежним именам, поэтому файлы со
+  старым именем загружаются, а пишется новое.
 - Правила компонента (`requiresNode`, `requiresComponent`, `allowMultiple`,
   порядок выполнения) - часть типа, см. [сцену](scene.ru.md).
 

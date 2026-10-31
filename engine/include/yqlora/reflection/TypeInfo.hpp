@@ -46,6 +46,12 @@ public:
         return m_kind;
     }
 
+    // Прежние имена типа: файл с таким именем читается (TypeRegistry::find), пишется уже новое.
+    std::span<const std::string> formerNames() const
+    {
+        return m_formerNames;
+    }
+
     // Модуль, который зарегистрировал тип: движок или dll игры. Типы модуля
     // убираются из реестра вместе, когда dll выгружают.
     const std::string& module() const
@@ -143,6 +149,7 @@ private:
 
     std::string m_name;
     std::string m_baseName;
+    std::vector<std::string> m_formerNames;
     std::string m_module;
     TypeKind m_kind = TypeKind::Node;
     std::function<std::unique_ptr<Node>()> m_createNode;

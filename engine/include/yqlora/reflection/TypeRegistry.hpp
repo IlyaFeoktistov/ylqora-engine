@@ -129,6 +129,7 @@ public:
         return ClassTypeBuilder<T, SettingsSection>(info);
     }
 
+    // Тип по имени, а если такого нет - по прежнему имени (TypeInfo::formerNames).
     // nullptr, если тип не зарегистрирован.
     const TypeInfo* find(std::string_view name) const;
 

@@ -76,6 +76,15 @@ public:
         return self();
     }
 
+    // Тип переименован: файлы со старым именем читаются, пишется новое. Не
+    // formerly: так в цепочке называется прежнее имя последнего свойства.
+    Self& formerTypeName(std::string oldName)
+    {
+        m_info.m_formerNames.push_back(std::move(oldName));
+
+        return self();
+    }
+
     // Компонент живёт только на узлах типа nodeType и его наследников.
     Self& requiresNode(std::string nodeType)
     {

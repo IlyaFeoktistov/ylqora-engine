@@ -1,5 +1,6 @@
 #include "yqlora/scripting/ScriptingTypes.hpp"
 
+#include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scripting/Script.hpp"
 
 namespace yqlora {
