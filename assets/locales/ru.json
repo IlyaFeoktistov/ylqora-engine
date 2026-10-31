@@ -51,6 +51,9 @@
         "GraphicsSettings": {
             "description": "Графический API для каждой системы и vsync. Смена API пересоздаёт только рендер, без перезапуска."
         },
+        "ScriptsSettings": {
+            "description": "Сборка модуля игры из папки scripts/: Debug или Release."
+        },
         "InputSettings": {
             "description": "Действия ввода и их привязки к клавишам и кнопкам мыши. Скрипты спрашивают действие по имени, а не клавишу."
         },
@@ -72,7 +75,8 @@
             "redo": "Повторить",
             "project": "Проект",
             "projectSettings": "Настройки проекта",
-            "maximizePanel": "Развернуть окно"
+            "maximizePanel": "Развернуть окно",
+            "buildScripts": "Собрать скрипты"
         },
         "window": {
             "scene": "Сцена",
@@ -191,6 +195,7 @@
             "clearLayer": "Убрать имя",
             "ExecutionOrderSettings": "Порядок выполнения",
             "GraphicsSettings": "Графика",
+            "ScriptsSettings": "Скрипты",
             "InputSettings": "Ввод"
         },
         "panel": {
@@ -275,6 +280,7 @@
         "windowsApi": "API на Windows",
         "linuxApi": "API на Linux",
         "vsync": "Вертикальная синхронизация",
+        "configuration": "Конфигурация",
         "actions": "Действия",
         "kind": "Вид",
         "bindings": "Привязки",

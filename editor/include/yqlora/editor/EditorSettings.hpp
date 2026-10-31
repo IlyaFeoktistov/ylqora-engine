@@ -1,5 +1,7 @@
 #pragma once
 
+#include "yqlora/editor/ScriptToolchain.hpp"
+
 #include <filesystem>
 
 namespace yqlora::editor {
@@ -17,6 +19,9 @@ public:
 
     // Маленькое окно с картинкой через выбранную камеру в углу окна сцены.
     bool cameraPreview = true;
+    // Пути вместо записанных движком в sdk/toolchain.json; в интерфейсе их нет,
+    // только в файле.
+    ToolchainOverrides toolchain;
 
 private:
     std::filesystem::path m_file;

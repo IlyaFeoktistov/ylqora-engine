@@ -6,14 +6,13 @@
 #include "yqlora/scene/Scene.hpp"
 
 #include <cassert>
+#include <exception>
+#include <optional>
 #include <string>
 
 namespace yqlora {
 
 namespace {
-
-constexpr const char* kBuildDirectory = ".build";
-constexpr const char* kLibraryName = "game";
 
 void destroyModuleComponents(Scene& scene, const TypeRegistry& registry, std::string_view module)
 {
@@ -33,11 +32,6 @@ void destroyModuleComponents(Scene& scene, const TypeRegistry& registry, std::st
 }
 
 } // namespace
-
-std::filesystem::path gameLibraryPath(const std::filesystem::path& projectDirectory)
-{
-    return projectDirectory / kBuildDirectory / platform::sharedLibraryFileName(kLibraryName);
-}
 
 GameModule::GameModule(TypeRegistry& registry)
     : m_registry(registry)
@@ -67,7 +61,24 @@ bool GameModule::load(const std::filesystem::path& library)
 
     m_library = std::move(opened);
     ModuleRegistrar registrar(m_registry, std::string(moduleName()));
-    entry(registrar);
+    // Половина типов без второй половины хуже, чем ни одного: откат целиком.
+    // Только после catch: исключение брошено кодом библиотеки, и, пока оно не
+    // обработано до конца, выгружать её нельзя (на Windows это падение).
+    std::optional<std::string> failure;
+    try {
+        entry(registrar);
+    } catch (const std::exception& exception) {
+        failure = exception.what();
+    } catch (...) {
+        failure = "unknown exception";
+    }
+    if (failure) {
+        log::error("Game module registration failed: {}", *failure);
+        m_registry.removeModule(moduleName());
+        m_library.reset();
+
+        return false;
+    }
     m_rejected.assign(registrar.rejected().begin(), registrar.rejected().end());
     for (const RejectedType& type : m_rejected) {
         log::error(

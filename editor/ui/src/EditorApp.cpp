@@ -20,6 +20,7 @@
 #include "yqlora/i18n/Language.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/platform/Platform.hpp"
+#include "yqlora/scripting/ScriptsSettings.hpp"
 
 #include <imgui.h>
 // ImGuizmo.h использует типы ImGui и должен идти после imgui.h.
@@ -107,6 +108,10 @@ void EditorApp::onStart()
     );
     m_settings = std::make_unique<EditorSettings>(userData / kEditorSettingsFile);
     m_settings->load();
+    m_toolchain = loadScriptToolchain(sdkDirectory());
+    if (m_toolchain) {
+        applyOverrides(*m_toolchain, m_settings->toolchain);
+    }
     m_projectManager = std::make_unique<ProjectManagerPanel>(*m_projects, m_theme);
 
     registerEditorActions(
@@ -138,6 +143,10 @@ void EditorApp::onStart()
             .toggleMaximizedPanel =
                 [this] {
                     toggleMaximizedFocused();
+                },
+            .buildScripts =
+                [this] {
+                    buildScripts(false);
                 },
         }
     );
@@ -171,9 +180,59 @@ void EditorApp::onRendererLost()
     }
 }
 
+void EditorApp::onFocusGained()
+{
+    buildScripts(true);
+}
+
+void EditorApp::buildScripts(bool quiet)
+{
+    if (!m_session.project()) {
+        return;
+    }
+    const Project& project = *m_session.project();
+    std::error_code ec;
+    if (!std::filesystem::is_directory(project.directory() / Project::scriptsDirectoryName(), ec)) {
+        if (!quiet) {
+            log::warn("The project has no scripts folder");
+        }
+
+        return;
+    }
+    if (auto setup = scriptBuildSetup(project, quiet)) {
+        m_scriptBuild.request(std::move(*setup));
+    }
+}
+
+std::optional<ScriptBuildSetup> EditorApp::scriptBuildSetup(const Project& project, bool quiet) const
+{
+    if (!m_toolchain) {
+        if (!quiet) {
+            log::error("The engine SDK is missing in '{}': scripts cannot be built", toUtf8(sdkDirectory()));
+        }
+
+        return std::nullopt;
+    }
+    const auto configuration = static_cast<std::size_t>(project.settings().get<ScriptsSettings>().configuration);
+
+    return ScriptBuildSetup{
+        .projectDirectory = project.directory(),
+        .sdkDirectory = sdkDirectory(),
+        .toolchain = *m_toolchain,
+        .configuration = std::string(kScriptConfigurationNames[configuration]),
+        .quiet = quiet,
+    };
+}
+
 void EditorApp::onUpdate(float deltaSeconds)
 {
     m_log.collect();
+    // Собранное только что, или собранное другой конфигурацией, чем загружено.
+    if (const auto built = m_scriptBuild.takeResult();
+        built && built->succeeded && m_session.project()
+        && (built->changed || built->library != m_session.gameLibrary())) {
+        m_session.reloadGameModule(built->library);
+    }
     m_session.update(deltaSeconds, input());
     // Камера обновляется в окне сцены, там же известно, над ним ли курсор.
     m_deltaSeconds = deltaSeconds;
@@ -250,7 +309,11 @@ void EditorApp::onCloseRequested()
 void EditorApp::openProject(Project project)
 {
     const std::filesystem::path directory = project.directory();
-    m_session.open(std::move(project));
+    // Собранное в прошлый раз грузится сразу; сборка после открытия
+    // перезагрузит модуль, только если исходники с тех пор менялись.
+    const auto setup = scriptBuildSetup(project, true);
+    const auto library = setup ? builtGameLibrary(*setup) : std::nullopt;
+    m_session.open(std::move(project), library.value_or(std::filesystem::path()));
     EditorContext frame = context();
     for (const auto& panel : m_panels) {
         panel->onProjectOpened(frame);
@@ -258,10 +321,12 @@ void EditorApp::openProject(Project project)
     updateTitle();
 
     m_projects->markOpened(directory);
+    buildScripts(true);
 }
 
 void EditorApp::closeProject()
 {
+    m_scriptBuild.cancel();
     m_session.close();
     m_mouseWrapping = false;
     setMouseWrapping(false);

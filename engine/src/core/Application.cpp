@@ -169,6 +169,9 @@ public:
         m_events.onResized = [&app](int width, int height) {
             app.m_renderer->resize(width, height);
         };
+        m_events.onFocusGained = [&app] {
+            app.onFocusGained();
+        };
     }
 
     bool input() override

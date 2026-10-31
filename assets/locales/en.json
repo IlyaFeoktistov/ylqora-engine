@@ -51,6 +51,9 @@
         "GraphicsSettings": {
             "description": "Graphics API per system and vsync. Changing the API rebuilds only the renderer, no restart."
         },
+        "ScriptsSettings": {
+            "description": "Building the game module from the scripts/ folder: Debug or Release."
+        },
         "InputSettings": {
             "description": "Input actions and their bindings to keys and mouse buttons. Scripts ask for an action by name, not for a key."
         },
@@ -72,7 +75,8 @@
             "redo": "Redo",
             "project": "Project",
             "projectSettings": "Project Settings",
-            "maximizePanel": "Maximize window"
+            "maximizePanel": "Maximize window",
+            "buildScripts": "Build scripts"
         },
         "window": {
             "scene": "Scene",
@@ -191,6 +195,7 @@
             "clearLayer": "Clear name",
             "ExecutionOrderSettings": "Execution Order",
             "GraphicsSettings": "Graphics",
+            "ScriptsSettings": "Scripts",
             "InputSettings": "Input"
         },
         "panel": {
@@ -275,6 +280,7 @@
         "windowsApi": "API on Windows",
         "linuxApi": "API on Linux",
         "vsync": "Vertical sync",
+        "configuration": "Configuration",
         "actions": "Actions",
         "kind": "Kind",
         "bindings": "Bindings",

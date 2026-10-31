@@ -33,6 +33,7 @@ add_library(yqlora SHARED
     src/platform/InputFeeder.cpp
     src/platform/MouseWrap.cpp
     src/platform/SharedLibrary.cpp
+    src/platform/Process.cpp
     src/input/Input.cpp
     src/input/InputControl.cpp
     src/input/InputSettings.cpp

@@ -14,12 +14,14 @@
 #include "yqlora/editor/EditorSettings.hpp"
 #include "yqlora/editor/LogBuffer.hpp"
 #include "yqlora/editor/ProjectManager.hpp"
+#include "yqlora/editor/ScriptBuild.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
 #include "yqlora/scripting/GameModule.hpp"
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -38,6 +40,8 @@ protected:
     void onGui() override;
     void onCloseRequested() override;
     void onRendererLost() override;
+    // Вернулись в редактор (скорее всего из IDE): собрать скрипты, если они менялись.
+    void onFocusGained() override;
     // Разворачивает панель или возвращает раскладку, если развёрнута она же.
     void toggleMaximized(EditorPanel& panel);
     // Shift+Пробел: развёрнутую - вернуть, иначе развернуть ту, что в фокусе.
@@ -51,11 +55,20 @@ private:
     void openScene(const std::filesystem::path& path);
     void save();
     void updateTitle();
+    // quiet - сборка не по просьбе человека: без проекта, папки скриптов или
+    // SDK она молча не начинается, а если собирать нечего, лог пуст.
+    void buildScripts(bool quiet);
+    // Как собирать скрипты проекта; nullopt - нет SDK (в лог, если не quiet).
+    std::optional<ScriptBuildSetup> scriptBuildSetup(const Project& project, bool quiet) const;
 
     EditorHost m_host{*this};
     // Лог для панели "Лог": подписка объявлена после буфера и уходит раньше него.
     LogBuffer m_log;
     log::Subscription m_logFeed = feedEngineLog(m_log);
+    // Пишет в m_log из своего потока, поэтому объявлена после него.
+    ScriptBuild m_scriptBuild{m_log};
+    // Из SDK рядом с редактором с переопределениями из настроек, см. onStart.
+    std::optional<ScriptToolchain> m_toolchain;
     Theme m_theme;
     SceneSerializer m_serializer{registry()};
     std::unique_ptr<ProjectManager> m_projects;

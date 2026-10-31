@@ -5,6 +5,8 @@
 
 #include <SDL3/SDL.h>
 
+#include <algorithm>
+
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -116,6 +118,36 @@ std::vector<std::string> preferredLanguages()
 double timeSeconds()
 {
     return static_cast<double>(SDL_GetTicksNS()) / kNanosecondsPerSecond;
+}
+
+std::optional<std::filesystem::path> asciiPath(const std::filesystem::path& path)
+{
+#ifdef _WIN32
+    constexpr wchar_t kLastAscii = 0x7F;
+    const auto ascii = [](const std::wstring& text) {
+        return std::ranges::all_of(text, [](wchar_t c) {
+            return c <= kLastAscii;
+        });
+    };
+    const std::wstring wide = path.wstring();
+    if (ascii(wide)) {
+        return path;
+    }
+    const DWORD length = GetShortPathNameW(wide.c_str(), nullptr, 0);
+    if (length == 0) {
+        return std::nullopt;
+    }
+    std::wstring result(length, L'\0');
+    const DWORD written = GetShortPathNameW(wide.c_str(), result.data(), length);
+    result.resize(written < length ? written : 0);
+    if (result.empty() || !ascii(result)) {
+        return std::nullopt;
+    }
+
+    return std::filesystem::path(result);
+#else
+    return path;
+#endif
 }
 
 } // namespace yqlora::platform

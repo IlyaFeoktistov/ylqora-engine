@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace yqlora::editor {
 
@@ -42,16 +43,17 @@ const TypeRegistry& EditorSession::registry() const
     return m_serializer.registry();
 }
 
-bool EditorSession::open(Project project)
+bool EditorSession::open(Project project, const std::filesystem::path& gameLibrary)
 {
     close();
     m_project = std::move(project);
     m_services.setProject(&*m_project);
-    const std::filesystem::path library = gameLibraryPath(m_project->directory());
-    if (std::filesystem::exists(library)) {
-        m_gameModule.load(library);
+    m_copies.emplace(m_project->directory());
+    m_copies->removeUnused();
+    if (!gameLibrary.empty()) {
+        loadGameLibrary(gameLibrary);
     } else {
-        log::info("Project '{}' has no game library in '{}'", m_project->name(), toUtf8(library));
+        log::info("Project '{}' has no built game module yet", m_project->name());
     }
     // От прошлого проекта ничего не должно остаться, даже если стартовая
     // сцена не прочитается: тогда проект открывается с пустой сценой.
@@ -71,11 +73,67 @@ void EditorSession::close()
     stop();
     m_document.reset(0);
     m_history.clear();
-    Scene* const scenes[] = {&m_document.scene()};
-    m_gameModule.unload(scenes);
+    unloadGameModule();
+    if (m_copies) {
+        m_copies->removeUnused();
+        m_copies.reset();
+    }
     m_services.setProject(nullptr);
     m_project.reset();
     m_selection.clear();
+}
+
+bool EditorSession::reloadGameModule(const std::filesystem::path& gameLibrary)
+{
+    if (!m_project) {
+        return false;
+    }
+    stop();
+    m_history.finishEdit();
+    // Поля скриптов пишет код старого модуля, пока он ещё загружен.
+    const std::string scene = m_serializer.toJson(m_document.scene());
+    if (m_history.canUndo() || m_history.canRedo()) {
+        log::info("Edit history is cleared: the game module is reloaded");
+    }
+    m_history.clear();
+    unloadGameModule();
+    const bool loaded = loadGameLibrary(gameLibrary);
+    // Без модуля скрипты возвращаются заглушками со всеми данными.
+    if (!m_serializer.fromJson(m_document.scene(), scene)) {
+        log::error("The scene is not restored after reloading the game module");
+    }
+    const std::vector<NodeId> selected(m_selection.nodes().begin(), m_selection.nodes().end());
+    for (const NodeId id : selected) {
+        if (!findNode(id)) {
+            m_selection.deselect(id);
+        }
+    }
+    if (loaded) {
+        log::info("Game module reloaded");
+    }
+
+    return loaded;
+}
+
+bool EditorSession::loadGameLibrary(const std::filesystem::path& library)
+{
+    const auto copy = m_copies->copy(library);
+    if (!copy || !m_gameModule.load(*copy)) {
+        m_copies->removeUnused();
+
+        return false;
+    }
+    m_gameLibrary = library;
+    m_copies->removeUnused(*copy);
+
+    return true;
+}
+
+void EditorSession::unloadGameModule()
+{
+    Scene* const scenes[] = {&m_document.scene()};
+    m_gameModule.unload(scenes);
+    m_gameLibrary.clear();
 }
 
 std::filesystem::path EditorSession::scenePath() const

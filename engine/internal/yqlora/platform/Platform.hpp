@@ -3,6 +3,7 @@
 #include "yqlora/core/Export.hpp"
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -31,6 +32,13 @@ YQLORA_API std::filesystem::path documentsPath();
 
 // Языки пользователя в порядке предпочтения, как их отдаёт ОС: "ru_RU", "en"...
 YQLORA_API std::vector<std::string> preferredLanguages();
+
+// Путь к существующему файлу или папке, который понимают программы без
+// поддержки Unicode в путях (Ninja на Windows). На Windows - сам path, если в
+// нём только ASCII, иначе его короткий вариант (8.3); nullopt, если том
+// коротких имён не хранит. На других системах путь - байты UTF-8, их
+// понимают все: path как есть.
+YQLORA_API std::optional<std::filesystem::path> asciiPath(const std::filesystem::path& path);
 
 // Время с момента запуска в секундах (монотонное).
 YQLORA_API double timeSeconds();

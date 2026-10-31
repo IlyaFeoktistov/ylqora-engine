@@ -16,6 +16,12 @@ function(yqlora_add_game_module target)
         # MinGW по умолчанию дал бы libgame.dll.
         set_target_properties(${target} PROPERTIES PREFIX "")
     endif()
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT WIN32)
+        # Символы STB_GNU_UNIQUE (статические переменные встроенных функций)
+        # запрещают dlclose выгружать библиотеку: при перезагрузке старая
+        # версия модуля оставалась бы в памяти и делила бы их с новой.
+        target_compile_options(${target} PRIVATE -fno-gnu-unique)
+    endif()
     if(MSVC)
         # Заголовки движка в UTF-8.
         target_compile_options(${target} PRIVATE /utf-8)

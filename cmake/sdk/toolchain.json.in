@@ -1,6 +1,7 @@
 {
     "version": 1,
     "engine": "@PROJECT_VERSION@",
+    "cmake": "@CMAKE_COMMAND@",
     "generator": "@CMAKE_GENERATOR@",
     "makeProgram": "@CMAKE_MAKE_PROGRAM@",
     "architecture": "@CMAKE_SYSTEM_PROCESSOR@",

@@ -124,6 +124,11 @@ void Window::pollEvents(const WindowEvents& events, InputFeeder& input, Gamepads
             }
             break;
         case SDL_EVENT_WINDOW_FOCUS_LOST: input.releaseAll(); break;
+        case SDL_EVENT_WINDOW_FOCUS_GAINED:
+            if (events.onFocusGained) {
+                events.onFocusGained();
+            }
+            break;
         case SDL_EVENT_KEY_DOWN:
             // Автоповтор при удержании не считаем новым нажатием.
             if (!event.key.repeat) {

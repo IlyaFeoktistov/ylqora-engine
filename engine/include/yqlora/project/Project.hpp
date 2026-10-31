@@ -41,6 +41,13 @@ public:
         return "scripts";
     }
 
+    // Всё, что собирается из проекта (модуль игры). Скрытая: ни ресурсы, ни
+    // панель файлов её не видят, в git она не идёт.
+    static constexpr std::string_view buildDirectoryName()
+    {
+        return ".build";
+    }
+
     // Имена в корне папки проекта, которые не ресурсы игры: файл проекта, папка
     // настроек и папка скриптов.
     static std::span<const std::string_view> reservedNames();

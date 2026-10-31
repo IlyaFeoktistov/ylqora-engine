@@ -35,8 +35,10 @@ public:
     GameModule& operator=(const GameModule&) = delete;
 
     // Загружает библиотеку и регистрирует её типы. false, если библиотека не
-    // загрузилась или в ней нет входной функции (причина в логе). Тип с занятым
-    // именем не регистрируется, остальные работают; отклонённые в rejected() и в логе.
+    // загрузилась, в ней нет входной функции или та бросила исключение (причина
+    // в логе): тогда ни одного типа модуля в реестре не остаётся, а библиотека
+    // выгружена. Тип с занятым именем не регистрируется, остальные работают;
+    // отклонённые в rejected() и в логе.
     bool load(const std::filesystem::path& library);
 
     // Уничтожает каждый компонент типов модуля в сценах scenes (с onDisable и
@@ -60,9 +62,5 @@ private:
     std::unique_ptr<platform::SharedLibrary> m_library;
     std::vector<RejectedType> m_rejected;
 };
-
-// Библиотека игры проекта: <проект>/.build/game.dll (libgame.so). Скрытая
-// папка, поэтому обход ресурсов её не видит; в шаге 3 туда же собирает редактор.
-YQLORA_API std::filesystem::path gameLibraryPath(const std::filesystem::path& projectDirectory);
 
 } // namespace yqlora

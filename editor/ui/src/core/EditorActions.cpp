@@ -69,6 +69,10 @@ void registerEditorActions(ActionRegistry& registry, EditorSession& session, Edi
                 session.play();
             }
         });
+    registry.add(actions::kBuildScripts, "editor.menu.buildScripts")
+        .shortcut(ImGuiMod_Ctrl | ImGuiKey_B)
+        .enabledWhen(hasProject)
+        .onRun(std::move(handlers.buildScripts));
     registry.add(actions::kPause, "editor.play.pause").enabledWhen(playing).onRun([&session] {
         session.setPaused(!session.playMode().paused());
     });

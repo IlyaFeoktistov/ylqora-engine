@@ -13,5 +13,6 @@ inline constexpr const char* kMaximizePanel = "view.maximizePanel";
 inline constexpr const char* kTogglePlay = "play.toggle";
 inline constexpr const char* kPause = "play.pause";
 inline constexpr const char* kStop = "play.stop";
+inline constexpr const char* kBuildScripts = "scripts.build";
 
 } // namespace yqlora::editor::actions

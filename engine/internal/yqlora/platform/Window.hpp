@@ -33,6 +33,7 @@ struct WindowEvents {
     std::function<void(const SDL_Event&)> onEvent;
     std::function<void()> onCloseRequested;
     std::function<void(int width, int height)> onResized; // размер в пикселях
+    std::function<void()> onFocusGained;
 };
 
 class YQLORA_API Window {

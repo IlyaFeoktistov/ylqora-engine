@@ -1,10 +1,5 @@
-# Модуль игры, который тесты загружают, как редактор загружает game.dll проекта.
-yqlora_add_game_module(yqlora_test_game game_module/TestGame.cpp)
-set_target_properties(yqlora_test_game PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests/game_module
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests/game_module
-)
-yqlora_set_warnings(yqlora_test_game)
+# Модули игры, которые тесты загружают, как редактор загружает модуль проекта.
+add_subdirectory(game_module)
 
 add_executable(yqlora_tests
     main.cpp
@@ -42,15 +37,21 @@ add_executable(yqlora_tests
     test_game_module.cpp
     test_missing_types.cpp
     test_log_buffer.cpp
+    test_process.cpp
+    test_compiler_diagnostics.cpp
+    test_script_build.cpp
 )
 target_link_libraries(yqlora_tests PRIVATE yqlora::internal yqlora::editor doctest::doctest)
 target_compile_definitions(yqlora_tests PRIVATE
     YQLORA_LOCALES_DIR="${PROJECT_SOURCE_DIR}/assets/locales"
     YQLORA_SCRIPTS_TEMPLATE_DIR="${PROJECT_SOURCE_DIR}/assets/templates/scripts"
+    YQLORA_CMAKE_COMMAND="${CMAKE_COMMAND}"
+    YQLORA_SDK_DIR="$<TARGET_FILE_DIR:yqlora>/sdk"
     YQLORA_TEST_GAME_MODULE="$<TARGET_FILE:yqlora_test_game>"
+    YQLORA_THROWING_GAME_MODULE="$<TARGET_FILE:yqlora_throwing_game>"
 )
 # Тесты загружают его сами, во время работы, поэтому только зависимость сборки.
-add_dependencies(yqlora_tests yqlora_test_game)
+add_dependencies(yqlora_tests yqlora_test_game yqlora_throwing_game)
 # Примеры тоже проходят через загрузку модуля, если их собирают.
 if(TARGET yqlora_example_scripts)
     target_compile_definitions(yqlora_tests PRIVATE

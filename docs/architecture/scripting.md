@@ -378,10 +378,23 @@ Failures:
    (configure only when needed, a fresh folder on a toolchain change, one
    build and one pending flag); Build (Ctrl+B), a build when the editor
    window gets focus and when a project opens; the Scripts section of the
-   project settings.
+   project settings **[done]**. A build nobody asked for (focus, project
+   open) writes nothing to the log when there is nothing to build; the
+   build folder is `.build/<configuration>-<fingerprint>`; on Windows the
+   process runs without a console window inside a job object, so stopping
+   kills the whole tree. Ninja on Windows does not find files by paths
+   outside ASCII and would rebuild everything every time, so CMake gets
+   short (8.3) paths (`platform::asciiPath`); without short names the build
+   warns. Not done yet: running CMake through `vcvarsall`
+   for an engine built with MSVC (the build reports it); the menu comes
+   with phase 5.
 4. Hot reload as above; the loaded copies in `.build/reload/`; the rollback
    of a failed registration. `gameLibraryPath` and the fixed
-   `.build/game.dll` of step 2 go away: the path comes from CMake.
+   `.build/game.dll` of step 2 go away: the path comes from CMake
+   **[done]**. The rollback runs after the `catch`: a library must not be
+   unloaded while its own exception is still being handled (on Windows that
+   crashes). On Linux GCC builds the module with `-fno-gnu-unique`,
+   otherwise `dlclose` keeps the old version loaded.
 5. Interface: the Scripts menu (Build, Open scripts folder, Create scripts
    folder), the build state in the status bar, translations.
 6. Documents: this one, project (`scripts/`, `.build/`), project settings

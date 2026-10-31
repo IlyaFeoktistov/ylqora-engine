@@ -5,6 +5,7 @@
 #include <yqlora/core/EngineServices.hpp>
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/Inspection.hpp>
+#include <yqlora/editor/ModuleCopies.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
 #include <yqlora/input/Input.hpp>
 #include <yqlora/project/Project.hpp>
@@ -101,12 +102,11 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: the game library of the project loads
     std::string error;
     const auto created = createProject(location, "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
     REQUIRE(created);
-    const auto library = gameLibraryPath(created->directory());
-    std::filesystem::create_directories(library.parent_path());
-    std::filesystem::copy_file(YQLORA_TEST_GAME_MODULE, library);
+    const std::filesystem::path library = YQLORA_TEST_GAME_MODULE;
 
     EditorSession session{services, serializer, module};
-    REQUIRE(session.open(*Project::open(created->directory(), registry)));
+    REQUIRE(session.open(*Project::open(created->directory(), registry), library));
+    CHECK(session.gameLibrary() == library);
     REQUIRE(module.loaded());
     const TypeInfo* type = registry.find(kScript);
     REQUIRE(type);
@@ -131,17 +131,111 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: the game library of the project loads
     CHECK(registry.find(kScript) == nullptr);
 
     // Снова открытый проект: скрипт из файла настоящий, не заглушка.
-    REQUIRE(session.open(*Project::open(created->directory(), registry)));
+    REQUIRE(session.open(*Project::open(created->directory(), registry), library));
     CHECK(session.scene().componentsOfType(kScript).size() == 1);
 
     // Без библиотеки проект открывается, скрипт ждёт её заглушкой.
     session.close();
-    std::filesystem::remove(library);
     REQUIRE(session.open(*Project::open(created->directory(), registry)));
     CHECK_FALSE(module.loaded());
     CHECK(std::ranges::any_of(session.scene().root()->components(), [](const auto& component) {
         return dynamic_cast<const MissingComponent*>(component.get()) != nullptr;
     }));
+}
+
+namespace {
+
+// Проект с одним скриптом модуля на корне сцены, открытый с тестовой библиотекой.
+struct ReloadFixture : Fixture {
+    SceneSerializer serializer{registry};
+    EditorSession session{services, serializer, module};
+    std::filesystem::path directory;
+
+    explicit ReloadFixture(const char* name)
+    {
+        const auto location = std::filesystem::temp_directory_path() / "yqlora_tests" / name;
+        std::filesystem::remove_all(location);
+        std::string error;
+        const auto created = createProject(location, "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
+        REQUIRE(created);
+        directory = created->directory();
+        REQUIRE(session.open(*Project::open(directory, registry), YQLORA_TEST_GAME_MODULE));
+    }
+
+    std::size_t copies() const
+    {
+        const auto reload = ModuleCopies(directory).directory();
+
+        return static_cast<std::size_t>(
+            std::distance(std::filesystem::directory_iterator(reload), std::filesystem::directory_iterator())
+        );
+    }
+};
+
+} // namespace
+
+TEST_CASE("EditorSession: hot reload keeps script values, the selection and the file; history is cleared")
+{
+    ReloadFixture fixture("hot_reload");
+    auto& session = fixture.session;
+    Node& root = *session.scene().root();
+    const NodeId rootId = root.id();
+    Component* script = session.editing().addComponent(root, *fixture.registry.find(kScript));
+    REQUIRE(script);
+    REQUIRE(session.save());
+    fixture.property("speed").set(*script, PropertyValue(4.5f));
+    session.selection().select(rootId);
+    CHECK(session.canUndo());
+    const bool modifiedBefore = session.sceneModified();
+
+    for (int reload = 0; reload < 3; ++reload) {
+        REQUIRE(session.reloadGameModule(YQLORA_TEST_GAME_MODULE));
+    }
+    CHECK(fixture.module.loaded());
+    CHECK_FALSE(session.canUndo());
+    CHECK(session.selection().selected() == rootId);
+    CHECK(session.sceneModified() == modifiedBefore);
+    const auto live = session.scene().componentsOfType(kScript);
+    REQUIRE(live.size() == 1);
+    CHECK(std::get<float>(fixture.property("speed").get(*live.front())) == doctest::Approx(4.5f));
+    // Загружена одна копия, остальные удалены.
+    CHECK(fixture.copies() == 1);
+
+    session.close();
+    CHECK(fixture.copies() == 0);
+}
+
+TEST_CASE("EditorSession: a reload that fails keeps the scripts as stubs with their data")
+{
+    ReloadFixture fixture("hot_reload_failed");
+    auto& session = fixture.session;
+    Node& root = *session.scene().root();
+    Component* script = session.editing().addComponent(root, *fixture.registry.find(kScript));
+    REQUIRE(script);
+    fixture.property("speed").set(*script, PropertyValue(7.0f));
+
+    CHECK_FALSE(session.reloadGameModule(YQLORA_THROWING_GAME_MODULE));
+    CHECK_FALSE(fixture.module.loaded());
+    CHECK(session.gameLibrary().empty());
+    // Ни одного типа модуля: ни тестового скрипта, ни того, что успел
+    // зарегистрировать сломанный модуль до исключения.
+    CHECK(fixture.registry.find(kScript) == nullptr);
+    CHECK(fixture.registry.find("Registered") == nullptr);
+    CHECK(session.scene().componentsOfType(kScript).empty());
+
+    REQUIRE(session.reloadGameModule(YQLORA_TEST_GAME_MODULE));
+    const auto live = session.scene().componentsOfType(kScript);
+    REQUIRE(live.size() == 1);
+    CHECK(std::get<float>(fixture.property("speed").get(*live.front())) == doctest::Approx(7.0f));
+}
+
+TEST_CASE_FIXTURE(Fixture, "GameModule: an entry function that throws leaves no types behind")
+{
+    CHECK_FALSE(module.load(YQLORA_THROWING_GAME_MODULE));
+    CHECK_FALSE(module.loaded());
+    CHECK(registry.find("Registered") == nullptr);
+    CHECK(module.load(YQLORA_TEST_GAME_MODULE));
+    module.unload({});
 }
 
 #ifdef YQLORA_EXAMPLE_SCRIPTS_MODULE
