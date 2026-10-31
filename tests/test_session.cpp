@@ -12,6 +12,7 @@
 #include <yqlora/render/RenderSystem.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
+#include <yqlora/scripting/GameModule.hpp>
 
 using namespace yqlora;
 using namespace yqlora::editor;
@@ -38,7 +39,8 @@ struct Fixture {
     SceneSerializer serializer{registry};
     Input input;
     EngineServices services{input, registry};
-    EditorSession session{services, serializer};
+    GameModule gameModule{registry};
+    EditorSession session{services, serializer, gameModule};
     Scene& scene = session.scene();
 };
 

@@ -61,4 +61,8 @@ private:
     std::vector<RejectedType> m_rejected;
 };
 
+// Библиотека игры проекта: <проект>/.build/game.dll (libgame.so). Скрытая
+// папка, поэтому обход ресурсов её не видит; в шаге 3 туда же собирает редактор.
+YQLORA_API std::filesystem::path gameLibraryPath(const std::filesystem::path& projectDirectory);
+
 } // namespace yqlora

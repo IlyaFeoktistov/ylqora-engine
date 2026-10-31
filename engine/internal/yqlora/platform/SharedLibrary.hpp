@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <string>
+#include <string_view>
 
 struct SDL_SharedObject;
 
@@ -40,5 +41,9 @@ private:
     SDL_SharedObject* m_handle = nullptr;
     std::string m_error;
 };
+
+// Имя файла библиотеки name по правилам системы: game.dll на Windows,
+// libgame.so на Linux, libgame.dylib на macOS.
+YQLORA_API std::string sharedLibraryFileName(std::string_view name);
 
 } // namespace yqlora::platform

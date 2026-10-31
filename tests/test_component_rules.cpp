@@ -12,6 +12,7 @@
 #include <yqlora/scene/MissingComponent.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
+#include <yqlora/scripting/GameModule.hpp>
 
 #include <algorithm>
 #include <memory>
@@ -174,7 +175,8 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: component rules")
     SceneSerializer serializer{registry};
     Input input;
     EngineServices services{input, registry};
-    EditorSession session{services, serializer};
+    GameModule gameModule{registry};
+    EditorSession session{services, serializer, gameModule};
     Node* node = session.editing().createNode(type("Node3D"), nullptr);
     REQUIRE(node);
 
@@ -250,7 +252,8 @@ TEST_CASE_FIXTURE(Fixture, "Inspection: what the inspector shows for the selecte
     SceneSerializer serializer{registry};
     Input input;
     EngineServices services{input, registry};
-    EditorSession session{services, serializer};
+    GameModule gameModule{registry};
+    EditorSession session{services, serializer, gameModule};
     CHECK_FALSE(inspect(session));
 
     Node* node = session.editing().createNode(type("Node3D"), nullptr);

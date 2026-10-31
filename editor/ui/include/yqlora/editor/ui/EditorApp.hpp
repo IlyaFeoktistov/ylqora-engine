@@ -14,6 +14,7 @@
 #include "yqlora/editor/ProjectManager.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
+#include "yqlora/scripting/GameModule.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -56,7 +57,8 @@ private:
     // Путь к папке пользователя известен только после запуска, см. onStart.
     std::unique_ptr<EditorSettings> m_settings;
     std::unique_ptr<ProjectManagerPanel> m_projectManager;
-    EditorSession m_session{services(), m_serializer};
+    GameModule m_gameModule{registry()};
+    EditorSession m_session{services(), m_serializer, m_gameModule};
     ActionRegistry m_actions;
     std::vector<std::unique_ptr<EditorPanel>> m_panels;
     // Лежит в m_panels; отдельно - чтобы открывать его из меню.

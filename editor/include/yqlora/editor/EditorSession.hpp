@@ -21,6 +21,7 @@ namespace yqlora {
 
 class Component;
 class EngineServices;
+class GameModule;
 class Node;
 class Node3D;
 class Scene;
@@ -41,7 +42,8 @@ namespace yqlora::editor {
 class EditorSession {
 public:
     // Открытый проект сессия ставит в services: его видят сцены редактора.
-    EditorSession(EngineServices& services, const SceneSerializer& serializer);
+    // gameModule - для библиотеки игры открытого проекта, на реестре serializer.
+    EditorSession(EngineServices& services, const SceneSerializer& serializer, GameModule& gameModule);
 
     const std::optional<Project>& project() const
     {
@@ -136,9 +138,13 @@ public:
         return m_serializer;
     }
 
-    // Открывает проект и его стартовую сцену. Если сцена не читается, проект
-    // всё равно открывается с пустой сценой, а метод возвращает false.
+    // Открывает проект: сначала его библиотеку игры (если она собрана, см.
+    // gameLibraryPath), чтобы скрипты в сцене были настоящими, потом стартовую
+    // сцену. Если сцена не читается, проект всё равно открывается с пустой
+    // сценой, а метод возвращает false.
     bool open(Project project);
+    // Библиотека игры выгружается последней: к этому моменту ни в сценах, ни в
+    // истории правок нет объектов её типов.
     void close();
 
     // Путь к открытой сцене от папки проекта. Пусто, если сцены нет.
@@ -199,6 +205,7 @@ private:
 
     EngineServices& m_services;
     const SceneSerializer& m_serializer;
+    GameModule& m_gameModule;
     std::optional<Project> m_project;
     SceneDocument m_document;
     PlayMode m_play;

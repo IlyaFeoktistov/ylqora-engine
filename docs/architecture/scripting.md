@@ -181,10 +181,12 @@ The component lifecycle of the [scene](scene.md), as scripts see it:
      returns (`SceneSerializer::reviveMissing`); properties a known type
      no longer has are kept and written back **[done]**.
    - 4b. The editor loads the game module of the project from
-     `.build/game.dll` (`libgame.so`) when the project opens and unloads it
-     when it closes; scripts in "Add component" as their own group (by the
-     mark); fields in the inspector with their attributes, saving and
-     loading of field values.
+     `.build/game.dll` (`libgame.so`, `gameLibraryPath`) when the project
+     opens, before its startup scene, and unloads it when it closes, after
+     the scene and the edit history are gone (`EditorSession` owns the
+     order); scripts in "Add component" as their own group (by the mark);
+     fields in the inspector with their attributes, saving and loading of
+     field values **[done]**.
    - 4c. An example game module in `examples/`, built with the repository: a
      `Rotator` script with fields (speed, axis). A movement example is
      physics-based and comes with step 6.

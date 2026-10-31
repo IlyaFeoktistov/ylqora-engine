@@ -14,6 +14,7 @@
 #include <yqlora/render/Camera3D.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
+#include <yqlora/scripting/GameModule.hpp>
 
 #include <filesystem>
 #include <fstream>
@@ -132,7 +133,8 @@ TEST_CASE("EditorSession: open, change, save and reopen a project")
 
     EngineServices services{input, registry};
 
-    EditorSession session(services, serializer);
+    GameModule gameModule{registry};
+    EditorSession session(services, serializer, gameModule);
     Scene& scene = session.scene();
     CHECK_FALSE(session.save()); // проект ещё не открыт
 
@@ -165,7 +167,8 @@ TEST_CASE("EditorSession: a project with a broken scene opens with an empty scen
 
     EngineServices services{input, registry};
 
-    EditorSession session(services, serializer);
+    GameModule gameModule{registry};
+    EditorSession session(services, serializer, gameModule);
     Scene& scene = session.scene();
     scene.createRoot<Node>("FromBefore");
     CHECK_FALSE(session.open(*Project::open(project->directory(), registry)));

@@ -18,7 +18,7 @@ MyGame/
 |   |-- general.json
 |   |-- time.json
 |   `-- ...
-|-- .build/                 the game library: game.dll / libgame.so [planned, step 2]
+|-- .build/                 the game library: game.dll / libgame.so
 |-- main.yscene             scenes, anywhere in the folder
 |-- main.yscene.meta        resource ID of the file next to it
 `-- ...                     other resources with their .meta

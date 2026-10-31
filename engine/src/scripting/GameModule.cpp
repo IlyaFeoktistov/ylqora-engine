@@ -12,6 +12,9 @@ namespace yqlora {
 
 namespace {
 
+constexpr const char* kBuildDirectory = ".build";
+constexpr const char* kLibraryName = "game";
+
 void destroyModuleComponents(Scene& scene, const TypeRegistry& registry, std::string_view module)
 {
     assert(!scene.inFrame() && "GameModule::unload: not during a frame of the scene");
@@ -30,6 +33,11 @@ void destroyModuleComponents(Scene& scene, const TypeRegistry& registry, std::st
 }
 
 } // namespace
+
+std::filesystem::path gameLibraryPath(const std::filesystem::path& projectDirectory)
+{
+    return projectDirectory / kBuildDirectory / platform::sharedLibraryFileName(kLibraryName);
+}
 
 GameModule::GameModule(TypeRegistry& registry)
     : m_registry(registry)

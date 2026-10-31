@@ -20,6 +20,7 @@
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 #include <yqlora/scene/TimeSettings.hpp>
+#include <yqlora/scripting/GameModule.hpp>
 
 #include <algorithm>
 #include <filesystem>
@@ -132,7 +133,8 @@ TEST_CASE_FIXTURE(
 {
     Input input;
     EngineServices services{input, registry};
-    EditorSession session(services, serializer);
+    GameModule gameModule{registry};
+    EditorSession session(services, serializer, gameModule);
     REQUIRE(session.open(open()));
     auto& general = session.project()->settings().get<GeneralSettings>();
     CHECK_FALSE(session.modified());
@@ -161,7 +163,8 @@ TEST_CASE_FIXTURE(Fixture, "SettingsEditing: the startup scene is chosen with un
     std::ofstream(directory / "level.yscene") << R"({"version": 1})";
     Input input;
     EngineServices services{input, registry};
-    EditorSession session(services, serializer);
+    GameModule gameModule{registry};
+    EditorSession session(services, serializer, gameModule);
     REQUIRE(session.open(open()));
     const auto main = session.project()->startupScenePath();
     session.project()->resources().add("level.yscene");
@@ -225,7 +228,8 @@ TEST_CASE_FIXTURE(Fixture, "LayerUsage: nodes on a layer are found in every scen
 
     Input input;
     EngineServices services{input, registry};
-    EditorSession session(services, serializer);
+    GameModule gameModule{registry};
+    EditorSession session(services, serializer, gameModule);
     REQUIRE(session.open(open()));
     session.project()->resources().add("other.yscene");
     // Открытая сцена считается с несохранёнными правками.
@@ -380,7 +384,8 @@ TEST_CASE_FIXTURE(
 {
     Input input;
     EngineServices services{input, registry};
-    EditorSession session(services, serializer);
+    GameModule gameModule{registry};
+    EditorSession session(services, serializer, gameModule);
     REQUIRE(session.open(open()));
     CHECK_FALSE(session.modified());
 

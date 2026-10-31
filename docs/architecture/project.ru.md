@@ -17,7 +17,7 @@ MyGame/
 |   |-- general.json
 |   |-- time.json
 |   `-- ...
-|-- .build/                 библиотека игры: game.dll / libgame.so [planned, step 2]
+|-- .build/                 библиотека игры: game.dll / libgame.so
 |-- main.yscene             сцены, где угодно в папке
 |-- main.yscene.meta        ID ресурса для файла рядом
 `-- ...                     остальные ресурсы со своими .meta

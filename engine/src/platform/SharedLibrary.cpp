@@ -26,4 +26,15 @@ SharedLibrary::Function SharedLibrary::function(const char* name) const
     return m_handle ? SDL_LoadFunction(m_handle, name) : nullptr;
 }
 
+std::string sharedLibraryFileName(std::string_view name)
+{
+#if defined(_WIN32)
+    return std::string(name) + ".dll";
+#elif defined(__APPLE__)
+    return "lib" + std::string(name) + ".dylib";
+#else
+    return "lib" + std::string(name) + ".so";
+#endif
+}
+
 } // namespace yqlora::platform

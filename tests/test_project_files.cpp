@@ -10,6 +10,7 @@
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
+#include <yqlora/scripting/GameModule.hpp>
 
 #include <filesystem>
 
@@ -70,7 +71,8 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: new scenes get free names and can be o
 
     EngineServices services{input, registry};
 
-    EditorSession session(services, serializer);
+    GameModule gameModule{registry};
+    EditorSession session(services, serializer, gameModule);
     Scene& scene = session.scene();
     REQUIRE(session.open(*Project::open(project.directory(), registry)));
     REQUIRE(session.openScene(*second));
@@ -104,7 +106,8 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: a renamed scene keeps its id, the sess
 {
     Input input;
     EngineServices services{input, registry};
-    EditorSession session(services, serializer);
+    GameModule gameModule{registry};
+    EditorSession session(services, serializer, gameModule);
     REQUIRE(session.open(*Project::open(project.directory(), registry)));
     const ResourceId id = session.document().id();
     REQUIRE(id != 0);

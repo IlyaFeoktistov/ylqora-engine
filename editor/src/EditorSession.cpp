@@ -12,6 +12,7 @@
 #include "yqlora/scene/NodeTree.hpp"
 #include "yqlora/scene/Scene.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
+#include "yqlora/scripting/GameModule.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -27,9 +28,10 @@ constexpr float kModifiedCheckSeconds = 0.5f;
 
 } // namespace
 
-EditorSession::EditorSession(EngineServices& services, const SceneSerializer& serializer)
+EditorSession::EditorSession(EngineServices& services, const SceneSerializer& serializer, GameModule& gameModule)
     : m_services(services)
     , m_serializer(serializer)
+    , m_gameModule(gameModule)
     , m_document(services, serializer)
     , m_play(serializer)
 {
@@ -42,11 +44,15 @@ const TypeRegistry& EditorSession::registry() const
 
 bool EditorSession::open(Project project)
 {
-    stop();
+    close();
     m_project = std::move(project);
     m_services.setProject(&*m_project);
-    m_selection.clear();
-    m_history.clear();
+    const std::filesystem::path library = gameLibraryPath(m_project->directory());
+    if (std::filesystem::exists(library)) {
+        m_gameModule.load(library);
+    } else {
+        log::info("Project '{}' has no game library in '{}'", m_project->name(), toUtf8(library));
+    }
     // От прошлого проекта ничего не должно остаться, даже если стартовая
     // сцена не прочитается: тогда проект открывается с пустой сценой.
     const ResourceId startup = m_project->settings().get<GeneralSettings>().startupScene.id;
@@ -65,6 +71,8 @@ void EditorSession::close()
     stop();
     m_document.reset(0);
     m_history.clear();
+    Scene* const scenes[] = {&m_document.scene()};
+    m_gameModule.unload(scenes);
     m_services.setProject(nullptr);
     m_project.reset();
     m_selection.clear();

@@ -113,9 +113,23 @@ void drawCameraRole(EditorSession& session, const Inspection& inspection)
     ImGui::SetItemTooltip("%s", tr("editor.inspector.camera.rule").c_str());
 }
 
+void drawAddableTypes(EditorSession& session, Node& node, const std::vector<const TypeInfo*>& types)
+{
+    for (const TypeInfo* type : types) {
+        if (ImGui::Selectable(type->name().c_str())) {
+            session.editing().addComponent(node, *type);
+        }
+        // У скриптов игры описания в переводах нет: ключ без перевода не показываем.
+        const std::string key = type->descriptionKey();
+        if (const std::string description = tr(key); description != key) {
+            ImGui::SetItemTooltip("%s", description.c_str());
+        }
+    }
+}
+
 void drawAddComponent(EditorSession& session, const Inspection& inspection)
 {
-    const bool any = !inspection.addable.empty();
+    const bool any = !inspection.addable.empty() || !inspection.addableScripts.empty();
 
     ImGui::Spacing();
     ImGui::BeginDisabled(!any);
@@ -128,11 +142,10 @@ void drawAddComponent(EditorSession& session, const Inspection& inspection)
     }
 
     if (ImGui::BeginPopup("AddComponent")) {
-        for (const TypeInfo* type : inspection.addable) {
-            if (ImGui::Selectable(type->name().c_str())) {
-                session.editing().addComponent(inspection.node, *type);
-            }
-            ImGui::SetItemTooltip("%s", tr(type->descriptionKey()).c_str());
+        drawAddableTypes(session, inspection.node, inspection.addable);
+        if (!inspection.addableScripts.empty()) {
+            ImGui::SeparatorText(tr("editor.inspector.scripts").c_str());
+            drawAddableTypes(session, inspection.node, inspection.addableScripts);
         }
         ImGui::EndPopup();
     }
