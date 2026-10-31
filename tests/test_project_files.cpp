@@ -13,6 +13,8 @@
 #include <yqlora/scripting/GameModule.hpp>
 
 #include <filesystem>
+#include <fstream>
+#include <iterator>
 
 using namespace yqlora;
 using namespace yqlora::editor;
@@ -27,7 +29,7 @@ struct Fixture {
         std::filesystem::remove_all(location);
         std::filesystem::create_directories(location);
         std::string error;
-        project = *createProject(location, "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
+        project = *createProject(location, "Game", serializer, error);
     }
 
     TypeRegistry registry;
@@ -50,22 +52,34 @@ std::vector<std::string> names(const ProjectFiles::Entry& entry)
 
 TEST_CASE_FIXTURE(Fixture, "ProjectFiles: folders first, the project file, settings and .meta are hidden")
 {
-    REQUIRE(files.createFolder({}));
-    REQUIRE(files.createScene({}, serializer));
+    REQUIRE(files.createFolder({}, files.suggestName(NewResourceKind::Folder, {})));
+    REQUIRE(files.createScene({}, files.suggestName(NewResourceKind::Scene, {}), serializer));
 
     const auto root = files.scan();
-    CHECK(names(root) == std::vector<std::string>{"New Folder", "New Scene.yscene", "main.yscene"});
+    CHECK(names(root) == std::vector<std::string>{"New Folder", "assets", "scenes", "scripts", "New Scene.yscene"});
     CHECK(root.children[0].directory);
 }
 
-TEST_CASE_FIXTURE(Fixture, "ProjectFiles: new scenes get free names and can be opened")
+TEST_CASE_FIXTURE(Fixture, "ProjectFiles: new resources get free suggested names, taken names are refused")
 {
-    const auto first = files.createScene({}, serializer);
-    const auto second = files.createScene({}, serializer);
+    CHECK(files.suggestName(NewResourceKind::CppScript, "scripts") == "NewScript");
+    const auto first = files.createScene({}, files.suggestName(NewResourceKind::Scene, {}), serializer);
     REQUIRE(first);
-    REQUIRE(second);
     CHECK(*first == "New Scene.yscene");
-    CHECK(*second == "New Scene 2.yscene");
+    CHECK(files.suggestName(NewResourceKind::Scene, {}) == "New Scene 2");
+    CHECK_FALSE(files.createScene({}, "New Scene", serializer));
+    CHECK_FALSE(files.createScene({}, "bad/name", serializer));
+    CHECK_FALSE(files.createFolder({}, "settings"));
+    CHECK_FALSE(files.createFolder({}, ""));
+    CHECK(files.createFolder("scenes", "levels") == std::filesystem::path("scenes") / "levels");
+    CHECK_FALSE(files.createFolder("scenes", "levels"));
+}
+
+TEST_CASE_FIXTURE(Fixture, "ProjectFiles: a new scene can be opened")
+{
+    const auto second = files.createScene({}, "Level", serializer);
+    REQUIRE(second);
+    CHECK(*second == "Level.yscene");
 
     Input input;
 
@@ -95,11 +109,11 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: nothing outside the project can be tou
     CHECK_FALSE(files.canModify("settings/general.json"));
     CHECK_FALSE(files.canModify("../other"));
     CHECK_FALSE(files.canModify("a/../../other"));
-    CHECK(files.canModify("main.yscene"));
+    CHECK(files.canModify("scenes/main.yscene"));
 
     CHECK_FALSE(files.remove("../files"));
     CHECK(std::filesystem::exists(project.directory()));
-    CHECK_FALSE(files.rename("main.yscene", "bad/name.yscene"));
+    CHECK_FALSE(files.rename("scenes/main.yscene", "bad/name.yscene"));
 }
 
 TEST_CASE_FIXTURE(Fixture, "ProjectFiles: a renamed scene keeps its id, the session and project follow it")
@@ -114,16 +128,42 @@ TEST_CASE_FIXTURE(Fixture, "ProjectFiles: a renamed scene keeps its id, the sess
 
     // Сессия работает со своим экземпляром проекта: файлы меняем через него.
     ProjectFiles sessionFiles(*session.project());
-    const auto folder = sessionFiles.createFolder({});
+    const auto folder = sessionFiles.createFolder({}, "Old");
     REQUIRE(folder);
-    const auto moved = sessionFiles.rename("main.yscene", "level.yscene");
+    const auto moved = sessionFiles.rename("scenes/main.yscene", "level.yscene");
     REQUIRE(moved);
+    const auto level = std::filesystem::path("scenes") / "level.yscene";
     CHECK(session.document().id() == id);
-    CHECK(session.scenePath() == "level.yscene");
-    CHECK(session.project()->startupScenePath() == std::filesystem::path("level.yscene"));
-    CHECK(std::filesystem::exists(project.directory() / "level.yscene.meta"));
-    CHECK(Project::open(project.directory(), registry)->startupScenePath() == std::filesystem::path("level.yscene"));
+    CHECK(session.scenePath() == level);
+    CHECK(session.project()->startupScenePath() == level);
+    CHECK(std::filesystem::exists(project.directory() / "scenes" / "level.yscene.meta"));
+    CHECK(Project::open(project.directory(), registry)->startupScenePath() == level);
 
     CHECK(sessionFiles.remove(*folder));
     CHECK_FALSE(std::filesystem::exists(project.directory() / *folder));
+}
+
+TEST_CASE_FIXTURE(Fixture, "ProjectFiles: a C++ script from the template, a file and not a resource")
+{
+    const auto created = files.createScript("scripts", "Player", YQLORA_SCRIPT_TEMPLATE_DIR);
+    REQUIRE(created);
+    CHECK(*created == std::filesystem::path("scripts") / "Player.cpp");
+    std::ifstream header(project.directory() / "scripts" / "Player.hpp");
+    const std::string text((std::istreambuf_iterator<char>(header)), std::istreambuf_iterator<char>());
+    CHECK(text.find("class Player : public yqlora::Script") != std::string::npos);
+    CHECK(text.find("$SCRIPT_NAME$") == std::string::npos);
+    CHECK_FALSE(std::filesystem::exists(project.directory() / "scripts" / "Player.cpp.meta"));
+    CHECK(project.resources().id(*created) == 0);
+
+    // Имя занято, не имя класса, папка вне проекта - ничего не создаётся.
+    CHECK_FALSE(files.createScript("scripts", "Player", YQLORA_SCRIPT_TEMPLATE_DIR));
+    CHECK_FALSE(files.createScript("scripts", "2Fast", YQLORA_SCRIPT_TEMPLATE_DIR));
+    CHECK_FALSE(files.createScript("scripts", "Bad Name", YQLORA_SCRIPT_TEMPLATE_DIR));
+    CHECK_FALSE(files.createScript("../outside", "Thief", YQLORA_SCRIPT_TEMPLATE_DIR));
+    CHECK(isValidScriptName("Enemy_2"));
+    CHECK_FALSE(isValidScriptName("Враг"));
+
+    // Шаблона нет - нет и половины файлов.
+    CHECK_FALSE(files.createScript("scripts", "Lost", project.directory() / "no-template"));
+    CHECK_FALSE(std::filesystem::exists(project.directory() / "scripts" / "Lost.hpp"));
 }

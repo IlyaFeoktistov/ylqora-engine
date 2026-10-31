@@ -1,10 +1,15 @@
+set(YQLORA_GAME_MODULE_ENTRY ${CMAKE_CURRENT_LIST_DIR}/GameModuleEntry.cpp)
+
 # Модуль игры: разделяемая библиотека со скриптами, которую загружает движок.
 # Один файл правил и для примеров в дереве движка, и для проектов через SDK
 # (find_package(yqlora) подключает его копию).
 #
-#   yqlora_add_game_module(game Module.cpp Player.cpp)
+#   yqlora_add_game_module(game Player.cpp Enemy.cpp)
+#
+# Входную функцию модуль получает отсюда же (GameModuleEntry.cpp): скрипты
+# регистрируют себя сами, YQLORA_REGISTER_SCRIPT.
 function(yqlora_add_game_module target)
-    add_library(${target} SHARED ${ARGN})
+    add_library(${target} SHARED ${ARGN} ${YQLORA_GAME_MODULE_ENTRY})
     target_link_libraries(${target} PRIVATE yqlora::yqlora)
     set_target_properties(${target} PROPERTIES
         OUTPUT_NAME game

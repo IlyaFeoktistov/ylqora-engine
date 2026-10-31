@@ -7,6 +7,7 @@
 #include "yqlora/core/Version.hpp"
 #include "yqlora/project/GeneralSettings.hpp"
 
+#include <algorithm>
 #include <array>
 #include <utility>
 
@@ -26,11 +27,8 @@ constexpr FileFormat kFormat{"Project", kFirstFormatVersion, kMigrations};
 constexpr const char* kNameKey = "name";
 constexpr const char* kEngineVersionKey = "engine";
 
-constexpr std::array<std::string_view, 3> kReservedNames{
-    Project::fileName(),
-    ProjectSettings::directoryName(),
-    Project::scriptsDirectoryName(),
-};
+constexpr std::array<std::string_view, 2> kReservedNames{Project::fileName(), ProjectSettings::directoryName()};
+constexpr std::array<std::string_view, 7> kSourceExtensions{".cpp", ".hpp", ".h", ".cc", ".cxx", ".hxx", ".inl"};
 
 std::optional<Json> readFile(const std::filesystem::path& directory)
 {
@@ -55,6 +53,18 @@ std::span<const std::string_view> Project::reservedNames()
     return kReservedNames;
 }
 
+std::span<const std::string_view> Project::sourceExtensions()
+{
+    return kSourceExtensions;
+}
+
+bool Project::isSource(const std::filesystem::path& path)
+{
+    const std::string extension = toUtf8(path.extension());
+
+    return std::ranges::find(kSourceExtensions, extension) != kSourceExtensions.end();
+}
+
 int Project::formatVersion()
 {
     return kFormat.current();
@@ -76,7 +86,7 @@ std::optional<Project> Project::open(const std::filesystem::path& directory, con
     project.m_name = (*json)[kNameKey].get<std::string>();
     project.m_directory = directory;
     project.m_settings.load(registry, directory);
-    project.m_resources.scan(directory, reservedNames());
+    project.m_resources.scan(directory, reservedNames(), sourceExtensions());
 
     return project;
 }
@@ -94,7 +104,7 @@ std::optional<Project> Project::create(
         return std::nullopt;
     }
     project.m_settings.load(registry, directory);
-    project.m_resources.scan(directory, reservedNames());
+    project.m_resources.scan(directory, reservedNames(), sourceExtensions());
 
     return project;
 }

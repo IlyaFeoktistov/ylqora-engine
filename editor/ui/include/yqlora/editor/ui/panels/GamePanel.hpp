@@ -37,6 +37,8 @@ public:
 private:
     RenderView m_view;
     bool m_wasPlaying = false;
+    // При Play впереди было окно вида: после Stop вернуть его.
+    bool m_returnToScene = false;
 };
 
 } // namespace yqlora::editor

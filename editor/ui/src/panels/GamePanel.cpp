@@ -14,8 +14,25 @@
 #include <imgui_internal.h>
 
 #include <string>
+#include <utility>
 
 namespace yqlora::editor {
+
+namespace {
+
+constexpr const char* kViewportWindow = "###Viewport";
+
+// Окно на экране: не свёрнуто и, если это вкладка, выбрано в своей группе.
+bool isShown(const ImGuiWindow& window)
+{
+    if (window.Hidden || window.Collapsed) {
+        return false;
+    }
+
+    return !window.DockNode || window.DockNode->VisibleWindow == &window;
+}
+
+} // namespace
 
 void GamePanel::draw(EditorContext& context)
 {
@@ -23,7 +40,7 @@ void GamePanel::draw(EditorContext& context)
 
     // В раскладке, сохранённой до появления окна игры, его нет: первый раз
     // встаёт вкладкой рядом с окном вида, а не висит посреди экрана.
-    const ImGuiWindow* viewport = maximized(context) ? nullptr : ImGui::FindWindowByName("###Viewport");
+    const ImGuiWindow* viewport = maximized(context) ? nullptr : ImGui::FindWindowByName(kViewportWindow);
     if (viewport) {
         ImGui::SetNextWindowDockID(viewport->DockId, ImGuiCond_FirstUseEver);
     }
@@ -31,10 +48,15 @@ void GamePanel::draw(EditorContext& context)
     const bool visible = beginWindow(context);
     ImGui::PopStyleVar();
 
-    // Игра началась: окно игры выходит вперёд и сразу получает ввод.
+    // Игра началась: окно игры выходит вперёд и сразу получает ввод. Если
+    // перед этим было видно окно вида, после Stop оно возвращается.
     const bool playing = session.playing();
+    ImGuiWindow* sceneView = ImGui::FindWindowByName(kViewportWindow);
     if (playing && !m_wasPlaying) {
+        m_returnToScene = sceneView && isShown(*sceneView);
         ImGui::SetWindowFocus();
+    } else if (!playing && m_wasPlaying && std::exchange(m_returnToScene, false) && sceneView) {
+        ImGui::FocusWindow(sceneView);
     }
     m_wasPlaying = playing;
 

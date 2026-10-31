@@ -94,12 +94,8 @@ private:
     float m_jumpHeight = 1.5f;
 };
 
-// The one entry point of the game module, written by hand in step 2 and by
-// the generator in step 3.
-YQLORA_MODULE_ENTRY(registrar)
-{
-    registrar.registerScript<Player>();
-}
+// In Player.cpp: the script registers itself in the game module.
+YQLORA_REGISTER_SCRIPT(Player).requiresNode<Node3D>();
 ```
 
 ### Decisions
@@ -116,11 +112,15 @@ YQLORA_MODULE_ENTRY(registrar)
 - **Field types** are the property types of the registry: bool, int, float,
   string, vectors, colour, enums, `NodeRef`, `ResourceRef`, lists and
   records. Node and resource references are stable IDs, never pointers.
-- **Explicit registration per module**: one entry function of the library
+- **Registration per module**: one entry function of the library
   (`YQLORA_MODULE_ENTRY`) registers its scripts through the
-  `ModuleRegistrar` it is given, which records them under the module; no
-  global static registrars, no dependence on the order of static
-  initialization. A type name already taken (by another module, by the same
+  `ModuleRegistrar` it is given, which records them under the module. The
+  game module gets that function from the SDK (`cmake/GameModuleEntry.cpp`);
+  each script marks itself with `YQLORA_REGISTER_SCRIPT` in its `.cpp`,
+  which records it in a list local to the library (a function-local static,
+  so the order of static initialization does not matter), and the entry
+  function registers the list sorted by name. Nothing reaches the engine
+  before the entry function, and no file lists the scripts by hand. A type name already taken (by another module, by the same
   module twice, or as a former name) is not registered: it goes to
   `rejected()` with the module that holds it, so the loader reports it
   instead of crashing the editor. After `registerScript<T>()` only type rules
@@ -159,9 +159,11 @@ The component lifecycle of the [scene](scene.md), as scripts see it:
 
 - The scripts of a game are one shared library, the game module: one per
   project, registered under the type module `game`
-  (`GameModule::moduleName`). It lives in `<project>/.build/game.dll`
-  (`libgame.so`, see `gameLibraryPath`); until step 3 it is built by hand
-  (see the [first script guide](../guide/first-script.md)).
+  (`GameModule::moduleName`). The editor builds it from every `.cpp` of the
+  project outside hidden folders, with `sdk/game-project/CMakeLists.txt`,
+  so a project has no build files of its own; it loads a copy from
+  `.build/reload/` (see Build and hot reload below and the
+  [first script guide](../guide/first-script.md)).
 - `GameModule::load` opens the library, finds `YQLORA_MODULE_ENTRY` by
   `kModuleEntrySymbol` and calls it with a `ModuleRegistrar`. A missing
   library or entry function is an error in the log, not a crash; a
@@ -277,7 +279,7 @@ links, then attached to a node and works like a C++ or Luau script.
 - The graph editor is a panel of the editor; editing logic lives apart from
   ImGui, like the rest of the editor.
 
-## Build and hot reload [planned, step 3]
+## Build and hot reload [done]
 
 The loop: edit a script in the IDE, switch to the editor, and the editor
 builds the game module, reloads it and puts the scene back with the same
@@ -396,10 +398,22 @@ Failures:
    crashes). On Linux GCC builds the module with `-fno-gnu-unique`,
    otherwise `dlclose` keeps the old version loaded.
 5. Interface: the Scripts menu (Build, Open scripts folder, Create scripts
-   folder), the build state in the status bar, translations.
+   folder), the build state in the status bar, translations **[done]**. The
+   editor has no status bar, so the build state sits in the main menu next
+   to the log counters: "Building scripts..." while a build runs, a red mark
+   after a failed one (a click opens the log).
 6. Documents: this one, project (`scripts/`, `.build/`), project settings
    (Scripts), editor (log, build), the first script guide without copying,
-   README.
+   README **[done]**.
+7. Scripts are files of the project, not a folder apart (after a review of
+   phases 2 and 5): a C++ script is created in Files (Create resource > C++
+   script, from `assets/templates/cpp-script/`) and lives anywhere in the
+   project next to scenes; sources are shown in Files but are not resources
+   (`Project::isSource`, no `.meta`). Build files come from the SDK
+   (`sdk/game-project/`), scripts register themselves
+   (`YQLORA_REGISTER_SCRIPT`), and the folder `scripts/` with `Module.cpp`
+   and the menu items for it go away. A new project starts with `scenes/`,
+   `scripts/` and `assets/` **[done]**.
 
 Tests, besides the unit tests of every part: a change of a header only
 rebuilds the module (a real CMake build of a temporary project); a source
@@ -408,9 +422,8 @@ throws leaves no types and no components; values of script fields are the
 same after several reloads and a save; after an unload no component of the
 module is left in the scenes and no type of it in the registry.
 
-Until the generator (after the MVP) a new script is registered by a line in
-`Module.cpp`: finding scripts in sources needs a C++ parser, and regular
-expressions are ruled out.
+Scripts are found by the build (a CMake glob over `.cpp` files), never by
+reading C++: they register themselves, so nothing has to parse sources.
 
 A component whose type is missing (the game failed to compile, a script was
 deleted) is kept as a placeholder holding its raw data, shown in the inspector

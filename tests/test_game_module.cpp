@@ -100,7 +100,7 @@ TEST_CASE_FIXTURE(Fixture, "EditorSession: the game library of the project loads
     std::filesystem::remove_all(location);
     SceneSerializer serializer{registry};
     std::string error;
-    const auto created = createProject(location, "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
+    const auto created = createProject(location, "Game", serializer, error);
     REQUIRE(created);
     const std::filesystem::path library = YQLORA_TEST_GAME_MODULE;
 
@@ -156,7 +156,7 @@ struct ReloadFixture : Fixture {
         const auto location = std::filesystem::temp_directory_path() / "yqlora_tests" / name;
         std::filesystem::remove_all(location);
         std::string error;
-        const auto created = createProject(location, "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
+        const auto created = createProject(location, "Game", serializer, error);
         REQUIRE(created);
         directory = created->directory();
         REQUIRE(session.open(*Project::open(directory, registry), YQLORA_TEST_GAME_MODULE));

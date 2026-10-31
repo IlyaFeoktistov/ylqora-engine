@@ -8,8 +8,8 @@
 - `Rotator` turns its node around an axis; its fields (speed with a range,
   axis) show up in the inspector.
 
-The library is named like the game library of a project (`game.dll`,
-`libgame.so`) and lands in `build/<preset>/examples/scripts/`. To try it,
-copy it into the `.build/` folder of a project and open the project in the
-editor: the scripts appear under "Scripts" in "Add component". In step 3 the
-editor builds the scripts of a project itself.
+It is built with `yqlora_add_game_module`, the same rules a project gets
+through the SDK, and the tests load it. To use an example in a project,
+copy its file anywhere into the project: the editor builds every `.cpp`
+there, and the script registers itself (`YQLORA_REGISTER_SCRIPT`; see
+[first script](../docs/guide/first-script.md)).

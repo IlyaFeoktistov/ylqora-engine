@@ -37,6 +37,9 @@ struct ScriptBuildResult {
 // Новый набор инструментов или перенесённый редактор - новая папка.
 std::filesystem::path scriptBuildDirectory(const ScriptBuildSetup& setup);
 
+// В проекте есть хоть один .cpp вне скрытых папок: модулю игры есть из чего собираться.
+bool hasGameSources(const std::filesystem::path& projectDirectory);
+
 // Библиотека, собранная в папке сборки раньше (до запуска редактора);
 // nullopt - её там ещё нет.
 std::optional<std::filesystem::path> builtGameLibrary(const ScriptBuildSetup& setup);

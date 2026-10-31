@@ -23,9 +23,13 @@ public:
 
     // Обходит папку проекта. Файлу без .meta создаёт .meta с новым ID. Если
     // ID повторяется (файл скопировали вместе с .meta), копия получает новый.
-    // Скрытые файлы и пропущенные имена в корне (файл проекта, папка
-    // настроек) не ресурсы.
-    void scan(const std::filesystem::path& root, std::span<const std::string_view> skipNames = {});
+    // Скрытые файлы, пропущенные имена в корне (файл проекта, папка
+    // настроек) и файлы с пропущенными расширениями (исходники) не ресурсы.
+    void scan(
+        const std::filesystem::path& root,
+        std::span<const std::string_view> skipNames = {},
+        std::span<const std::string_view> skipExtensions = {}
+    );
 
     // Новый файл в проекте: .meta с новым ID. Если файл уже известен, его ID.
     ResourceId add(const std::filesystem::path& path);

@@ -24,13 +24,16 @@ struct MainMenuContext {
     std::span<const std::pair<std::string, std::string>> languages;
     const Theme& theme;
     const LogBuffer& log;
+    // Идёт сборка скриптов; последняя законченная не прошла.
+    bool buildingScripts = false;
+    bool scriptsFailed = false;
     // Открыть панель "Лог": по щелчку на счётчике ошибок.
     std::function<void()> showLog;
 };
 
-// Главное меню окна: Файл, Правка, Вид с выбором языка, а при открытом
-// проекте по центру Play, Pause и Stop, справа счётчики ошибок и
-// предупреждений лога.
+// Главное меню окна: Файл, Правка, Проект, Скрипты, Вид с выбором языка, а
+// при открытом проекте по центру Play, Pause и Stop, справа состояние сборки
+// скриптов и счётчики ошибок и предупреждений лога.
 void drawMainMenu(const MainMenuContext& context);
 
 } // namespace yqlora::editor

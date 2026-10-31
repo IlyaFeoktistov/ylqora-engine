@@ -55,9 +55,13 @@ private:
     void openScene(const std::filesystem::path& path);
     void save();
     void updateTitle();
-    // quiet - сборка не по просьбе человека: без проекта, папки скриптов или
-    // SDK она молча не начинается, а если собирать нечего, лог пуст.
-    void buildScripts(bool quiet);
+    // quiet - сборка не по просьбе человека: без проекта, скриптов или SDK она
+    // молча не начинается, а если собирать нечего, лог пуст.
+    // Возвращает, поставлена ли сборка.
+    bool buildScripts(bool quiet);
+    // Play идёт только с собранными скриптами: сначала сборка, игра - после
+    // неё (onUpdate), если она прошла. Повторное нажатие, пока ждём, отменяет Play.
+    void togglePlay();
     // Как собирать скрипты проекта; nullopt - нет SDK (в лог, если не quiet).
     std::optional<ScriptBuildSetup> scriptBuildSetup(const Project& project, bool quiet) const;
 
@@ -69,6 +73,10 @@ private:
     ScriptBuild m_scriptBuild{m_log};
     // Из SDK рядом с редактором с переопределениями из настроек, см. onStart.
     std::optional<ScriptToolchain> m_toolchain;
+    // Последняя законченная сборка не прошла: в главном меню, пока следующая не пройдёт.
+    bool m_scriptsFailed = false;
+    // Play нажат, ждём конца сборки.
+    bool m_playAfterBuild = false;
     Theme m_theme;
     SceneSerializer m_serializer{registry()};
     std::unique_ptr<ProjectManager> m_projects;

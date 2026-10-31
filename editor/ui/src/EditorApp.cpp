@@ -101,11 +101,7 @@ void EditorApp::onStart()
         m_languages.emplace_back(code, localization.displayName(code));
     }
 
-    m_projects = std::make_unique<ProjectManager>(
-        userData / kProjectListFile,
-        m_serializer,
-        scriptsTemplateDirectory(assets)
-    );
+    m_projects = std::make_unique<ProjectManager>(userData / kProjectListFile, m_serializer);
     m_settings = std::make_unique<EditorSettings>(userData / kEditorSettingsFile);
     m_settings->load();
     m_toolchain = loadScriptToolchain(sdkDirectory());
@@ -148,6 +144,11 @@ void EditorApp::onStart()
                 [this] {
                     buildScripts(false);
                 },
+            .togglePlay =
+                [this] {
+                    togglePlay();
+                },
+
         }
     );
 }
@@ -185,23 +186,47 @@ void EditorApp::onFocusGained()
     buildScripts(true);
 }
 
-void EditorApp::buildScripts(bool quiet)
+void EditorApp::togglePlay()
 {
-    if (!m_session.project()) {
-        return;
-    }
-    const Project& project = *m_session.project();
-    std::error_code ec;
-    if (!std::filesystem::is_directory(project.directory() / Project::scriptsDirectoryName(), ec)) {
-        if (!quiet) {
-            log::warn("The project has no scripts folder");
-        }
+    if (m_session.playing()) {
+        m_session.stop();
 
         return;
     }
-    if (auto setup = scriptBuildSetup(project, quiet)) {
-        m_scriptBuild.request(std::move(*setup));
+    if (m_playAfterBuild) {
+        m_playAfterBuild = false;
+
+        return;
     }
+    // Тихо: если пересобирать нечего, лог остаётся пустым.
+    if (buildScripts(true)) {
+        m_playAfterBuild = true;
+    } else {
+        m_session.play();
+    }
+}
+
+bool EditorApp::buildScripts(bool quiet)
+{
+    if (!m_session.project()) {
+        return false;
+    }
+    const Project& project = *m_session.project();
+    // Без единого .cpp собирать нечего: проект без скриптов не ждёт CMake при открытии.
+    if (!hasGameSources(project.directory())) {
+        if (!quiet) {
+            log::info("The project has no C++ scripts yet: create one in Files");
+        }
+
+        return false;
+    }
+    auto setup = scriptBuildSetup(project, quiet);
+    if (!setup) {
+        return false;
+    }
+    m_scriptBuild.request(std::move(*setup));
+
+    return true;
 }
 
 std::optional<ScriptBuildSetup> EditorApp::scriptBuildSetup(const Project& project, bool quiet) const
@@ -227,11 +252,23 @@ std::optional<ScriptBuildSetup> EditorApp::scriptBuildSetup(const Project& proje
 void EditorApp::onUpdate(float deltaSeconds)
 {
     m_log.collect();
+    // Спрошено до takeResult: если сборки нет сейчас, взятый итог - последний,
+    // новая сборка до конца кадра не начнётся.
+    const bool buildSettled = !m_scriptBuild.building();
     // Собранное только что, или собранное другой конфигурацией, чем загружено.
-    if (const auto built = m_scriptBuild.takeResult();
-        built && built->succeeded && m_session.project()
-        && (built->changed || built->library != m_session.gameLibrary())) {
-        m_session.reloadGameModule(built->library);
+    if (const auto built = m_scriptBuild.takeResult()) {
+        m_scriptsFailed = !built->succeeded;
+        if (built->succeeded && m_session.project() && (built->changed || built->library != m_session.gameLibrary())) {
+            m_session.reloadGameModule(built->library);
+        }
+    }
+    if (m_playAfterBuild && buildSettled) {
+        m_playAfterBuild = false;
+        if (m_scriptsFailed) {
+            log::error("Play is cancelled: the scripts did not build, see the errors above");
+        } else if (m_session.project()) {
+            m_session.play();
+        }
     }
     m_session.update(deltaSeconds, input());
     // Камера обновляется в окне сцены, там же известно, над ним ли курсор.
@@ -249,6 +286,8 @@ void EditorApp::onGui()
         .languages = m_languages,
         .theme = m_theme,
         .log = m_log,
+        .buildingScripts = m_scriptBuild.building(),
+        .scriptsFailed = m_scriptsFailed,
         .showLog = [this] {
             m_logPanel->reveal();
         },
@@ -327,6 +366,8 @@ void EditorApp::openProject(Project project)
 void EditorApp::closeProject()
 {
     m_scriptBuild.cancel();
+    m_scriptsFailed = false;
+    m_playAfterBuild = false;
     m_session.close();
     m_mouseWrapping = false;
     setMouseWrapping(false);

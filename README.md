@@ -19,7 +19,7 @@ MVP: everything needed to build a small game prototype.
 - [x] Editor: project manager, scene tree, inspector, files, manipulators
 - [x] Play / Stop in the editor
 - [x] C++ scripts on nodes ([first script](docs/guide/first-script.md))
-- [ ] Building scripts from the editor, hot reload
+- [x] Building scripts from the editor, hot reload
 - [ ] Meshes from files (glTF) and textures
 - [ ] Materials, custom shaders, lights
 - [ ] Physics and collisions

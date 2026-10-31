@@ -63,18 +63,40 @@ void drawPlayControls(const MainMenuContext& context)
     ImGui::EndDisabled();
 }
 
-// Ошибки и предупреждения лога у правого края; щелчок открывает лог.
-void drawLogCounters(const MainMenuContext& context)
+// Состояние сборки скриптов, ошибки и предупреждения лога у правого края;
+// щелчок открывает лог.
+void drawStatus(const MainMenuContext& context)
 {
     const std::string errors = std::string(icons::kError) + " " + std::to_string(context.log.count(log::Level::Error));
     const std::string warnings = std::string(icons::kWarning) + " "
                                  + std::to_string(context.log.count(log::Level::Warning));
+    std::string build;
+    if (context.buildingScripts) {
+        build = std::string(icons::kBuild) + " " + tr("editor.scripts.building");
+    } else if (context.scriptsFailed) {
+        build = std::string(icons::kError) + " " + tr("editor.scripts.failed");
+    }
     const ImGuiStyle& style = ImGui::GetStyle();
-    const float width = ImGui::CalcTextSize(errors.c_str()).x + ImGui::CalcTextSize(warnings.c_str()).x
-                        + style.FramePadding.x * 4.0f + style.ItemSpacing.x * 2.0f;
+    float width = ImGui::CalcTextSize(errors.c_str()).x + ImGui::CalcTextSize(warnings.c_str()).x
+                  + style.FramePadding.x * 4.0f + style.ItemSpacing.x * 2.0f;
+    if (!build.empty()) {
+        width += ImGui::CalcTextSize(build.c_str()).x + style.FramePadding.x * 2.0f + style.ItemSpacing.x;
+    }
     ImGui::SetCursorPosX(ImGui::GetWindowWidth() - width);
 
     const EditorColors& colors = context.theme.colors();
+    if (context.buildingScripts) {
+        ImGui::TextDisabled("%s", build.c_str());
+        ImGui::SameLine();
+    } else if (context.scriptsFailed) {
+        ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(colors.errorText));
+        if (ImGui::SmallButton(build.c_str())) {
+            context.showLog();
+        }
+        ImGui::PopStyleColor();
+        ImGui::SetItemTooltip("%s", tr("editor.scripts.failedTooltip").c_str());
+        ImGui::SameLine();
+    }
     const auto counter = [&](const std::string& label, std::size_t count, const Vec4& color) {
         if (count > 0) {
             ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(color));
@@ -149,11 +171,15 @@ void drawMainMenu(const MainMenuContext& context)
         context.actions.menuItem(actions::kProjectSettings);
         ImGui::EndMenu();
     }
+    if (context.session.project() && ImGui::BeginMenu(tr("editor.menu.scripts").c_str())) {
+        context.actions.menuItem(actions::kBuildScripts);
+        ImGui::EndMenu();
+    }
     drawViewMenu(context);
     if (context.session.project()) {
         drawPlayControls(context);
         ImGui::SameLine();
-        drawLogCounters(context);
+        drawStatus(context);
     }
     ImGui::EndMainMenuBar();
 }

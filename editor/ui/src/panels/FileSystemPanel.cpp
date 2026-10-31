@@ -3,9 +3,12 @@
 #include "yqlora/editor/ui/style/Icons.hpp"
 #include "yqlora/editor/ui/style/Theme.hpp"
 
+#include "yqlora/core/AppPaths.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
+#include "yqlora/platform/Platform.hpp"
+#include "yqlora/project/Project.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -25,8 +28,25 @@ const char* iconFor(const ProjectFiles::Entry& entry, bool open)
         return open ? icons::kFolderOpen : icons::kFolder;
     }
 
-    return ProjectFiles::isScene(entry.path) ? icons::kScene : icons::kFile;
+    if (ProjectFiles::isScene(entry.path)) {
+        return icons::kScene;
+    }
+
+    return Project::isSource(entry.path) ? icons::kCodeFile : icons::kFile;
 }
+
+const char* iconFor(NewResourceKind kind)
+{
+    switch (kind) {
+    case NewResourceKind::Folder: return icons::kAddFolder;
+    case NewResourceKind::Scene: return icons::kScene;
+    case NewResourceKind::CppScript: return icons::kCodeFile;
+    }
+
+    return icons::kFile;
+}
+
+constexpr const char* kNewResourcePopup = "##newResource";
 
 // Кнопка с иконкой; текст - во всплывающей подсказке.
 bool iconButton(const char* icon, const std::string& hint)
@@ -64,18 +84,12 @@ void FileSystemPanel::draw(EditorContext& context)
         m_dirty = false;
     }
 
-    if (iconButton(icons::kAddFile, tr("editor.files.newScene"))) {
-        if (const auto created = files.createScene(targetFolder(), serializer)) {
-            m_dirty = true;
-            startRename(*created);
-        }
+    if (iconButton(icons::kAdd, tr("editor.files.newResource"))) {
+        ImGui::OpenPopup(kNewResourcePopup);
     }
-    ImGui::SameLine();
-    if (iconButton(icons::kAddFolder, tr("editor.files.newFolder"))) {
-        if (const auto created = files.createFolder(targetFolder())) {
-            m_dirty = true;
-            startRename(*created);
-        }
+    if (ImGui::BeginPopup(kNewResourcePopup)) {
+        drawNewResourceItems(files, targetFolder());
+        ImGui::EndPopup();
     }
     ImGui::SameLine();
     if (iconButton(icons::kRefresh, tr("editor.files.refresh"))) {
@@ -93,6 +107,7 @@ void FileSystemPanel::draw(EditorContext& context)
     }
     ImGui::EndChild();
 
+    drawCreateDialog(session, serializer, context.theme.colors());
     drawRenameDialog(session, context.theme.colors());
     drawDeleteDialog(session);
     ImGui::End();
@@ -139,12 +154,15 @@ void FileSystemPanel::drawEntry(
         m_selected = entry.path;
         m_selectedIsDirectory = entry.directory;
     }
-    if (!entry.directory && ProjectFiles::isScene(entry.path) && ImGui::IsItemHovered()
-        && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-        m_openRequest = entry.path;
+    if (!entry.directory && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+        if (ProjectFiles::isScene(entry.path)) {
+            m_openRequest = entry.path;
+        } else {
+            platform::openWithSystem(session.project()->directory() / entry.path);
+        }
     }
     // Меню привязывается к последнему элементу, поэтому сразу после строки файла.
-    drawContextMenu(entry, session, serializer);
+    drawContextMenu(entry, session);
     if (mainScene) {
         ImGui::SameLine();
         ImGui::TextDisabled("%s", icons::kMainScene);
@@ -159,11 +177,7 @@ void FileSystemPanel::drawEntry(
     }
 }
 
-void FileSystemPanel::drawContextMenu(
-    const ProjectFiles::Entry& entry,
-    EditorSession& session,
-    const SceneSerializer& serializer
-)
+void FileSystemPanel::drawContextMenu(const ProjectFiles::Entry& entry, EditorSession& session)
 {
     if (!ImGui::BeginPopupContextItem()) {
         return;
@@ -177,17 +191,10 @@ void FileSystemPanel::drawContextMenu(
     };
 
     if (entry.directory) {
-        if (item(icons::kAddFile, "editor.files.newScene")) {
-            if (const auto created = files.createScene(entry.path, serializer)) {
-                m_dirty = true;
-                startRename(*created);
-            }
-        }
-        if (item(icons::kAddFolder, "editor.files.newFolder")) {
-            if (const auto created = files.createFolder(entry.path)) {
-                m_dirty = true;
-                startRename(*created);
-            }
+        const std::string label = std::string(icons::kAdd) + "  " + tr("editor.files.newResource");
+        if (ImGui::BeginMenu(label.c_str())) {
+            drawNewResourceItems(files, entry.path);
+            ImGui::EndMenu();
         }
         ImGui::Separator();
     } else if (ProjectFiles::isScene(entry.path)) {
@@ -205,6 +212,83 @@ void FileSystemPanel::drawContextMenu(
     if (item(icons::kDelete, "editor.files.delete")) {
         m_deleting = entry.path;
         m_deleteRequested = true;
+    }
+    ImGui::EndPopup();
+}
+
+void FileSystemPanel::drawNewResourceItems(const ProjectFiles& files, const std::filesystem::path& folder)
+{
+    for (const NewResourceType& type : newResourceTypes()) {
+        const std::string label = std::string(iconFor(type.kind)) + "  " + tr(type.labelKey) + "...";
+        if (!ImGui::MenuItem(label.c_str())) {
+            continue;
+        }
+        m_createKind = type.kind;
+        m_createFolder = folder;
+        m_createName = files.suggestName(type.kind, folder);
+        m_error.clear();
+        m_createRequested = true;
+    }
+}
+
+void FileSystemPanel::drawCreateDialog(
+    EditorSession& session,
+    const SceneSerializer& serializer,
+    const EditorColors& colors
+)
+{
+    const bool script = m_createKind == NewResourceKind::CppScript;
+    const auto& types = newResourceTypes();
+    const auto type = std::ranges::find(types, m_createKind, &NewResourceType::kind);
+    const std::string title = tr(type->labelKey) + "###NewResource";
+    if (m_createRequested) {
+        ImGui::OpenPopup(title.c_str());
+        m_createRequested = false;
+    }
+    if (!ImGui::BeginPopupModal(title.c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        return;
+    }
+    ImGui::TextUnformatted(tr(script ? "editor.files.scriptName" : "editor.files.name").c_str());
+    if (ImGui::IsWindowAppearing()) {
+        ImGui::SetKeyboardFocusHere();
+    }
+    ImGui::SetNextItemWidth(kNameFieldWidth);
+    const bool entered = ImGui::InputText("##name", &m_createName, ImGuiInputTextFlags_EnterReturnsTrue);
+    const bool valid = isValidResourceName(m_createKind, m_createName);
+    if (!valid) {
+        ImGui::TextColored(
+            toImVec4(colors.errorText),
+            "%s",
+            tr(script ? "editor.files.error.scriptName" : "editor.files.error.name").c_str()
+        );
+    } else if (!m_error.empty()) {
+        ImGui::TextColored(toImVec4(colors.errorText), "%s", tr(m_error).c_str());
+    }
+
+    ImGui::BeginDisabled(!valid);
+    if (ImGui::Button(tr("editor.files.create").c_str()) || (entered && valid)) {
+        ProjectFiles files(*session.project());
+        std::optional<std::filesystem::path> created;
+        switch (m_createKind) {
+        case NewResourceKind::Folder: created = files.createFolder(m_createFolder, m_createName); break;
+        case NewResourceKind::Scene: created = files.createScene(m_createFolder, m_createName, serializer); break;
+        case NewResourceKind::CppScript:
+            created = files.createScript(m_createFolder, m_createName, cppScriptTemplateDirectory(assetsDirectory()));
+            break;
+        }
+        if (created) {
+            m_selected = *created;
+            m_selectedIsDirectory = m_createKind == NewResourceKind::Folder;
+            m_dirty = true;
+            ImGui::CloseCurrentPopup();
+        } else {
+            m_error = "editor.files.error.exists";
+        }
+    }
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ImGui::Button(tr("editor.common.cancel").c_str()) || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();
 }

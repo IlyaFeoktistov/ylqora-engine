@@ -86,6 +86,31 @@ Status marks: see [README](README.md).
   search, clear, copy one entry or everything shown; while scrolled to the
   end it follows new entries. The main menu shows the error and warning
   counters on the right; a click opens the log.
+- Build output goes to the same buffer with the source "build"; every line
+  gets its level from `CompilerDiagnostics` (GCC, Clang, MSVC, the linker,
+  CMake), so compiler errors count as errors.
 - A window added by a new version of the editor docks where the default
   layout would put it, unless `imgui.ini` already knows it
   (`dockNewWindows`).
+
+## Building scripts [done]
+
+- `ScriptBuild` builds the game module on its own thread, one build at a
+  time; requests during a build give exactly one more. Triggers: Scripts >
+  Build (Ctrl+B), Play, opening a project and the editor window getting
+  focus. All but the first are quiet: when Ninja has nothing to do, the log
+  stays empty. Play waits for the build and does not start if it failed;
+  pressing it again while waiting cancels Play.
+- Play brings the game view forward; if the scene view was shown before,
+  Stop brings it back. An opened project starts with the scene view.
+- A successful build whose library changed reloads the module
+  (`EditorSession::reloadGameModule`, see [scripts](scripting.md)).
+- The main menu shows "Building scripts..." during a build and a red mark
+  after a failed one.
+- The Scripts menu: Build. Scripts are created in Files: Create resource
+  lists `newResourceTypes()` (folder, scene, C++ script; Luau and visual
+  scripts, materials join with their steps). Every kind asks for a name
+  first (a free one is suggested) and is made by the Create button: Cancel
+  leaves nothing behind. A C++ script's name is its class name; it is made
+  from `assets/templates/cpp-script/`. A double click on a
+  file that is not a scene opens it with the system (`platform::openWithSystem`).

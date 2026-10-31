@@ -20,6 +20,7 @@
 #include <imgui.h>
 
 #include <string>
+#include <utility>
 
 namespace yqlora::editor {
 
@@ -51,6 +52,7 @@ void ViewportPanel::onProjectOpened(EditorContext& /*context*/)
 {
     m_camera.setPosition(kStartCameraPosition);
     m_camera.lookAt(kStartCameraTarget);
+    m_bringForward = true;
 }
 
 void ViewportPanel::draw(EditorContext& context)
@@ -60,6 +62,10 @@ void ViewportPanel::draw(EditorContext& context)
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     const bool visible = beginWindow(context);
     ImGui::PopStyleVar();
+    // Проект открыт: впереди окно вида, а не игры, где бы ни стояли вкладки.
+    if (std::exchange(m_bringForward, false)) {
+        ImGui::SetWindowFocus();
+    }
 
     const ImVec2 size = ImGui::GetContentRegionAvail();
     if (!visible || !m_view.resize(context.host.renderer(), size)) {

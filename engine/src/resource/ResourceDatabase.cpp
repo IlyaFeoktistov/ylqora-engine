@@ -66,7 +66,11 @@ bool isInside(const fs::path& path, const fs::path& folder)
 
 } // namespace
 
-void ResourceDatabase::scan(const fs::path& root, std::span<const std::string_view> skipNames)
+void ResourceDatabase::scan(
+    const fs::path& root,
+    std::span<const std::string_view> skipNames,
+    std::span<const std::string_view> skipExtensions
+)
 {
     m_root = root;
     m_paths.clear();
@@ -84,7 +88,8 @@ void ResourceDatabase::scan(const fs::path& root, std::span<const std::string_vi
             }
             continue;
         }
-        if (!it->is_regular_file(ec) || isMeta(absolute)) {
+        if (!it->is_regular_file(ec) || isMeta(absolute)
+            || std::ranges::find(skipExtensions, toUtf8(absolute.extension())) != skipExtensions.end()) {
             continue;
         }
 

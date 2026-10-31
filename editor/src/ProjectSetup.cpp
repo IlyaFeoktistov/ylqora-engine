@@ -11,6 +11,7 @@
 #include "yqlora/scene/Scene.hpp"
 #include "yqlora/scene/SceneSerializer.hpp"
 
+#include <array>
 #include <cctype>
 
 namespace yqlora::editor {
@@ -18,7 +19,9 @@ namespace yqlora::editor {
 namespace {
 
 constexpr const char* kMainSceneName = "main";
-constexpr const char* kTemplatesFolder = "templates";
+constexpr const char* kScenesFolder = "scenes";
+// Стартовые папки нового проекта; стартовая сцена - в kScenesFolder.
+constexpr std::array<const char*, 3> kStarterFolders{kScenesFolder, "scripts", "assets"};
 // Куб стоит на сетке, камера смотрит на него спереди и сверху.
 const Vec3 kStarterCubePosition(0.0f, 0.5f, 0.0f);
 const Vec3 kStarterCameraPosition(0.0f, 2.0f, 5.0f);
@@ -41,16 +44,10 @@ void buildStarterScene(Scene& scene)
 
 } // namespace
 
-std::filesystem::path scriptsTemplateDirectory(const std::filesystem::path& assets)
-{
-    return assets / kTemplatesFolder / Project::scriptsDirectoryName();
-}
-
 std::optional<Project> createProject(
     const std::filesystem::path& location,
     const std::string& name,
     const SceneSerializer& serializer,
-    const std::filesystem::path& scriptsTemplate,
     std::string& error
 )
 {
@@ -72,7 +69,12 @@ std::optional<Project> createProject(
         return std::nullopt;
     }
 
-    const std::filesystem::path mainScene = std::string(kMainSceneName) + std::string(SceneSerializer::fileExtension());
+    for (const char* folder : kStarterFolders) {
+        std::filesystem::create_directories(directory / folder, ec);
+    }
+    const std::filesystem::path mainScene = std::filesystem::path(kScenesFolder)
+                                            / (std::string(kMainSceneName)
+                                               + std::string(SceneSerializer::fileExtension()));
     Scene scene(EngineServices::none());
     buildStarterScene(scene);
     auto project = Project::create(directory, name, serializer.registry());
@@ -89,43 +91,8 @@ std::optional<Project> createProject(
 
         return std::nullopt;
     }
-    if (!createScriptsFolder(directory, scriptsTemplate, error)) {
-        return std::nullopt;
-    }
 
     return project;
-}
-
-bool createScriptsFolder(
-    const std::filesystem::path& projectDirectory,
-    const std::filesystem::path& scriptsTemplate,
-    std::string& error
-)
-{
-    const std::filesystem::path scripts = projectDirectory / Project::scriptsDirectoryName();
-    std::error_code ec;
-    if (std::filesystem::exists(scripts, ec)) {
-        error = "projects.error.scriptsExist";
-
-        return false;
-    }
-    if (!std::filesystem::is_directory(scriptsTemplate, ec)) {
-        log::error("Scripts template '{}' is missing", toUtf8(scriptsTemplate));
-        error = "projects.error.cannotCreateScripts";
-
-        return false;
-    }
-    std::filesystem::copy(scriptsTemplate, scripts, std::filesystem::copy_options::recursive, ec);
-    if (ec) {
-        log::error("Cannot copy the scripts template to '{}': {}", toUtf8(scripts), ec.message());
-        // Наполовину скопированная папка помешала бы следующей попытке.
-        std::filesystem::remove_all(scripts, ec);
-        error = "projects.error.cannotCreateScripts";
-
-        return false;
-    }
-
-    return true;
 }
 
 bool deleteProjectFolder(const std::filesystem::path& directory, std::string& error)

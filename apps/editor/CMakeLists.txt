@@ -15,3 +15,5 @@ add_custom_command(TARGET yqlora_app POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:yqlora_app>/assets
 )
+# Редактор собирает модули игры против SDK рядом с собой.
+add_dependencies(yqlora_app yqlora_sdk)

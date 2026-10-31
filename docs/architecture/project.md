@@ -18,19 +18,30 @@ MyGame/
 |   |-- general.json
 |   |-- time.json
 |   `-- ...
-|-- .build/                 the game library: game.dll / libgame.so
-|-- main.yscene             scenes, anywhere in the folder
-|-- main.yscene.meta        resource ID of the file next to it
-`-- ...                     other resources with their .meta
+|-- scenes/                 starter folders of a new project; any layout works
+|   |-- main.yscene         scenes, anywhere in the folder
+|   `-- main.yscene.meta    resource ID of the file next to it
+|-- scripts/
+|   |-- Player.hpp          C++ scripts, anywhere in the folder, without .meta
+|   `-- Player.cpp
+|-- assets/                 other resources with their .meta
+`-- .build/                 build output, not in git
+    |-- Debug-<fingerprint>/   CMake build folder of the game module
+    `-- reload/             copies of the module the editor has loaded
 ```
 
-- `project.yqlora` and `settings/` are not resources: the resource scan skips
-  them (`Project::reservedNames`), the Files panel hides them and cannot
-  rename or delete them.
+- `project.yqlora` and `settings/` are not resources: the resource scan
+  skips them (`Project::reservedNames`), the Files panel hides them and
+  cannot rename or delete them.
+- C++ sources (`Project::sourceExtensions`) are files of the project shown
+  in Files, but not resources: nothing refers to them by ID, so they get no
+  `.meta`. The game module is built from every `.cpp` outside hidden
+  folders; a double click opens a source in the program the system assigns
+  (the IDE).
 - Hidden files and folders (starting with a dot) are skipped too, so the
-  build output in `.build/` is never a resource; the editor loads the game
-  library from there (see [scripts](scripting.md)), and in step 3 builds it
-  there.
+  build output in `.build/` (`Project::buildDirectoryName`) is never a
+  resource. The editor builds the game module there and loads a copy of it
+  from `.build/reload/` (see [scripts](scripting.md)).
 - The project is `Project` in the engine: it is needed by the editor and by
   the game runtime (step 9). Creating, importing and deleting a project folder
   is the editor's job (`ProjectSetup`, `ProjectManager`).

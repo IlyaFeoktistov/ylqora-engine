@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -14,6 +15,34 @@ class SceneSerializer;
 } // namespace yqlora
 
 namespace yqlora::editor {
+
+// Что можно создать в панели файлов ("Создать ресурс"). Новый вид - значение
+// здесь и строка в newResourceTypes(); скрипты Luau, визуальные скрипты,
+// материалы встают сюда со своими шагами.
+enum class NewResourceKind {
+    Folder,
+    Scene,
+    CppScript,
+};
+
+struct NewResourceType {
+    NewResourceKind kind;
+    // Ключ перевода подписи.
+    const char* labelKey;
+    // Имя, которое предлагается в окне создания (у скрипта оно же имя класса).
+    const char* defaultName;
+};
+
+std::span<const NewResourceType> newResourceTypes();
+
+// Шаблон C++-скрипта среди ресурсов редактора (assets).
+std::filesystem::path cppScriptTemplateDirectory(const std::filesystem::path& assets);
+
+// Годится как имя класса C++-скрипта: латиница, цифры и "_", не с цифры.
+bool isValidScriptName(std::string_view name);
+
+// Годится как имя нового ресурса вида kind (без расширения).
+bool isValidResourceName(NewResourceKind kind, std::string_view name);
 
 // Файлы внутри папки проекта: дерево для панели файлов и операции над ним.
 // Все пути - относительно папки проекта, выйти за её пределы нельзя.
@@ -35,13 +64,31 @@ public:
     // .meta и скрытые файлы (имя с точки) не показываются.
     Entry scan() const;
 
-    // Новая пустая сцена в папке folder: "New Scene.yscene", "New Scene 2.yscene"...
+    // Свободное имя для нового ресурса вида kind в папке folder: имя по
+    // умолчанию, при занятом - с номером ("New Scene 2", "NewScript2").
+    std::string suggestName(NewResourceKind kind, const std::filesystem::path& folder) const;
+
+    // Новая пустая сцена name.yscene в папке folder. nullopt, если имя
+    // не годится или занято.
     std::optional<std::filesystem::path> createScene(
         const std::filesystem::path& folder,
+        std::string_view name,
         const SceneSerializer& serializer
     );
 
-    std::optional<std::filesystem::path> createFolder(const std::filesystem::path& folder);
+    // Новая папка name в папке folder. nullopt, если имя не годится или занято.
+    std::optional<std::filesystem::path> createFolder(const std::filesystem::path& folder, std::string_view name);
+
+    // C++-скрипт name в папке folder: name.hpp и name.cpp из шаблона
+    // templateDirectory с подставленным именем класса. Скрипт сам
+    // регистрируется в модуле игры (YQLORA_REGISTER_SCRIPT), список файлов
+    // сборки находит его сам. Возвращает путь к .cpp; nullopt, если имя
+    // не годится или файлы с ним уже есть (причина в логе).
+    std::optional<std::filesystem::path> createScript(
+        const std::filesystem::path& folder,
+        std::string_view name,
+        const std::filesystem::path& templateDirectory
+    );
 
     // Переименовывает файл или папку в той же папке. Возвращает новый путь;
     // nullopt, если имя недопустимо, занято или путь трогать нельзя.

@@ -2,121 +2,87 @@
 
 [English version](first-script.md)
 
-Скрипт - это C++-класс, который вешается на узел как компонент. Скрипты игры
-живут в одной разделяемой библиотеке, модуле игры: `game.dll` на Windows,
-`libgame.so` на Linux. Редактор загружает её из папки `.build/` проекта,
-когда проект открывается.
+Скрипт - это C++-класс, который вешается на узел как компонент. Скрипты -
+файлы проекта, как сцены, и могут лежать в любой папке. Редактор собирает
+их все в одну разделяемую библиотеку, модуль игры (`game.dll` на Windows,
+`libgame.so` на Linux), тем же компилятором, что и движок, и перезагружает
+её, пока вы работаете. Своих файлов сборки у проекта нет.
 
-До шага 3 (сборка скриптов из редактора) модуль игры собирается внутри
-CMake-дерева движка, рядом с примерами. В этом руководстве получится скрипт
-`Pulse`, который заставляет узел увеличиваться и уменьшаться.
+## 1. Создать скрипт
 
-## 1. Написать скрипт
+В "Файлах" нажмите "Создать ресурс" (или правый щелчок по папке) и выберите
+"C++ скрипт". Введите имя класса, например `Spinner`. Редактор создаст в
+папке `Spinner.hpp` и `Spinner.cpp` и соберёт модуль; сборка видна в панели
+"Лог".
 
-Создайте `examples/my-game/Pulse.cpp`:
+Двойной щелчок по `Spinner.cpp` открывает его программой, которую система
+назначила для файлов C++ (вашей IDE).
+
+## 2. Написать код
+
+`Spinner.hpp`:
 
 ```cpp
-#include <yqlora/scene/Node3D.hpp>
-#include <yqlora/scene/Transform3D.hpp>
-#include <yqlora/scripting/ModuleRegistrar.hpp>
+#pragma once
+
 #include <yqlora/scripting/Script.hpp>
 
-#include <glm/gtc/constants.hpp>
-
-#include <cmath>
-
-class Pulse : public yqlora::Script {
+class Spinner : public yqlora::Script {
 public:
-    YQLORA_SCRIPT(Pulse)
+    YQLORA_SCRIPT(Spinner)
 
-    float amplitude = 0.2f;
-    float frequency = 1.0f;
+    float degreesPerSecond = 90.0f;
 
-    YQLORA_FIELDS(
-        field("amplitude", &Pulse::amplitude).range(0.0f, 1.0f).tooltip("How much the node grows and shrinks"),
-        field("frequency", &Pulse::frequency).range(0.0f, 10.0f).tooltip("Pulses per second")
-    )
+    YQLORA_FIELDS(field("degreesPerSecond", &Spinner::degreesPerSecond).range(-720.0f, 720.0f))
 
 protected:
-    void onStart() override
-    {
-        m_baseScale = transform().scale();
-    }
-
-    void onUpdate(float deltaSeconds) override
-    {
-        m_elapsed += deltaSeconds;
-        const float wave = std::sin(m_elapsed * frequency * glm::two_pi<float>());
-        transform().setScale(m_baseScale * (1.0f + amplitude * wave));
-    }
-
-private:
-    // Не перечислены в YQLORA_FIELDS: живут только во время игры.
-    yqlora::Vec3 m_baseScale{1.0f};
-    float m_elapsed = 0.0f;
+    void onUpdate(float deltaSeconds) override;
 };
+```
 
-YQLORA_MODULE_ENTRY(registrar)
+`Spinner.cpp`:
+
+```cpp
+#include "Spinner.hpp"
+
+#include <yqlora/scene/Node3D.hpp>
+#include <yqlora/scene/Transform3D.hpp>
+#include <yqlora/scripting/ModuleScripts.hpp>
+
+#include <glm/gtc/quaternion.hpp>
+
+YQLORA_REGISTER_SCRIPT(Spinner).requiresNode<yqlora::Node3D>();
+
+void Spinner::onUpdate(float deltaSeconds)
 {
-    registrar.registerScript<Pulse>().requiresNode<yqlora::Node3D>();
+    const yqlora::Quat turn = glm::angleAxis(glm::radians(degreesPerSecond * deltaSeconds), yqlora::math::kWorldUp);
+    transform().setRotation(transform().rotation() * turn);
 }
 ```
 
-- `YQLORA_SCRIPT(Pulse)` задаёт имя типа; это имя хранят файлы сцен.
+- `YQLORA_SCRIPT(Spinner)` задаёт имя типа; это имя хранят файлы сцен.
 - `YQLORA_FIELDS` перечисляет поля, которые показывает инспектор и
-  сохраняют файлы сцен, с их атрибутами. Неперечисленные поля (здесь
-  `m_baseScale`, `m_elapsed`) живут только во время игры.
-- `YQLORA_MODULE_ENTRY` - единственное место, где библиотека регистрирует
-  свои скрипты. Входная функция у модуля ровно одна.
+  сохраняют файлы сцен, с их атрибутами (`.range`, `.tooltip`, ...).
+  Остальные поля живут только во время игры.
+- `YQLORA_REGISTER_SCRIPT` добавляет скрипт в модуль игры, с правилами после
+  него: `requiresNode`, `requiresComponent`, `formerly`, `executionOrder`.
+  Никакой другой файл скрипты не перечисляет.
 - Вызовы жизненного цикла (`onStart`, `onUpdate`, ...) и их порядок описаны
   в [скриптах](../architecture/scripting.ru.md#контракт-жизненного-цикла).
 
-## 2. Собрать библиотеку
+Сохраните и вернитесь в редактор: он соберёт модуль и перезагрузит его.
+Ctrl+B (Скрипты > Собрать) собирает в любой момент, Play тоже сначала
+собирает.
 
-Создайте `examples/my-game/CMakeLists.txt`:
+## 3. Использовать
 
-```cmake
-add_library(my_game SHARED Pulse.cpp)
-target_link_libraries(my_game PRIVATE yqlora::yqlora)
-set_target_properties(my_game PROPERTIES
-    OUTPUT_NAME game
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples/my-game
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples/my-game
-)
-if(WIN32)
-    set_target_properties(my_game PROPERTIES PREFIX "")
-endif()
-```
+Выберите куб, нажмите "Добавить компонент": `Spinner` в группе "Скрипты".
+Поменяйте `degreesPerSecond` в инспекторе, нажмите Play.
 
-Добавьте `add_subdirectory(my-game)` в `examples/CMakeLists.txt` и соберите:
-
-```bash
-cmake --preset debug
-cmake --build --preset debug
-```
-
-Библиотека появится в `build/debug/examples/my-game/`.
-
-## 3. Положить её в проект
-
-Скопируйте `game.dll` (`libgame.so`) в папку `.build/` проекта, рядом с
-`project.yqlora`. Панель "Файлы" эту папку не показывает, ресурсом она не
-бывает.
-
-## 4. Использовать в редакторе
-
-Откройте проект. Выберите узел, нажмите "Добавить компонент": `Pulse` в
-группе "Скрипты". Поменяйте `amplitude` и `frequency` в инспекторе, нажмите
-Play.
-
-Чтобы поменять код: закройте проект (на Windows загруженную библиотеку не
-заменить), соберите, снова скопируйте библиотеку, откройте проект. Горячая
-перезагрузка появится в шаге 3.
-
-Если проект открыт без библиотеки, скрипты в его сценах хранятся
-заглушками: инспектор показывает их как не найденные, сохранение пишет их
-данные обратно без изменений, и они возвращаются, когда библиотека снова на
-месте.
+Поменяйте код ещё раз и вернитесь: сцена сохранит значения полей скриптов;
+история правок очищается, потому что её команды держат объекты старого
+кода. Ошибки компилятора в панели "Лог" красные, главное меню отмечает
+неудачную сборку, а старый модуль работает до следующей удачной сборки.
 
 ## Ограничения
 
@@ -125,7 +91,15 @@ Play.
   указатель) роняет редактор вместе со скриптом, а бесконечный цикл его
   вешает. Сохраняйтесь перед Play.
 - Один модуль игры на проект. Скрипт с уже занятым именем (типом движка или
-  другим скриптом) не регистрируется; в логе написано, каким модулем занято имя.
+  другим скриптом) не регистрируется; в логе написано, каким модулем занято
+  имя.
 - Имя поля в `field("name", ...)` хранится в файлах сцен. Переименовав его,
   отметьте старое: `.formerly("oldName")`; переименовав класс -
-  `registerScript<T>().formerly("OldName")`.
+  `YQLORA_REGISTER_SCRIPT(T).formerly("OldName")`.
+- Если модуль не собран, скрипты в сценах хранятся заглушками: инспектор
+  показывает их как не найденные, сохранение пишет их данные обратно без
+  изменений, и они возвращаются со следующей удачной сборкой.
+- Файлы в скрытых папках (имя с точки) не собираются.
+- Редактор собирает тем компилятором, которым собран движок
+  (`sdk/toolchain.json` рядом с редактором). Движок, собранный MSVC, пока не
+  собирает скрипты из редактора.

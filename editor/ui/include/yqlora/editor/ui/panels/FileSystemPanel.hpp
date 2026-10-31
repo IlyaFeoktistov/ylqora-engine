@@ -19,8 +19,10 @@ namespace yqlora::editor {
 class EditorSession;
 struct EditorColors;
 
-// Файлы проекта внизу редактора: сцены и папки. Двойной клик по сцене
-// открывает её, правый клик - меню с остальными действиями.
+// Файлы проекта внизу редактора: всё, что лежит в папке проекта, кроме
+// служебного. "Создать ресурс" предлагает виды из newResourceTypes(). Двойной
+// клик по сцене открывает её в редакторе, по другому файлу - программой
+// системы (скрипт - в IDE); правый клик - меню с остальными действиями.
 class FileSystemPanel final : public EditorPanel {
 public:
     const char* id() const override
@@ -47,7 +49,11 @@ private:
         const SceneSerializer& serializer,
         const EditorColors& colors
     );
-    void drawContextMenu(const ProjectFiles::Entry& entry, EditorSession& session, const SceneSerializer& serializer);
+    void drawContextMenu(const ProjectFiles::Entry& entry, EditorSession& session);
+    // Пункты "Создать ресурс" для папки folder. Файл появляется только после
+    // кнопки "Создать" в окне с именем: отмена ничего не оставляет.
+    void drawNewResourceItems(const ProjectFiles& files, const std::filesystem::path& folder);
+    void drawCreateDialog(EditorSession& session, const SceneSerializer& serializer, const EditorColors& colors);
     void drawRenameDialog(EditorSession& session, const EditorColors& colors);
     void drawDeleteDialog(EditorSession& session);
     // Папка, куда класть новые файлы: выбранная папка или папка выбранного файла.
@@ -65,6 +71,10 @@ private:
     bool m_renameRequested = false;
     std::filesystem::path m_renaming;
     std::string m_newName;
+    bool m_createRequested = false;
+    NewResourceKind m_createKind = NewResourceKind::Folder;
+    std::filesystem::path m_createFolder;
+    std::string m_createName;
     bool m_deleteRequested = false;
     std::filesystem::path m_deleting;
     std::string m_error;

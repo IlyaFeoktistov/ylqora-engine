@@ -9,14 +9,9 @@
 
 namespace yqlora::editor {
 
-ProjectManager::ProjectManager(
-    std::filesystem::path listFile,
-    const SceneSerializer& serializer,
-    std::filesystem::path scriptsTemplate
-)
+ProjectManager::ProjectManager(std::filesystem::path listFile, const SceneSerializer& serializer)
     : m_list(std::move(listFile))
     , m_serializer(serializer)
-    , m_scriptsTemplate(std::move(scriptsTemplate))
 {
     m_list.load();
     refresh();
@@ -70,7 +65,7 @@ std::optional<Project> ProjectManager::create(
     std::string& error
 )
 {
-    auto project = createProject(location, name, m_serializer, m_scriptsTemplate, error);
+    auto project = createProject(location, name, m_serializer, error);
     if (project) {
         m_list.add(project->directory());
         commit();

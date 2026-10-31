@@ -8,6 +8,8 @@
 #   sdk/include/        публичные заголовки движка и glm
 #   sdk/lib/            библиотека импорта (Windows)
 #   sdk/cmake/          yqloraConfig.cmake, версия, yqlora_add_game_module
+#                       и входная функция модуля
+#   sdk/game-project/   CMakeLists.txt модуля игры проекта: его настраивает редактор
 #   sdk/toolchain.json  набор инструментов, которым собран движок
 
 include(CMakePackageConfigHelpers)
@@ -55,21 +57,26 @@ file(GENERATE OUTPUT ${YQLORA_SDK_DIR}/cmake/yqloraConfigVersion.cmake
 )
 file(GENERATE OUTPUT ${YQLORA_SDK_DIR}/toolchain.json INPUT ${YQLORA_SDK_STAGING}/toolchain.json)
 
-# Копии после сборки библиотеки: заголовки меняются вместе с ней. if_different
-# не трогает неизменённые файлы, иначе каждая сборка движка пересобирала бы
-# все скрипты проекта.
-add_custom_command(TARGET yqlora POST_BUILD
+# Копии сверяются при каждой сборке (цель всегда устаревшая), а не только
+# когда перелинкована библиотека: правка одного CMake-файла SDK её не
+# перелинковывает. if_different не трогает неизменённые файлы, иначе каждая
+# сборка движка пересобирала бы все скрипты проекта.
+set(sdk_copy
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
         ${PROJECT_SOURCE_DIR}/engine/include ${YQLORA_SDK_DIR}/include
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different ${glm_SOURCE_DIR}/glm ${YQLORA_SDK_DIR}/include/glm
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${PROJECT_SOURCE_DIR}/cmake/YqloraGameModule.cmake ${YQLORA_SDK_DIR}/cmake/YqloraGameModule.cmake
-    VERBATIM
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${PROJECT_SOURCE_DIR}/cmake/GameModuleEntry.cpp ${YQLORA_SDK_DIR}/cmake/GameModuleEntry.cpp
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${PROJECT_SOURCE_DIR}/cmake/game-project/CMakeLists.txt ${YQLORA_SDK_DIR}/game-project/CMakeLists.txt
 )
 if(WIN32)
-    add_custom_command(TARGET yqlora POST_BUILD
+    list(APPEND sdk_copy
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_LINKER_FILE:yqlora> ${YQLORA_SDK_DIR}/lib/$<TARGET_LINKER_FILE_NAME:yqlora>
-        VERBATIM
     )
 endif()
+add_custom_target(yqlora_sdk ALL ${sdk_copy} VERBATIM)
+add_dependencies(yqlora_sdk yqlora)

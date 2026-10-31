@@ -15,27 +15,15 @@ class SceneSerializer;
 
 namespace yqlora::editor {
 
-// Шаблон папки scripts/ среди ресурсов редактора (assets).
-std::filesystem::path scriptsTemplateDirectory(const std::filesystem::path& assets);
-
-// Создаёт папку location/name с файлом проекта, стартовой сценой (камера и куб)
-// и папкой scripts/ из шаблона scriptsTemplate.
+// Создаёт папку location/name с файлом проекта и стартовыми папками: scenes/
+// со стартовой сценой (камера и куб), scripts/ и assets/. Папки - только
+// порядок для начала: ресурсы и скрипты могут лежать где угодно.
 // При ошибке возвращает nullopt и пишет причину в error: это ключ перевода,
 // его можно сразу показать через tr().
 std::optional<Project> createProject(
     const std::filesystem::path& location,
     const std::string& name,
     const SceneSerializer& serializer,
-    const std::filesystem::path& scriptsTemplate,
-    std::string& error
-);
-
-// Копирует шаблон в папку scripts/ проекта, у которого её ещё нет (проект
-// создан до шага 3 или папку удалили). Существующую не трогает: там чужой код.
-// При ошибке пишет ключ перевода в error.
-bool createScriptsFolder(
-    const std::filesystem::path& projectDirectory,
-    const std::filesystem::path& scriptsTemplate,
     std::string& error
 );
 

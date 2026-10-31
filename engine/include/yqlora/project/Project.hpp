@@ -35,12 +35,6 @@ public:
         return "project.yqlora";
     }
 
-    // Исходники модуля игры (CMakeLists.txt, скрипты C++): собираются, а не грузятся как ресурсы.
-    static constexpr std::string_view scriptsDirectoryName()
-    {
-        return "scripts";
-    }
-
     // Всё, что собирается из проекта (модуль игры). Скрытая: ни ресурсы, ни
     // панель файлов её не видят, в git она не идёт.
     static constexpr std::string_view buildDirectoryName()
@@ -48,9 +42,14 @@ public:
         return ".build";
     }
 
-    // Имена в корне папки проекта, которые не ресурсы игры: файл проекта, папка
-    // настроек и папка скриптов.
+    // Имена в корне папки проекта, которые не ресурсы игры: файл проекта и папка настроек.
     static std::span<const std::string_view> reservedNames();
+
+    // Исходники C++ (скрипты): лежат где угодно в проекте и видны в панели
+    // файлов, но не ресурсы - модуль игры собирается из них, а по ID на них
+    // ничто не ссылается, поэтому и .meta у них нет.
+    static std::span<const std::string_view> sourceExtensions();
+    static bool isSource(const std::filesystem::path& path);
 
     // Версия формата проекта. Растёт при любой смене формата проекта или сцены.
     static int formatVersion();

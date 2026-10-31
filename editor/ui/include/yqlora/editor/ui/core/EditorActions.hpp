@@ -9,7 +9,7 @@ class EditorSession;
 
 // Что делают действия, которые знает только приложение: сохранение с записью
 // в лог, закрытие проекта и выход с вопросом о несохранённых изменениях,
-// окно настроек проекта.
+// окно настроек проекта, Play со сборкой скриптов перед ним.
 struct EditorActionHandlers {
     std::function<void()> save;
     std::function<void()> closeProject;
@@ -17,6 +17,8 @@ struct EditorActionHandlers {
     std::function<void()> openProjectSettings;
     std::function<void()> toggleMaximizedPanel;
     std::function<void()> buildScripts;
+    // Play или Stop, когда игра идёт.
+    std::function<void()> togglePlay;
 };
 
 // Все действия редактора (см. ActionIds.hpp): подписи, клавиши и доступность.

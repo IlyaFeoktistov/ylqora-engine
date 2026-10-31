@@ -2,119 +2,87 @@
 
 [Русская версия](first-script.ru.md)
 
-A script is a C++ class attached to a node as a component. Scripts of a game
-live in one shared library, the game module: `game.dll` on Windows,
-`libgame.so` on Linux. The editor loads it from the `.build/` folder of the
-project when the project opens.
+A script is a C++ class attached to a node as a component. Scripts are files
+of the project, like scenes, and can live in any folder. The editor builds
+all of them into one shared library, the game module (`game.dll` on Windows,
+`libgame.so` on Linux), with the same compiler as the engine, and reloads it
+while you work. The project has no build files of its own.
 
-Until step 3 (building scripts from the editor) the game module is built
-inside the engine's CMake tree, next to the examples. This guide makes a
-`Pulse` script that makes its node grow and shrink.
+## 1. Create the script
 
-## 1. Write the script
+In Files press "Create resource" (or right-click a folder) and pick
+"C++ script". Enter the class name, for example `Spinner`. The editor
+creates `Spinner.hpp` and `Spinner.cpp` in the folder and builds the module;
+the Log panel shows the build.
 
-Create `examples/my-game/Pulse.cpp`:
+A double click on `Spinner.cpp` opens it in the program your system uses
+for C++ files (your IDE).
+
+## 2. Write the code
+
+`Spinner.hpp`:
 
 ```cpp
-#include <yqlora/scene/Node3D.hpp>
-#include <yqlora/scene/Transform3D.hpp>
-#include <yqlora/scripting/ModuleRegistrar.hpp>
+#pragma once
+
 #include <yqlora/scripting/Script.hpp>
 
-#include <glm/gtc/constants.hpp>
-
-#include <cmath>
-
-class Pulse : public yqlora::Script {
+class Spinner : public yqlora::Script {
 public:
-    YQLORA_SCRIPT(Pulse)
+    YQLORA_SCRIPT(Spinner)
 
-    float amplitude = 0.2f;
-    float frequency = 1.0f;
+    float degreesPerSecond = 90.0f;
 
-    YQLORA_FIELDS(
-        field("amplitude", &Pulse::amplitude).range(0.0f, 1.0f).tooltip("How much the node grows and shrinks"),
-        field("frequency", &Pulse::frequency).range(0.0f, 10.0f).tooltip("Pulses per second")
-    )
+    YQLORA_FIELDS(field("degreesPerSecond", &Spinner::degreesPerSecond).range(-720.0f, 720.0f))
 
 protected:
-    void onStart() override
-    {
-        m_baseScale = transform().scale();
-    }
-
-    void onUpdate(float deltaSeconds) override
-    {
-        m_elapsed += deltaSeconds;
-        const float wave = std::sin(m_elapsed * frequency * glm::two_pi<float>());
-        transform().setScale(m_baseScale * (1.0f + amplitude * wave));
-    }
-
-private:
-    // Не перечислены в YQLORA_FIELDS: живут только во время игры.
-    yqlora::Vec3 m_baseScale{1.0f};
-    float m_elapsed = 0.0f;
+    void onUpdate(float deltaSeconds) override;
 };
+```
 
-YQLORA_MODULE_ENTRY(registrar)
+`Spinner.cpp`:
+
+```cpp
+#include "Spinner.hpp"
+
+#include <yqlora/scene/Node3D.hpp>
+#include <yqlora/scene/Transform3D.hpp>
+#include <yqlora/scripting/ModuleScripts.hpp>
+
+#include <glm/gtc/quaternion.hpp>
+
+YQLORA_REGISTER_SCRIPT(Spinner).requiresNode<yqlora::Node3D>();
+
+void Spinner::onUpdate(float deltaSeconds)
 {
-    registrar.registerScript<Pulse>().requiresNode<yqlora::Node3D>();
+    const yqlora::Quat turn = glm::angleAxis(glm::radians(degreesPerSecond * deltaSeconds), yqlora::math::kWorldUp);
+    transform().setRotation(transform().rotation() * turn);
 }
 ```
 
-- `YQLORA_SCRIPT(Pulse)` names the type; the name is what scene files keep.
-- `YQLORA_FIELDS` lists the fields the inspector shows and scene files save,
-  with their attributes. Fields not listed (here `m_baseScale`, `m_elapsed`)
+- `YQLORA_SCRIPT(Spinner)` sets the type name; scene files store it.
+- `YQLORA_FIELDS` lists the fields the inspector shows and scene files
+  store, with their attributes (`.range`, `.tooltip`, ...). Other fields
   live only while the game runs.
-- `YQLORA_MODULE_ENTRY` is the one place where the library registers its
-  scripts. A module has exactly one entry function.
-- The lifecycle calls (`onStart`, `onUpdate`, ...) and their order are
-  described in [scripts](../architecture/scripting.md#lifecycle-contract).
+- `YQLORA_REGISTER_SCRIPT` adds the script to the game module, with rules
+  after it: `requiresNode`, `requiresComponent`, `formerly`,
+  `executionOrder`. No other file lists the scripts.
+- Lifecycle calls (`onStart`, `onUpdate`, ...) and their order are in
+  [scripts](../architecture/scripting.md#lifecycle-contract).
 
-## 2. Build the library
+Save and switch back to the editor: it builds the module and reloads it.
+Ctrl+B (Scripts > Build) builds at any time, and Play builds first too.
 
-Create `examples/my-game/CMakeLists.txt`:
+## 3. Use it
 
-```cmake
-add_library(my_game SHARED Pulse.cpp)
-target_link_libraries(my_game PRIVATE yqlora::yqlora)
-set_target_properties(my_game PROPERTIES
-    OUTPUT_NAME game
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples/my-game
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/examples/my-game
-)
-if(WIN32)
-    set_target_properties(my_game PROPERTIES PREFIX "")
-endif()
-```
+Select the cube, press "Add component": `Spinner` is under "Scripts".
+Change `degreesPerSecond` in the inspector, press Play.
 
-Add `add_subdirectory(my-game)` to `examples/CMakeLists.txt` and build:
-
-```bash
-cmake --preset debug
-cmake --build --preset debug
-```
-
-The library appears in `build/debug/examples/my-game/`.
-
-## 3. Put it into the project
-
-Copy `game.dll` (`libgame.so`) into the `.build/` folder of your project,
-next to `project.yqlora`. The folder is hidden from the Files panel and is
-never a resource.
-
-## 4. Use it in the editor
-
-Open the project. Select a node, press "Add component": `Pulse` is under
-"Scripts". Change `amplitude` and `frequency` in the inspector, press Play.
-
-To change the code: close the project (on Windows the loaded library cannot
-be replaced), build, copy the library again, open the project. Hot reload
-comes in step 3.
-
-If the project opens without the library, scripts in its scenes are kept as
-placeholders: the inspector shows them as missing, saving writes their data
-back unchanged, and they come back when the library is there again.
+Change the code again and come back: the scene keeps the values of the
+script fields; the edit history is cleared, because its commands hold
+objects of the old code. Compiler errors are red in the Log panel, the main
+menu marks a failed build, and the old module keeps working until the next
+successful build.
 
 ## Limits
 
@@ -123,7 +91,15 @@ back unchanged, and they come back when the library is there again.
   (a null pointer) takes the editor down with it, and an endless loop hangs
   it. Save before Play.
 - One game module per project. A script whose name is already taken (by an
-  engine type or by another script) is not registered; the log says which module holds the name.
+  engine type or by another script) is not registered; the log says which
+  module holds the name.
 - A field name in `field("name", ...)` is stored in scene files. Renaming
   it, mark the old one: `.formerly("oldName")`; renaming the class,
-  `registerScript<T>().formerly("OldName")`.
+  `YQLORA_REGISTER_SCRIPT(T).formerly("OldName")`.
+- If the module is not built, scripts in the scenes are kept as
+  placeholders: the inspector shows them as missing, saving writes their
+  data back unchanged, and they come back with the next successful build.
+- Files in hidden folders (name starting with a dot) are not built.
+- The editor builds with the compiler the engine was built with
+  (`sdk/toolchain.json` next to the editor). An engine built with MSVC
+  cannot build scripts from the editor yet.

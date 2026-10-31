@@ -32,7 +32,7 @@ struct Fixture {
     const std::filesystem::path root = freshFolder();
     TypeRegistry registry;
     SceneSerializer serializer{registry};
-    ProjectManager manager{root / "projects.json", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR};
+    ProjectManager manager{root / "projects.json", serializer};
     std::string error;
 };
 

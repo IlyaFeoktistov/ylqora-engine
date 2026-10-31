@@ -44,14 +44,15 @@ add_executable(yqlora_tests
 target_link_libraries(yqlora_tests PRIVATE yqlora::internal yqlora::editor doctest::doctest)
 target_compile_definitions(yqlora_tests PRIVATE
     YQLORA_LOCALES_DIR="${PROJECT_SOURCE_DIR}/assets/locales"
-    YQLORA_SCRIPTS_TEMPLATE_DIR="${PROJECT_SOURCE_DIR}/assets/templates/scripts"
+    YQLORA_SCRIPT_TEMPLATE_DIR="${PROJECT_SOURCE_DIR}/assets/templates/cpp-script"
     YQLORA_CMAKE_COMMAND="${CMAKE_COMMAND}"
     YQLORA_SDK_DIR="$<TARGET_FILE_DIR:yqlora>/sdk"
     YQLORA_TEST_GAME_MODULE="$<TARGET_FILE:yqlora_test_game>"
     YQLORA_THROWING_GAME_MODULE="$<TARGET_FILE:yqlora_throwing_game>"
 )
 # Тесты загружают его сами, во время работы, поэтому только зависимость сборки.
-add_dependencies(yqlora_tests yqlora_test_game yqlora_throwing_game)
+# SDK: сборки модулей игры в тестах идут против него.
+add_dependencies(yqlora_tests yqlora_test_game yqlora_throwing_game yqlora_sdk)
 # Примеры тоже проходят через загрузку модуля, если их собирают.
 if(TARGET yqlora_example_scripts)
     target_compile_definitions(yqlora_tests PRIVATE
@@ -63,13 +64,13 @@ yqlora_set_warnings(yqlora_tests)
 
 add_test(NAME yqlora_tests COMMAND yqlora_tests)
 
-# Шаблон scripts/ собирается против SDK так же, как в проекте. Только Ninja:
-# им собирает и редактор.
+# Проект со скриптами из шаблона собирается против SDK так же, как в
+# редакторе. Только Ninja: им собирает и редактор.
 if(CMAKE_GENERATOR STREQUAL "Ninja")
-    add_test(NAME yqlora_scripts_template
+    add_test(NAME yqlora_game_project
         COMMAND ${CMAKE_COMMAND}
-            -DTEMPLATE_DIR=${PROJECT_SOURCE_DIR}/assets/templates/scripts
-            -DBUILD_DIR=${CMAKE_BINARY_DIR}/tests/scripts_template
+            -DTEMPLATE_DIR=${PROJECT_SOURCE_DIR}/assets/templates/cpp-script
+            -DBUILD_DIR=${CMAKE_BINARY_DIR}/tests/game_project
             -DSDK_DIR=$<TARGET_FILE_DIR:yqlora>/sdk
             -DGENERATOR=${CMAKE_GENERATOR}
             -DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}

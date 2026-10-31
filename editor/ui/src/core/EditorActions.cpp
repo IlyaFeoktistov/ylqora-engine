@@ -62,13 +62,7 @@ void registerEditorActions(ActionRegistry& registry, EditorSession& session, Edi
     registry.add(actions::kTogglePlay, "editor.play.play")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_P)
         .enabledWhen(hasProject)
-        .onRun([&session] {
-            if (session.playing()) {
-                session.stop();
-            } else {
-                session.play();
-            }
-        });
+        .onRun(std::move(handlers.togglePlay));
     registry.add(actions::kBuildScripts, "editor.menu.buildScripts")
         .shortcut(ImGuiMod_Ctrl | ImGuiKey_B)
         .enabledWhen(hasProject)

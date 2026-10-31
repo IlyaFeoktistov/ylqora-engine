@@ -6,6 +6,7 @@
 #include <SDL3/SDL.h>
 
 #include <algorithm>
+#include <cctype>
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -15,6 +16,8 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+// После windows.h: ShellExecuteW.
+#include <shellapi.h>
 
 #include <cstdio>
 #endif
@@ -118,6 +121,49 @@ std::vector<std::string> preferredLanguages()
 double timeSeconds()
 {
     return static_cast<double>(SDL_GetTicksNS()) / kNanosecondsPerSecond;
+}
+
+bool openWithSystem(const std::filesystem::path& path)
+{
+#ifdef _WIN32
+    // ShellExecuteW берёт путь как есть, без URL и его кодирования.
+    constexpr INT_PTR kFirstSuccess = 32;
+    const auto result = reinterpret_cast<INT_PTR>(
+        ShellExecuteW(nullptr, L"open", path.wstring().c_str(), nullptr, nullptr, SW_SHOWNORMAL)
+    );
+    if (result <= kFirstSuccess) {
+        log::error("Cannot open '{}'", toUtf8(path));
+
+        return false;
+    }
+
+    return true;
+#else
+    // URL file://: байты пути вне безопасных символов - %XX.
+    constexpr std::string_view kSafe = "/-_.~";
+    constexpr const char* kHex = "0123456789ABCDEF";
+    constexpr unsigned kHighNibble = 4;
+    constexpr unsigned kLowNibbleMask = 0x0F;
+    std::string url = "file://";
+    for (const char c : toUtf8(path)) {
+        const auto byte = static_cast<unsigned char>(c);
+        // isalnum в локали "C" - только латиница и цифры.
+        if (std::isalnum(byte) != 0 || kSafe.find(c) != std::string_view::npos) {
+            url += c;
+        } else {
+            url += '%';
+            url += kHex[byte >> kHighNibble];
+            url += kHex[byte & kLowNibbleMask];
+        }
+    }
+    if (!SDL_OpenURL(url.c_str())) {
+        log::error("Cannot open '{}': {}", toUtf8(path), SDL_GetError());
+
+        return false;
+    }
+
+    return true;
+#endif
 }
 
 std::optional<std::filesystem::path> asciiPath(const std::filesystem::path& path)

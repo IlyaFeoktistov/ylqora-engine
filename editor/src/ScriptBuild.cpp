@@ -23,13 +23,18 @@ namespace fs = std::filesystem;
 
 // Запись пути к библиотеке, которую пишет yqlora_add_game_module (cmake/YqloraGameModule.cmake).
 constexpr const char* kModuleRecordFile = "yqlora_game_module.txt";
-// Так Ninja говорит, что всё собрано: в тихой сборке это не новость.
+// Так Ninja говорит, что всё собрано, и так проверяет список файлов сборки
+// (file(GLOB CONFIGURE_DEPENDS)) перед каждой сборкой: в логе это не новость.
 constexpr std::string_view kNothingToDo = "ninja: no work to do.";
+constexpr std::string_view kGlobCheck = "Re-checking globbed directories...";
 // Меняется, когда меняется то, как настраивается папка сборки (например,
 // короткие пути): старая папка тогда не годится, и сборка берёт новую.
-constexpr std::string_view kBuildLayout = "ascii-paths\n";
-// Пакет внутри SDK, см. cmake/Sdk.cmake.
+constexpr std::string_view kBuildLayout = "game-project\n";
+// Пакет и CMakeLists.txt модуля игры внутри SDK, см. cmake/Sdk.cmake.
 constexpr const char* kSdkCmakeFolder = "cmake";
+constexpr const char* kGameProjectFolder = "game-project";
+// Единицы трансляции модуля игры; так же их ищет cmake/game-project/CMakeLists.txt.
+constexpr std::string_view kCompiledExtension = ".cpp";
 
 // FNV-1a: отпечаток одинаков на всех машинах и сборках редактора, в отличие от std::hash.
 constexpr std::uint64_t kFnvOffset = 14695981039346656037ULL;
@@ -75,6 +80,26 @@ fs::path scriptBuildDirectory(const ScriptBuildSetup& setup)
 
     return setup.projectDirectory / Project::buildDirectoryName()
            / std::format("{}-{:016x}", setup.configuration, fnv1a(key));
+}
+
+bool hasGameSources(const fs::path& projectDirectory)
+{
+    std::error_code ec;
+    auto it = fs::recursive_directory_iterator(projectDirectory, ec);
+    for (; !ec && it != fs::recursive_directory_iterator(); it.increment(ec)) {
+        const std::string name = toUtf8(it->path().filename());
+        if (!name.empty() && name.front() == '.') {
+            if (it->is_directory(ec)) {
+                it.disable_recursion_pending();
+            }
+            continue;
+        }
+        if (it->path().extension() == kCompiledExtension && it->is_regular_file(ec)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 std::optional<fs::path> builtGameLibrary(const ScriptBuildSetup& setup)
@@ -187,7 +212,7 @@ ScriptBuildResult ScriptBuild::buildOnce(const ScriptBuildSetup& setup, std::sto
         const platform::ProcessResult result = platform::runProcess(
             options,
             [&](std::string_view line) {
-                if (line != kNothingToDo) {
+                if (line != kNothingToDo && !line.ends_with(kGlobCheck)) {
                     note(parseCompilerOutput(line).level, std::string(line));
                 }
             },
@@ -213,25 +238,19 @@ ScriptBuildResult ScriptBuild::buildOnce(const ScriptBuildSetup& setup, std::sto
 
         return result;
     }
-    const fs::path scripts = setup.projectDirectory / Project::scriptsDirectoryName();
     std::error_code ec;
-    if (!fs::is_directory(scripts, ec)) {
-        note(log::Level::Error, "The project has no scripts folder");
-
-        return result;
-    }
 
     const fs::path buildDirectory = scriptBuildDirectory(setup);
     fs::create_directories(buildDirectory, ec);
     // Ninja на Windows не находит файлы по путям не из ASCII и пересобирал бы
     // всё каждый раз: CMake и Ninja получают короткие пути (8.3).
-    const auto scriptsAscii = platform::asciiPath(scripts);
+    const auto projectAscii = platform::asciiPath(setup.projectDirectory);
     const auto buildAscii = platform::asciiPath(buildDirectory);
     const auto sdkAscii = platform::asciiPath(setup.sdkDirectory);
-    const fs::path scriptsPath = scriptsAscii.value_or(scripts);
+    const fs::path projectPath = projectAscii.value_or(setup.projectDirectory);
     const fs::path buildPath = buildAscii.value_or(buildDirectory);
     const fs::path sdkPath = sdkAscii.value_or(setup.sdkDirectory);
-    if (!scriptsAscii || !buildAscii || !sdkAscii) {
+    if (!projectAscii || !buildAscii || !sdkAscii) {
         note(
             log::Level::Warning,
             "The project or editor path has non-ASCII characters and no short name: Ninja may rebuild "
@@ -244,7 +263,7 @@ ScriptBuildResult ScriptBuild::buildOnce(const ScriptBuildSetup& setup, std::sto
     if (!fs::exists(buildDirectory / kModuleRecordFile, ec)) {
         std::vector<std::string> arguments{
             "-S",
-            toUtf8(scriptsPath),
+            toUtf8(sdkPath / kGameProjectFolder),
             "-B",
             toUtf8(buildPath),
             "-G",
@@ -253,6 +272,7 @@ ScriptBuildResult ScriptBuild::buildOnce(const ScriptBuildSetup& setup, std::sto
             "--no-warn-unused-cli",
             "-DCMAKE_BUILD_TYPE=" + setup.configuration,
             "-Dyqlora_DIR=" + toUtf8(sdkPath / kSdkCmakeFolder),
+            "-DYQLORA_PROJECT_DIR=" + toUtf8(projectPath),
         };
         if (!setup.toolchain.makeProgram.empty()) {
             arguments.push_back("-DCMAKE_MAKE_PROGRAM=" + toUtf8(setup.toolchain.makeProgram));

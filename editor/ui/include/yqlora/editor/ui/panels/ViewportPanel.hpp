@@ -74,6 +74,8 @@ private:
     GizmoLayer m_gizmos;
     // Курсор был над гизмо в прошлом кадре: правая кнопка над ним не запускает полёт.
     bool m_mouseOverGizmo = false;
+    // Только что открыт проект: окно вида выходит вперёд.
+    bool m_bringForward = true;
     RenderView m_view;
     RenderView m_preview;
 };

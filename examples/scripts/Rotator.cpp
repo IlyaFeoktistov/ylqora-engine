@@ -1,10 +1,10 @@
 // Пример модуля игры: скрипт, который вращает свой узел. Показывает поля с
-// атрибутами, правило узла и входную функцию модуля.
+// атрибутами и правило узла.
 
 #include <yqlora/math/Math.hpp>
 #include <yqlora/scene/Node3D.hpp>
 #include <yqlora/scene/Transform3D.hpp>
-#include <yqlora/scripting/ModuleRegistrar.hpp>
+#include <yqlora/scripting/ModuleScripts.hpp>
 #include <yqlora/scripting/Script.hpp>
 
 #include <glm/gtc/quaternion.hpp>
@@ -39,9 +39,6 @@ protected:
     }
 };
 
-} // namespace
+YQLORA_REGISTER_SCRIPT(Rotator).requiresNode<yqlora::Node3D>();
 
-YQLORA_MODULE_ENTRY(registrar)
-{
-    registrar.registerScript<Rotator>().requiresNode<yqlora::Node3D>();
-}
+} // namespace

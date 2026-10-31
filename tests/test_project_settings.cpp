@@ -80,7 +80,7 @@ struct Fixture {
         std::filesystem::remove_all(location);
         std::filesystem::create_directories(location);
         std::string error;
-        directory = createProject(location, "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error)->directory();
+        directory = createProject(location, "Game", serializer, error)->directory();
     }
 
     Project open() const

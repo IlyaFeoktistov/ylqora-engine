@@ -33,6 +33,10 @@ YQLORA_API std::filesystem::path documentsPath();
 // Языки пользователя в порядке предпочтения, как их отдаёт ОС: "ru_RU", "en"...
 YQLORA_API std::vector<std::string> preferredLanguages();
 
+// Открывает файл или папку программой, которую для них назначила система
+// (папку - файловым менеджером). false, если не вышло.
+YQLORA_API bool openWithSystem(const std::filesystem::path& path);
+
 // Путь к существующему файлу или папке, который понимают программы без
 // поддержки Unicode в путях (Ninja на Windows). На Windows - сам path, если в
 // нём только ASCII, иначе его короткий вариант (8.3); nullopt, если том

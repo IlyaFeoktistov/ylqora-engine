@@ -2,7 +2,7 @@
 // game.dll проекта.
 
 #include <yqlora/scene/Node.hpp>
-#include <yqlora/scripting/ModuleRegistrar.hpp>
+#include <yqlora/scripting/ModuleScripts.hpp>
 #include <yqlora/scripting/Script.hpp>
 
 #include <string>
@@ -41,9 +41,6 @@ private:
     static constexpr const char* kStopped = "+stop";
 };
 
-} // namespace
+YQLORA_REGISTER_SCRIPT(TestMover);
 
-YQLORA_MODULE_ENTRY(registrar)
-{
-    registrar.registerScript<TestMover>();
-}
+} // namespace

@@ -5,6 +5,7 @@
 #include <yqlora/core/Utf8Path.hpp>
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/LogBuffer.hpp>
+#include <yqlora/editor/ProjectFiles.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
 #include <yqlora/editor/ScriptBuild.hpp>
 #include <yqlora/input/Input.hpp>
@@ -32,7 +33,33 @@ namespace {
 constexpr auto kBuildTimeout = std::chrono::minutes(5);
 constexpr auto kPollInterval = std::chrono::milliseconds(20);
 
-// Проект из шаблона и постановка сборки тем же набором инструментов, что у движка.
+// Скрипт с полями для проверок: заголовок отдельно, чтобы правка только
+// заголовка пересобирала модуль. Лежит во вложенной папке: сборка находит
+// .cpp где угодно в проекте.
+constexpr std::string_view kPulseHeader = R"(#pragma once
+
+#include <yqlora/scripting/Script.hpp>
+
+class Pulse : public yqlora::Script {
+public:
+    YQLORA_SCRIPT(Pulse)
+
+    float amplitude = 0.2f;
+    float frequency = 1.0f;
+
+    YQLORA_FIELDS(field("amplitude", &Pulse::amplitude), field("frequency", &Pulse::frequency))
+};
+)";
+constexpr std::string_view kPulseSource = R"(#include "Pulse.hpp"
+
+#include <yqlora/scene/Node3D.hpp>
+#include <yqlora/scripting/ModuleScripts.hpp>
+
+YQLORA_REGISTER_SCRIPT(Pulse).requiresNode<yqlora::Node3D>();
+)";
+
+// Проект с двумя скриптами: Pulse выше и Spinner из шаблона редактора.
+// Сборка - тем же набором инструментов, что у движка.
 struct BuildFixture {
     TypeRegistry registry;
     fs::path project;
@@ -48,9 +75,15 @@ struct BuildFixture {
         fs::remove_all(location);
         fs::create_directories(location);
         std::string error;
-        const auto created = createProject(location, "Game", serializer, YQLORA_SCRIPTS_TEMPLATE_DIR, error);
+        auto created = createProject(location, "Game", serializer, error);
         REQUIRE(created);
         project = created->directory();
+        const auto folder = project / "scripts" / "effects";
+        fs::create_directories(folder);
+        std::ofstream(folder / "Pulse.hpp") << kPulseHeader;
+        std::ofstream(folder / "Pulse.cpp") << kPulseSource;
+        ProjectFiles files(*created);
+        REQUIRE(files.createScript("scripts", "Spinner", YQLORA_SCRIPT_TEMPLATE_DIR));
         const auto toolchain = loadScriptToolchain(YQLORA_SDK_DIR);
         REQUIRE(toolchain);
         setup = {
@@ -119,7 +152,7 @@ TEST_CASE("ScriptBuild: builds the project scripts; a header change rebuilds the
     CHECK(fs::last_write_time(unchanged.library) == built);
     CHECK(fixture.log.entries().empty());
 
-    const auto header = fixture.project / "scripts" / "Pulse.hpp";
+    const auto header = fixture.project / "scripts" / "effects" / "Pulse.hpp";
     std::ofstream(header, std::ios::app) << "\n// changed\n";
     fixture.touchAfter(header, first.library);
     const auto rebuilt = fixture.buildNow();
@@ -132,7 +165,7 @@ TEST_CASE("ScriptBuild: builds the project scripts; a header change rebuilds the
 TEST_CASE("ScriptBuild: compiler errors go to the log as errors, the build fails")
 {
     BuildFixture fixture("script_build_error");
-    std::ofstream(fixture.project / "scripts" / "Pulse.cpp", std::ios::app) << "\nthis is not C++\n";
+    std::ofstream(fixture.project / "scripts" / "effects" / "Pulse.cpp", std::ios::app) << "\nthis is not C++\n";
     const auto result = fixture.buildNow();
     CHECK_FALSE(result.succeeded);
     CHECK(fixture.log.count(log::Level::Error) > 0);
@@ -176,6 +209,7 @@ TEST_CASE("ScriptBuild: build, open, change the script, rebuild and reload; fiel
     REQUIRE(session.open(*Project::open(fixture.project, fixture.registry), built.library));
     const TypeInfo* pulse = fixture.registry.find("Pulse");
     REQUIRE(pulse);
+    CHECK(fixture.registry.find("Spinner"));
     Node& root = *session.scene().root();
     Component* script = session.editing().addComponent(root, *pulse);
     REQUIRE(script);
@@ -190,7 +224,7 @@ TEST_CASE("ScriptBuild: build, open, change the script, rebuild and reload; fiel
 
     // Новое поле в скрипте: после пересборки и перезагрузки оно есть, а
     // значение старого - то, что было в сцене.
-    const auto header = fixture.project / "scripts" / "Pulse.hpp";
+    const auto header = fixture.project / "scripts" / "effects" / "Pulse.hpp";
     std::ifstream in(header);
     std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     in.close();
@@ -205,6 +239,9 @@ TEST_CASE("ScriptBuild: build, open, change the script, rebuild and reload; fiel
         "field(\"phase\", &Pulse::phase), field(\"frequency\", &Pulse::frequency)"
     );
     std::ofstream(header, std::ios::trunc) << text;
+    // Новый файл сборка находит сама, без правки файлов сборки.
+    ProjectFiles files(*session.project());
+    REQUIRE(files.createScript("scripts", "Walker", YQLORA_SCRIPT_TEMPLATE_DIR));
     fixture.touchAfter(header, built.library);
 
     const auto rebuilt = fixture.buildNow();
@@ -216,6 +253,7 @@ TEST_CASE("ScriptBuild: build, open, change the script, rebuild and reload; fiel
     REQUIRE(field("phase"));
     CHECK(field("amplitude")->get(*live.front()) == PropertyValue{0.75f});
     CHECK(field("phase")->get(*live.front()) == PropertyValue{0.5f});
+    CHECK(fixture.registry.find("Walker"));
 
     session.close();
     CHECK(fixture.registry.find("Pulse") == nullptr);

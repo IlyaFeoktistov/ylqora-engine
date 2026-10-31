@@ -76,7 +76,8 @@
             "project": "Project",
             "projectSettings": "Project Settings",
             "maximizePanel": "Maximize window",
-            "buildScripts": "Build scripts"
+            "buildScripts": "Build scripts",
+            "scripts": "Scripts"
         },
         "window": {
             "scene": "Scene",
@@ -86,6 +87,11 @@
             "files": "Files",
             "log": "Log",
             "projectSettings": "Project Settings"
+        },
+        "scripts": {
+            "building": "Building scripts...",
+            "failed": "Scripts failed to build",
+            "failedTooltip": "The last build failed: errors are in the log"
         },
         "log": {
             "info": "Messages: show or hide",
@@ -161,6 +167,11 @@
             "spaceHint": "Manipulator axes: the object's own or the world ones"
         },
         "files": {
+            "newResource": "Create resource",
+            "newCppScript": "C++ script",
+            "scriptName": "Class name (Latin letters, digits and _):",
+            "name": "Name:",
+            "create": "Create",
             "newScene": "New scene",
             "newFolder": "New folder",
             "refresh": "Refresh",
@@ -172,7 +183,10 @@
             "delete": "Delete",
             "deleteQuestion": "Delete for good?",
             "error": {
-                "rename": "This name is not allowed or already taken"
+                "rename": "This name is not allowed or already taken",
+                "name": "This name is not allowed: empty or contains / \\ : * ? \" < > |",
+                "scriptName": "Not a C++ class name",
+                "exists": "Could not create: this name is already taken"
             }
         },
         "play": {
@@ -233,8 +247,6 @@
             "cannotCreate": "Could not create the project folder",
             "notProject": "There is no project.yqlora in this folder",
             "cannotDelete": "Could not delete the project folder",
-            "scriptsExist": "The project already has a scripts folder",
-            "cannotCreateScripts": "Could not create the scripts folder",
             "newer": "The project was saved by a newer engine version. Update the engine.",
             "unsupported": "Unknown project format version: it cannot be upgraded.",
             "upgradeFailed": "The project was not upgraded, files are unchanged. See the log for details."
