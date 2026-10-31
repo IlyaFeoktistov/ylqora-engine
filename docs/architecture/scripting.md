@@ -226,9 +226,11 @@ The component lifecycle of the [scene](scene.md), as scripts see it:
    limits (native code can crash the editor; one game module per project;
    how Luau and graphs fit the same boundaries) **[done]**.
 
-Step 3 adds the project build, `YQLORA_FIELD()` with a generator built on
-Clang LibTooling (a full C++ parser, never regular expressions; it writes
-code the compiler checks), and hot reload.
+Step 3 adds the build from the editor and hot reload (see below). The
+`YQLORA_FIELD()` generator built on Clang LibTooling (a full C++ parser,
+never regular expressions; it writes code the compiler checks) comes after
+the MVP: it needs LLVM as a dependency, and `YQLORA_FIELDS` already covers
+every attribute.
 
 ## Scripts in Luau [planned, after MVP]
 
@@ -275,14 +277,119 @@ links, then attached to a node and works like a C++ or Luau script.
 - The graph editor is a panel of the editor; editing logic lives apart from
   ImGui, like the rest of the editor.
 
-## Hot reload [planned, step 3]
+## Build and hot reload [planned, step 3]
 
-1. Stop the game if it is running.
-2. Serialize the scene; take the whole tree out of it, so every component
-   gets `onExitScene` and no code of the old module runs afterwards.
-3. Destroy the tree, `TypeRegistry::removeModule`, unload the library
-   (`GameModule::unload`).
-4. Load the new library, register its types, load the scene back.
+The loop: edit a script in the IDE, switch to the editor, and the editor
+builds the game module, reloads it and puts the scene back with the same
+field values; compiler errors show in the editor log.
+
+### Decisions
+
+- **Ninja decides what to rebuild.** The editor runs `cmake --build` when
+  asked and does not track files itself: Ninja knows the real dependencies
+  (headers found by the compiler, flags, configuration). When there is
+  nothing to do the build is an almost empty check, and the module is
+  reloaded only if the built library changed.
+- **The engine is a relocatable CMake package.** The engine build puts an
+  SDK next to the program (`sdk/`: public headers, the import library,
+  `yqloraConfig.cmake`); every path in it is computed from the location of
+  the package, never written absolute, so a moved editor still builds
+  projects. `find_package(yqlora)` gives `yqlora::yqlora`, and
+  `yqlora_add_game_module(<sources>)` holds every rule of a game library.
+- **CMake names the result.** The package records `$<TARGET_FILE>` of the
+  game module in the build folder; the editor reads the path from there and
+  never builds a library name itself.
+- **The toolchain reproduces the ABI of the editor.** The engine build
+  records its toolchain: C and C++ compilers with id and version, Ninja,
+  architecture, the MSVC runtime library and how to set up the Visual
+  Studio environment (`vcvarsall`) for MSVC. The project build uses that
+  record, so a script is built like the engine it is loaded into. The
+  configuration (Debug, Release; project settings, section Scripts) changes
+  optimization only, never the runtime library. Overrides live in the
+  editor settings (`editor.json`): paths are per machine and stay out of
+  git. A changed toolchain makes a fresh build folder, never a reuse of the
+  old `CMakeCache.txt`.
+- **Each load is a fresh copy.** The built library is copied to
+  `.build/reload/game_<n>` before loading, so a loaded file is never
+  overwritten (Windows locks it) and every reload is visible on disk. Copies
+  that are not loaded are removed when the project opens or closes.
+- **The log is a buffer, not callbacks into the interface.** Subscribers of
+  the log are called outside its lock and unsubscribe through an owning
+  handle; the build writes into a thread-safe `LogBuffer` from its thread,
+  and the editor takes new entries on the main thread.
+- **Process, diagnostics and log are three parts.** `platform::Process`
+  runs a program and reads stdout and stderr as they come (UTF-8, exit code,
+  crash, termination, no blocking of the main thread);
+  `CompilerDiagnostics` turns a line of GCC, Clang or MSVC into a
+  structured entry (file, line, column, level); the log only stores
+  entries.
+- **One build at a time.** A request during a build sets one flag; however
+  many requests came, one more build runs after the current one.
+
+### The reload
+
+After a successful build whose library changed (`EditorSession` owns the
+order):
+
+1. Stop Play; finish the current edit.
+2. Serialize the edited scene into memory while the old module is still
+   loaded, so every script field is read by its own code. The file on disk
+   is not touched, so "unsaved" stays true or false as it was.
+3. Clear the edit history: commands hold live objects (removed components,
+   deleted branches) whose code goes away with the module. The log says so.
+4. Destroy every component of the module (`GameModule::unload` checks that
+   none is left in the scenes), remove its types, unload the library.
+5. Copy the new library to `.build/reload/game_<n>`, load it, register its
+   types.
+6. Read the scene back from memory, restore the selection.
+
+Failures:
+
+- **The build fails**: the old module and the scene are not touched; the
+  errors are in the log.
+- **The new library does not load, or its entry function fails**
+  (throws): the registration is rolled back (`removeModule`, the library
+  unloads), so no half-registered types stay; the scene comes back with
+  placeholders (`MissingComponent`) holding all data, and comes alive with
+  the next good build. Reading the scene back is all or nothing (the tree is
+  built aside and set only when complete).
+
+### Phases of step 3
+
+1. Log panel: log subscribers outside the lock with an owning handle,
+   thread-safe `LogBuffer` (bounded, levels, source, counters) taken on the
+   main thread, the Log panel (level filter, search, clear, copy, follow the
+   end), the error counter in the status bar.
+2. The SDK and `scripts/`: relocatable `yqloraConfig.cmake` and
+   `yqlora_add_game_module`, the toolchain record; the project template with
+   `scripts/CMakeLists.txt`, `scripts/Module.cpp` (the entry function) and an
+   example script; `scripts/` is not a resource; "Create scripts folder" for
+   an existing project; `examples/` moves to `yqlora_add_game_module`; CI
+   builds the template against the fresh engine on Linux and Windows.
+3. The build: `platform::Process`, `CompilerDiagnostics`, `ScriptBuild`
+   (configure only when needed, a fresh folder on a toolchain change, one
+   build and one pending flag); Build (Ctrl+B), a build when the editor
+   window gets focus and when a project opens; the Scripts section of the
+   project settings.
+4. Hot reload as above; the loaded copies in `.build/reload/`; the rollback
+   of a failed registration. `gameLibraryPath` and the fixed
+   `.build/game.dll` of step 2 go away: the path comes from CMake.
+5. Interface: the Scripts menu (Build, Open scripts folder, Create scripts
+   folder), the build state in the status bar, translations.
+6. Documents: this one, project (`scripts/`, `.build/`), project settings
+   (Scripts), editor (log, build), the first script guide without copying,
+   README.
+
+Tests, besides the unit tests of every part: a change of a header only
+rebuilds the module (a real CMake build of a temporary project); a source
+changed during a build runs one more build; a library whose entry function
+throws leaves no types and no components; values of script fields are the
+same after several reloads and a save; after an unload no component of the
+module is left in the scenes and no type of it in the registry.
+
+Until the generator (after the MVP) a new script is registered by a line in
+`Module.cpp`: finding scripts in sources needs a C++ parser, and regular
+expressions are ruled out.
 
 A component whose type is missing (the game failed to compile, a script was
 deleted) is kept as a placeholder holding its raw data, shown in the inspector
