@@ -54,6 +54,14 @@ YQLORA_API std::optional<PropertyValue> valueFromJson(const nlohmann::json& json
 // прежним именем (PropertyAttributes::formerly). nullptr, если нет ни там, ни там.
 YQLORA_API const nlohmann::json* findPropertyJson(const nlohmann::json& object, const Property& property);
 
+// Свойства объекта JSON, которых у типа нет ни под именем, ни под прежним
+// именем: например, поле убрали из кода. Пустой объект, если таких нет.
+YQLORA_API nlohmann::json unknownPropertiesJson(
+    const TypeRegistry& registry,
+    const TypeInfo& type,
+    const nlohmann::json& object
+);
+
 // Свойства с атрибутом "не сохранять" не пишутся.
 template <typename Object>
 nlohmann::json propertiesToJson(const TypeRegistry& registry, const TypeInfo& type, const Object& object)

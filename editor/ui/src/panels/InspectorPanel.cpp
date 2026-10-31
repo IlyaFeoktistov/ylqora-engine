@@ -65,8 +65,7 @@ bool drawComponent(
 
     // Без крестика компонент, который снять нельзя.
     bool keep = true;
-    const std::string name = inspected.type ? inspected.type->name() : std::string(inspected.component.typeName());
-    const std::string header = name + "###component";
+    const std::string header = inspected.typeName + "###component";
     const bool open = ImGui::CollapsingHeader(
         header.c_str(),
         inspected.removable ? &keep : nullptr,
@@ -84,7 +83,9 @@ bool drawComponent(
     if (open && inspected.type) {
         dragging = drawObjectProperties(session, widgets, *inspected.type, inspected.component);
     } else if (open) {
-        ImGui::TextDisabled("%s", tr("editor.inspector.missing").c_str());
+        ImGui::PushTextWrapPos(0.0f);
+        ImGui::TextDisabled("%s", tr("editor.inspector.missingType").c_str());
+        ImGui::PopTextWrapPos();
     }
     if (!keep) {
         toRemove = &inspected.component;

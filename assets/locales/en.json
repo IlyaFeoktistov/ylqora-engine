@@ -91,6 +91,7 @@
             "noComponents": "No components to add yet",
             "none": "None",
             "missing": "Missing",
+            "missingType": "The component type is not found: the game module is not built or the script was deleted. The component data is kept as is and comes back with the type.",
             "requiredBy": "Cannot be removed, required by:",
             "camera": {
                 "main": "Main camera",

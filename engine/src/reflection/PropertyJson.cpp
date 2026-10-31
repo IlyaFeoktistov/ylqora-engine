@@ -3,6 +3,8 @@
 #include "yqlora/core/JsonId.hpp"
 
 #include <algorithm>
+#include <string>
+#include <vector>
 
 namespace yqlora {
 
@@ -87,6 +89,28 @@ const Json* findPropertyJson(const Json& object, const Property& property)
     }
 
     return nullptr;
+}
+
+Json unknownPropertiesJson(const TypeRegistry& registry, const TypeInfo& type, const Json& object)
+{
+    Json result = Json::object();
+    if (!object.is_object()) {
+        return result;
+    }
+    const std::vector<const Property*> properties = registry.properties(type);
+    const auto known = [&](const std::string& key) {
+        return std::ranges::any_of(properties, [&](const Property* property) {
+            return property->name() == key
+                   || std::ranges::find(property->attributes().formerly, key) != property->attributes().formerly.end();
+        });
+    };
+    for (const auto& [key, value] : object.items()) {
+        if (!known(key)) {
+            result[key] = value;
+        }
+    }
+
+    return result;
 }
 
 Json valueToJson(const Property& property, const PropertyValue& value)

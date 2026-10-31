@@ -3,6 +3,7 @@
 #include "yqlora/core/Export.hpp"
 #include "yqlora/scene/Node.hpp"
 
+#include <cstddef>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -36,6 +37,11 @@ public:
 
     bool save(const Scene& scene, const std::filesystem::path& file) const;
     bool load(Scene& scene, const std::filesystem::path& file) const;
+
+    // Компоненты, тип которых пропал при загрузке (MissingComponent), а теперь
+    // снова есть в реестре (загрузили модуль игры), становятся настоящими на
+    // том же месте со своими данными. Не во время кадра. Возвращает, сколько ожило.
+    std::size_t reviveMissing(Scene& scene) const;
 
 private:
     struct Format;

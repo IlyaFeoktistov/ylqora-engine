@@ -44,6 +44,7 @@ add_library(yqlora SHARED
     src/scene/ExecutionOrderSettings.cpp
     src/scene/GameTime.cpp
     src/scene/LayerSettings.cpp
+    src/scene/MissingComponent.cpp
     src/scene/Node.cpp
     src/scene/NodeTree.cpp
     src/scene/Component.cpp
@@ -60,6 +61,7 @@ add_library(yqlora SHARED
     src/scene/SceneSerializer.cpp
     src/scene/SceneTypes.cpp
     src/scene/TimeSettings.cpp
+    src/scene/UnknownProperties.cpp
     src/project/Project.cpp
     src/project/ProjectSettings.cpp
     src/project/ProjectTypes.cpp

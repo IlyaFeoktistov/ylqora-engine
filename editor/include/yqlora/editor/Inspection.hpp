@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace yqlora {
@@ -27,6 +28,8 @@ struct InspectedComponent {
     Component& component;
     // nullptr, если тип компонента не зарегистрирован.
     const TypeInfo* type = nullptr;
+    // Имя для заголовка: у заглушки (MissingComponent) - имя пропавшего типа.
+    std::string typeName;
     // См. canDetach в ComponentRules.hpp.
     bool removable = false;
     // Кому компонент нужен; пока они есть, его не снять.

@@ -106,7 +106,7 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: broken file leaves the scene untouc
     CHECK(scene.root() == &root);
 }
 
-TEST_CASE_FIXTURE(Fixture, "SceneSerializer: unknown component and property are skipped")
+TEST_CASE_FIXTURE(Fixture, "SceneSerializer: unknown node property is skipped, unknown component kept")
 {
     Scene scene{EngineServices::none()};
     const char* json = R"({
@@ -125,7 +125,8 @@ TEST_CASE_FIXTURE(Fixture, "SceneSerializer: unknown component and property are 
     auto* root = dynamic_cast<Node3D*>(scene.root());
     REQUIRE(root);
     CHECK(root->name() == "Box");
-    CHECK(root->components().size() == 1);
+    // Заглушка компонента пропавшего типа и Transform3D (см. test_missing_types).
+    CHECK(root->components().size() == 2);
     CHECK(root->transform().position() == Vec3(0.0f, 5.0f, 0.0f));
     CHECK(root->transform().scale() == Vec3(1.0f));
 }

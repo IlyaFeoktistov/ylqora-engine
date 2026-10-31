@@ -8,13 +8,17 @@
 #include "yqlora/reflection/ComponentRules.hpp"
 #include "yqlora/reflection/PropertyJson.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
+#include "yqlora/scene/MissingComponent.hpp"
 #include "yqlora/scene/NodeTree.hpp"
 #include "yqlora/scene/Scene.hpp"
+#include "yqlora/scene/UnknownProperties.hpp"
 
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <array>
+#include <cassert>
+#include <memory>
 #include <optional>
 
 namespace yqlora {
@@ -36,6 +40,32 @@ constexpr const char* kPropertiesKey = "properties";
 constexpr const char* kComponentsKey = "components";
 constexpr const char* kChildrenKey = "children";
 
+Json componentToJson(const TypeRegistry& registry, const Component& component)
+{
+    if (const auto* missing = dynamic_cast<const MissingComponent*>(&component)) {
+        return missing->data();
+    }
+    const TypeInfo* type = registry.find(component.typeName());
+    if (!type) {
+        log::error("Scene: component type '{}' is not registered, not saved", component.typeName());
+
+        return nullptr;
+    }
+    Json properties = propertiesToJson(registry, *type, component);
+    // Свойство с тем же именем снова есть у типа: его значение уже записано.
+    Json unknown = UnknownProperties::of(component);
+    for (auto& [key, value] : unknown.items()) {
+        if (!properties.contains(key)) {
+            properties[key] = std::move(value);
+        }
+    }
+
+    return {
+        {kTypeKey, type->name()},
+        {kPropertiesKey, std::move(properties)},
+    };
+}
+
 Json nodeToJson(const TypeRegistry& registry, const Node& node)
 {
     const TypeInfo* type = registry.find(node.typeName());
@@ -52,15 +82,10 @@ Json nodeToJson(const TypeRegistry& registry, const Node& node)
 
     Json components = Json::array();
     for (const auto& component : node.components()) {
-        const TypeInfo* componentType = registry.find(component->typeName());
-        if (!componentType) {
-            log::error("Scene: component type '{}' is not registered, not saved", component->typeName());
-            continue;
+        Json componentJson = componentToJson(registry, *component);
+        if (!componentJson.is_null()) {
+            components.push_back(std::move(componentJson));
         }
-        components.push_back({
-            {kTypeKey, componentType->name()},
-            {kPropertiesKey, propertiesToJson(registry, *componentType, *component)},
-        });
     }
     result[kComponentsKey] = std::move(components);
 
@@ -132,8 +157,9 @@ struct SceneSerializer::Format {
         return node;
     }
 
-    // Неизвестный компонент пропускаем с предупреждением, а не роняем всю сцену:
-    // так сцена откроется, даже если компонент удалили из кода игры.
+    // Компонент неизвестного типа становится заглушкой со своими данными, а не
+    // роняет сцену и не теряется: так сцена откроется и сохранится, даже если
+    // модуль игры не собран или скрипт удалили.
     void readComponent(Node& node, const Json& json) const
     {
         if (!json.is_object() || !json.contains(kTypeKey) || !json[kTypeKey].is_string()) {
@@ -144,7 +170,8 @@ struct SceneSerializer::Format {
         const std::string typeName = json[kTypeKey].get<std::string>();
         const TypeInfo* type = registry.find(typeName);
         if (!type || type->kind() != TypeKind::Component) {
-            log::warn("Scene: unknown component type '{}' on node '{}', skipped", typeName, node.name());
+            log::warn("Scene: unknown component type '{}' on node '{}', kept as missing", typeName, node.name());
+            node.addComponent(std::make_unique<MissingComponent>(json));
 
             return;
         }
@@ -176,9 +203,42 @@ struct SceneSerializer::Format {
 
             return;
         }
+        readProperties(*type, *component, json);
+    }
+
+    void readProperties(const TypeInfo& type, Component& component, const Json& json) const
+    {
         if (const auto it = json.find(kPropertiesKey); it != json.end()) {
-            propertiesFromJson(registry, *type, *component, *it);
+            propertiesFromJson(registry, type, component, *it);
+            UnknownProperties::set(component, unknownPropertiesJson(registry, type, *it));
         }
+    }
+
+    // Заглушки, чей тип снова есть в реестре, - настоящими компонентами на том же месте.
+    std::size_t revive(Node& node) const
+    {
+        std::size_t revived = 0;
+        for (std::size_t index = 0; index < node.components().size(); ++index) {
+            const auto* missing = dynamic_cast<const MissingComponent*>(node.components()[index].get());
+            const TypeInfo* type = missing ? registry.find(missing->missingType()) : nullptr;
+            if (!type || type->kind() != TypeKind::Component || !type->creatable()
+                || !canAttach(registry, *type, node)) {
+                continue;
+            }
+            const Json data = missing->data();
+            node.removeComponent(*node.components()[index]);
+            Component& component = node.insertComponent(index, type->createComponent());
+            readProperties(*type, component, data);
+            ++revived;
+        }
+        if (revived > 0) {
+            addMissingRequirements(node);
+        }
+        for (const auto& child : node.children()) {
+            revived += revive(*child);
+        }
+
+        return revived;
     }
 
     // Файл правили руками или правила типа поменялись: обязательного компонента
@@ -285,6 +345,13 @@ bool SceneSerializer::save(const Scene& scene, const std::filesystem::path& file
     }
 
     return true;
+}
+
+std::size_t SceneSerializer::reviveMissing(Scene& scene) const
+{
+    assert(!scene.inFrame() && "reviveMissing: not during a frame of the scene");
+
+    return scene.root() ? Format{m_registry}.revive(*scene.root()) : 0;
 }
 
 bool SceneSerializer::load(Scene& scene, const std::filesystem::path& file) const

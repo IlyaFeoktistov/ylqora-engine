@@ -18,6 +18,7 @@ MyGame/
 |   |-- general.json
 |   |-- time.json
 |   `-- ...
+|-- .build/                 the game library: game.dll / libgame.so [planned, step 2]
 |-- main.yscene             scenes, anywhere in the folder
 |-- main.yscene.meta        resource ID of the file next to it
 `-- ...                     other resources with their .meta
@@ -26,7 +27,10 @@ MyGame/
 - `project.yqlora` and `settings/` are not resources: the resource scan skips
   them (`Project::reservedNames`), the Files panel hides them and cannot
   rename or delete them.
-- Hidden files and folders (starting with a dot) are skipped too.
+- Hidden files and folders (starting with a dot) are skipped too, so the
+  build output in `.build/` is never a resource; the editor loads the game
+  library from there (see [scripts](scripting.md)), and in step 3 builds it
+  there.
 - The project is `Project` in the engine: it is needed by the editor and by
   the game runtime (step 9). Creating, importing and deleting a project folder
   is the editor's job (`ProjectSetup`, `ProjectManager`).
@@ -75,9 +79,14 @@ format.
 ```
 
 - Properties are written by the type registry: every registered property of
-  the type, under its name (see [reflection](reflection.md)). An unknown
-  property is skipped, a missing one keeps its default value, so adding or
-  removing a field in code does not break saved files.
+  the type, under its name (see [reflection](reflection.md)). A missing
+  property keeps its default value. An unknown property of a component is
+  kept with the component and written back (`UnknownProperties`), and a
+  component of an unknown type becomes a placeholder holding its JSON
+  (`MissingComponent`), so adding or removing a field or a script in code
+  neither breaks nor loses saved data (see [scripts](scripting.md)). Unknown
+  properties of nodes are skipped: node types belong to the engine, and its
+  format changes go through migrations.
 - 64-bit IDs (nodes, resources) are written as strings of 16 hex digits:
   many tools read JSON numbers only up to 2^53 and would spoil them silently.
 - Enumerations are written by name, so the order of values in C++ can change.

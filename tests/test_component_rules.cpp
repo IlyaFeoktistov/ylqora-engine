@@ -9,10 +9,12 @@
 #include <yqlora/reflection/TypeRegistry.hpp>
 #include <yqlora/render/Camera3D.hpp>
 #include <yqlora/render/MeshRenderer.hpp>
+#include <yqlora/scene/MissingComponent.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 
 #include <algorithm>
+#include <memory>
 
 using namespace yqlora;
 using namespace yqlora::editor;
@@ -275,6 +277,16 @@ TEST_CASE_FIXTURE(Fixture, "Inspection: what the inspector shows for the selecte
     CHECK(std::ranges::none_of(inspection->addable, [&](const TypeInfo* t) {
         return t->name() == "Body";
     }));
+
+    // Заглушка компонента пропавшего типа видна под его именем, и её можно снять.
+    node->addComponent(std::make_unique<MissingComponent>(nlohmann::json{{"type", "Gone"}}));
+    const auto withMissing = inspect(session);
+    REQUIRE(withMissing);
+    const auto& missing = withMissing->components.back();
+    CHECK(missing.typeName == "Gone");
+    CHECK(missing.type == nullptr);
+    CHECK(missing.removable);
+    CHECK(transform.typeName == "Transform3D");
 }
 
 TEST_CASE_FIXTURE(Fixture, "Node: addComponent in a scene adds the required components first")

@@ -37,6 +37,7 @@ add_executable(yqlora_tests
     test_project_manager.cpp
     test_frame_clock.cpp
     test_game_module.cpp
+    test_missing_types.cpp
 )
 target_link_libraries(yqlora_tests PRIVATE yqlora::internal yqlora::editor doctest::doctest)
 target_compile_definitions(yqlora_tests PRIVATE

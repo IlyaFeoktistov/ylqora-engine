@@ -174,13 +174,20 @@ The component lifecycle of the [scene](scene.md), as scripts see it:
    never by `typeid`: `type_info` comparison across libraries is unreliable
    on MinGW, so `TypeRegistry::find<T>()` and `Scene::system<T>()` use the
    `YQLORA_TYPE` name.
-4. Editor: scripts in "Add component" as their own group (by the mark),
-   fields in the inspector with their attributes, saving and loading of field values; a component whose type is
-   missing (module not built, script deleted) is kept as a placeholder with
-   its JSON object as read, shown as missing and written back unchanged,
-   and comes back when the type returns; properties a known type no longer
-   has are kept and written back. An example movement
-   script on the default input actions.
+4. Editor, in three parts:
+   - 4a. A component whose type is missing (module not built, script
+     deleted) is kept as a placeholder with its JSON object as read, shown
+     as missing and written back unchanged, and comes back when the type
+     returns (`SceneSerializer::reviveMissing`); properties a known type
+     no longer has are kept and written back **[done]**.
+   - 4b. The editor loads the game module of the project from
+     `.build/game.dll` (`libgame.so`) when the project opens and unloads it
+     when it closes; scripts in "Add component" as their own group (by the
+     mark); fields in the inspector with their attributes, saving and
+     loading of field values.
+   - 4c. An example game module in `examples/`, built with the repository: a
+     `Rotator` script with fields (speed, axis). A movement example is
+     physics-based and comes with step 6.
 5. Documents: this one, the game module, a "first script" guide and the
    limits (native code can crash the editor; one game module per project;
    how Luau and graphs fit the same boundaries).
@@ -245,5 +252,6 @@ links, then attached to a node and works like a C++ or Luau script.
 
 A component whose type is missing (the game failed to compile, a script was
 deleted) is kept as a placeholder holding its raw data, shown in the inspector
-as missing, and written back unchanged on save. Otherwise saving the scene
-would silently drop the data **[planned, step 2]**.
+as missing, and written back unchanged on save; after a reload
+`reviveMissing` brings it back. Otherwise saving the scene would silently drop
+the data **[done]**.

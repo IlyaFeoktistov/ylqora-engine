@@ -4,6 +4,7 @@
 
 #include "yqlora/reflection/TypeName.hpp"
 
+#include <string>
 #include <string_view>
 
 namespace yqlora {
@@ -112,6 +113,7 @@ private:
     friend class ComponentLifecycle;
     // Для регистрации самого Component: его фазы защищённые.
     friend struct PhaseDetector;
+    friend struct UnknownProperties;
 
     Node* m_owner = nullptr;
     bool m_builtin = false;
@@ -119,6 +121,9 @@ private:
     // Получил onEnable и ещё не получил onDisable.
     bool m_enableCalled = false;
     bool m_started = false;
+    // Свойства из файла, которых у типа нет: текст объекта JSON, пусто - нет таких.
+    // Текстом, чтобы публичный заголовок не тянул библиотеку JSON.
+    std::string m_unknownProperties;
 };
 
 } // namespace yqlora
