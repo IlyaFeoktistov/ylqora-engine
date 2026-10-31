@@ -51,6 +51,9 @@ EditorApp::EditorApp()
     m_panels.push_back(std::make_unique<SceneTreePanel>());
     m_panels.push_back(std::make_unique<InspectorPanel>());
     m_panels.push_back(std::make_unique<FileSystemPanel>());
+    auto logPanel = std::make_unique<LogPanel>(m_log);
+    m_logPanel = logPanel.get();
+    m_panels.push_back(std::move(logPanel));
     m_panels.push_back(std::make_unique<ViewportPanel>());
     m_panels.push_back(std::make_unique<GamePanel>());
     auto projectSettings = std::make_unique<ProjectSettingsPanel>();
@@ -165,6 +168,7 @@ void EditorApp::onRendererLost()
 
 void EditorApp::onUpdate(float deltaSeconds)
 {
+    m_log.collect();
     m_session.update(deltaSeconds, input());
     // Камера обновляется в окне сцены, там же известно, над ним ли курсор.
     m_deltaSeconds = deltaSeconds;
@@ -180,6 +184,10 @@ void EditorApp::onGui()
         .panels = m_panels,
         .languages = m_languages,
         .theme = m_theme,
+        .log = m_log,
+        .showLog = [this] {
+            m_logPanel->reveal();
+        },
     });
 
     m_unsaved.draw(m_session);
@@ -212,6 +220,9 @@ void EditorApp::onGui()
         if (panel->visible() && (!m_maximized || m_maximized == panel.get())) {
             panel->draw(frame);
         }
+    }
+    if (!m_newWindowsDocked) {
+        m_newWindowsDocked = dockNewWindows();
     }
     updateTitle();
 

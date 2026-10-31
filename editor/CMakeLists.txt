@@ -20,6 +20,7 @@ add_library(yqlora_editor STATIC
     src/ProjectManager.cpp
     src/SceneCommands.cpp
     src/EditHistory.cpp
+    src/LogBuffer.cpp
 )
 add_library(yqlora::editor ALIAS yqlora_editor)
 
@@ -51,6 +52,7 @@ add_library(yqlora_editor_ui STATIC
     ui/src/panels/FileSystemPanel.cpp
     ui/src/panels/GamePanel.cpp
     ui/src/panels/InspectorPanel.cpp
+    ui/src/panels/LogPanel.cpp
     ui/src/panels/ProjectManagerPanel.cpp
     ui/src/panels/ProjectSettingsPanel.cpp
     ui/src/panels/SceneTreePanel.cpp

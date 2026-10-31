@@ -170,6 +170,7 @@ void applyEditorColors(const Json& json, EditorColors& colors)
         }
     };
     read("errorText", colors.errorText);
+    read("warningText", colors.warningText);
     read("selectionOutline", colors.selectionOutline);
     read("cameraGizmo", colors.cameraGizmo);
     read("viewportBackground", colors.viewportBackground);

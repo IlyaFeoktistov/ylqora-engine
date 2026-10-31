@@ -80,6 +80,7 @@
     },
     "editor": {
         "errorText": "#FF7366",
+        "warningText": "#E5C07B",
         "selectionOutline": "#FF9A1A",
         "cameraGizmo": "#C8CDD6",
         "viewportBackground": "#14171F",

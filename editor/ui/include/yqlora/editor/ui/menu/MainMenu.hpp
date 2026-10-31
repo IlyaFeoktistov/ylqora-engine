@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <span>
 #include <string>
@@ -11,6 +12,7 @@ class ActionRegistry;
 class EditorHost;
 class EditorPanel;
 class EditorSession;
+class LogBuffer;
 class Theme;
 
 struct MainMenuContext {
@@ -21,10 +23,14 @@ struct MainMenuContext {
     // Код языка и его название.
     std::span<const std::pair<std::string, std::string>> languages;
     const Theme& theme;
+    const LogBuffer& log;
+    // Открыть панель "Лог": по щелчку на счётчике ошибок.
+    std::function<void()> showLog;
 };
 
-// Главное меню окна: Файл, Правка, Вид с выбором языка, а по центру при
-// открытом проекте - Play, Pause и Stop.
+// Главное меню окна: Файл, Правка, Вид с выбором языка, а при открытом
+// проекте по центру Play, Pause и Stop, справа счётчики ошибок и
+// предупреждений лога.
 void drawMainMenu(const MainMenuContext& context);
 
 } // namespace yqlora::editor

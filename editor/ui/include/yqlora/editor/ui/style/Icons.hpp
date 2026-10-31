@@ -41,6 +41,14 @@ inline constexpr const char* kDelete = "\uE18E";     // trash-2
 inline constexpr const char* kRename = "\uE1F9";     // pencil
 inline constexpr const char* kSave = "\uE14D";       // save
 inline constexpr const char* kSearch = "\uE151";     // search
+inline constexpr const char* kClear = "\uE28F";      // eraser
+inline constexpr const char* kCopy = "\uE09E";       // copy
+
+// Лог: панель и уровни сообщений.
+inline constexpr const char* kLog = "\uE45F";     // scroll-text
+inline constexpr const char* kInfo = "\uE0F9";    // info
+inline constexpr const char* kWarning = "\uE193"; // alert-triangle (triangle-alert)
+inline constexpr const char* kError = "\uE084";   // circle-x
 
 // Иконка для типа узла; для неизвестного типа - иконка простого Node.
 inline const char* forNodeType(std::string_view type)

@@ -11,6 +11,7 @@ namespace yqlora::editor {
 // Цвета редактора, которых нет среди цветов ImGui.
 struct EditorColors {
     Vec4 errorText{1.0f, 0.45f, 0.4f, 1.0f};
+    Vec4 warningText{0.9f, 0.75f, 0.48f, 1.0f};
     Vec4 selectionOutline{1.0f, 0.6f, 0.1f, 1.0f};
     // Контур камер в окне сцены.
     Vec4 cameraGizmo{0.78f, 0.8f, 0.84f, 1.0f};

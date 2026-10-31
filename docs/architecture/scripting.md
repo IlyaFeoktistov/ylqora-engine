@@ -359,7 +359,7 @@ Failures:
 1. Log panel: log subscribers outside the lock with an owning handle,
    thread-safe `LogBuffer` (bounded, levels, source, counters) taken on the
    main thread, the Log panel (level filter, search, clear, copy, follow the
-   end), the error counter in the status bar.
+   end), the error counter in the main menu **[done]**.
 2. The SDK and `scripts/`: relocatable `yqloraConfig.cmake` and
    `yqlora_add_game_module`, the toolchain record; the project template with
    `scripts/CMakeLists.txt`, `scripts/Module.cpp` (the entry function) and an

@@ -7,6 +7,7 @@
 #include "yqlora/editor/ui/style/Theme.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
+#include "yqlora/editor/LogBuffer.hpp"
 #include "yqlora/editor/ui/core/EditorHost.hpp"
 #include "yqlora/i18n/Language.hpp"
 #include "yqlora/i18n/Translate.hpp"
@@ -60,6 +61,34 @@ void drawPlayControls(const MainMenuContext& context)
     }
     ImGui::SetItemTooltip("%s", tr("editor.play.stop").c_str());
     ImGui::EndDisabled();
+}
+
+// Ошибки и предупреждения лога у правого края; щелчок открывает лог.
+void drawLogCounters(const MainMenuContext& context)
+{
+    const std::string errors = std::string(icons::kError) + " " + std::to_string(context.log.count(log::Level::Error));
+    const std::string warnings = std::string(icons::kWarning) + " "
+                                 + std::to_string(context.log.count(log::Level::Warning));
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const float width = ImGui::CalcTextSize(errors.c_str()).x + ImGui::CalcTextSize(warnings.c_str()).x
+                        + style.FramePadding.x * 4.0f + style.ItemSpacing.x * 2.0f;
+    ImGui::SetCursorPosX(ImGui::GetWindowWidth() - width);
+
+    const EditorColors& colors = context.theme.colors();
+    const auto counter = [&](const std::string& label, std::size_t count, const Vec4& color) {
+        if (count > 0) {
+            ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(color));
+        }
+        if (ImGui::SmallButton(label.c_str())) {
+            context.showLog();
+        }
+        if (count > 0) {
+            ImGui::PopStyleColor();
+        }
+        ImGui::SetItemTooltip("%s", tr("editor.log.open").c_str());
+    };
+    counter(errors, context.log.count(log::Level::Error), colors.errorText);
+    counter(warnings, context.log.count(log::Level::Warning), colors.warningText);
 }
 
 void drawLanguageMenu(const MainMenuContext& context)
@@ -123,6 +152,8 @@ void drawMainMenu(const MainMenuContext& context)
     drawViewMenu(context);
     if (context.session.project()) {
         drawPlayControls(context);
+        ImGui::SameLine();
+        drawLogCounters(context);
     }
     ImGui::EndMainMenuBar();
 }

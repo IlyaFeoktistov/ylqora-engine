@@ -80,7 +80,18 @@
             "viewport": "Viewport",
             "inspector": "Inspector",
             "files": "Files",
+            "log": "Log",
             "projectSettings": "Project Settings"
+        },
+        "log": {
+            "info": "Messages: show or hide",
+            "warnings": "Warnings: show or hide",
+            "errors": "Errors: show or hide",
+            "clear": "Clear the log",
+            "copy": "Copy",
+            "copyAll": "Copy everything shown",
+            "search": "Search",
+            "open": "Open the log"
         },
         "scene": {
             "empty": "The scene is empty"

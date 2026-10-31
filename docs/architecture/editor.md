@@ -72,3 +72,20 @@ Status marks: see [README](README.md).
   - Reset and paste are ordinary edits and are undone with Ctrl+Z.
 - The label column of a property table fits the longest label, up to half
   the width; a clipped label shows its full text as a tooltip.
+
+## Log [done]
+
+- The engine log has subscribers (`log::subscribe`, internal): a listener
+  is called outside the lock of the log, and the owning `log::Subscription`
+  unsubscribes, waiting for a call already running.
+- `LogBuffer` (`editor/`) keeps the last entries with their level and source
+  (the engine, the script build). Any thread adds; the main thread takes new
+  entries with `collect()` every frame, so the interface never sees the list
+  change under it. `LogFilter` picks entries by level and text.
+- The Log panel sits as a tab next to Files: level toggles with counters,
+  search, clear, copy one entry or everything shown; while scrolled to the
+  end it follows new entries. The main menu shows the error and warning
+  counters on the right; a click opens the log.
+- A window added by a new version of the editor docks where the default
+  layout would put it, unless `imgui.ini` already knows it
+  (`dockNewWindows`).
