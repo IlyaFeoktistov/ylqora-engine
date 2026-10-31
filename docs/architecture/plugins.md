@@ -48,5 +48,5 @@ Status marks: see [README](README.md).
 ## Groundwork in the code
 
 - Types belong to a module and leave with it **[done]**.
-- Loading a game module with its types **[planned, step 2]**.
-- Placeholders for components of missing types **[planned, step 3]**.
+- Loading a game module with its types (`GameModule`) **[done]**.
+- Placeholders for components of missing types (`MissingComponent`) **[done]**.

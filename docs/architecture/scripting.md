@@ -68,7 +68,7 @@ user C++ class : Script          LuauScript (VM)      VisualScript (graph)
   type no longer has are kept with the object and written back too, so
   removing a field and bringing it back loses nothing.
 
-## Scripts in C++ [planned, step 2]
+## Scripts in C++ [done]
 
 ```cpp
 class Player : public yqlora::Script {
@@ -155,6 +155,38 @@ The component lifecycle of the [scene](scene.md), as scripts see it:
   settings).
 - An exception from a call disables the script and goes to the log.
 
+### The game module
+
+- The scripts of a game are one shared library, the game module: one per
+  project, registered under the type module `game`
+  (`GameModule::moduleName`). It lives in `<project>/.build/game.dll`
+  (`libgame.so`, see `gameLibraryPath`); until step 3 it is built by hand
+  (see the [first script guide](../guide/first-script.md)).
+- `GameModule::load` opens the library, finds `YQLORA_MODULE_ENTRY` by
+  `kModuleEntrySymbol` and calls it with a `ModuleRegistrar`. A missing
+  library or entry function is an error in the log, not a crash; a
+  rejected type name is logged and the rest of the module works.
+- `GameModule::unload` destroys every component of the module in the given
+  scenes, then removes its types, then unloads the library. In the editor
+  `EditorSession` owns the order: the module loads before the startup scene
+  and unloads after the scene and the edit history are gone.
+- Without the library a project still opens: its scripts wait as
+  placeholders (`MissingComponent`) and come back with the library.
+
+### Limits
+
+- **Native code is trusted.** Scripts run in the editor process. An
+  exception from a lifecycle call disables the component and goes to the
+  log; a crash or an endless loop takes the editor down. Luau (after the
+  MVP) is the sandboxed language.
+- **One game module per project**, built for the same compiler and engine
+  version as the editor.
+- **Luau and graphs fit the same boundaries**: their types go to the same
+  registry under their own modules (`luau`, `visual`), are marked as
+  scripts, and their instances are components of one C++ class each
+  (`LuauScript`, `VisualScript`). Nothing above the registry changes; they
+  do not derive from `Script`.
+
 ### Phases of step 2
 
 1. Field attributes in `Property` (with `formerly`) and the "is a script"
@@ -192,7 +224,7 @@ The component lifecycle of the [scene](scene.md), as scripts see it:
      example is physics-based and comes with step 6.
 5. Documents: this one, the game module, a "first script" guide and the
    limits (native code can crash the editor; one game module per project;
-   how Luau and graphs fit the same boundaries).
+   how Luau and graphs fit the same boundaries) **[done]**.
 
 Step 3 adds the project build, `YQLORA_FIELD()` with a generator built on
 Clang LibTooling (a full C++ parser, never regular expressions; it writes
