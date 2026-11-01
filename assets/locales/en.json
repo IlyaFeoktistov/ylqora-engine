@@ -258,6 +258,19 @@
             "notLoaded": "Not loaded",
             "missing": "Missing",
             "dragHint": "Drag a model or a mesh into the scene tree or the viewport"
+        },
+        "resourceField": {
+            "search": "Search",
+            "builtin": "Built-in",
+            "assets": "Assets",
+            "nothing": "Nothing found",
+            "pick": "Choose",
+            "choose": "Choose",
+            "kind": {
+                "mesh": "Mesh",
+                "texture": "Texture",
+                "scene": "Scene"
+            }
         }
     },
     "projects": {

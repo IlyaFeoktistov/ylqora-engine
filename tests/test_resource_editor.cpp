@@ -7,6 +7,7 @@
 #include <yqlora/editor/EditorSession.hpp>
 #include <yqlora/editor/Picking.hpp>
 #include <yqlora/editor/ProjectSetup.hpp>
+#include <yqlora/editor/ResourceChoices.hpp>
 #include <yqlora/editor/ResourceInspection.hpp>
 #include <yqlora/editor/ResourceInstance.hpp>
 #include <yqlora/editor/ResourceLabel.hpp>
@@ -15,8 +16,10 @@
 #include <yqlora/input/Input.hpp>
 #include <yqlora/project/GeneralSettings.hpp>
 #include <yqlora/project/Project.hpp>
+#include <yqlora/render/BuiltinMeshes.hpp>
 #include <yqlora/render/MeshData.hpp>
 #include <yqlora/render/MeshRenderer.hpp>
+#include <yqlora/resource/BuiltinResources.hpp>
 #include <yqlora/resource/ResourceCache.hpp>
 #include <yqlora/resource/ResourceLoader.hpp>
 #include <yqlora/scene/Node3D.hpp>
@@ -269,4 +272,41 @@ TEST_CASE("Labels of nested resources and placement in the viewport")
     CHECK(ahead == Vec3(0.0f, 1.0f, -kPlacementDistance));
     const Vec3 far = placementPoint({Vec3(0.0f, 1000.0f, 0.0f), Vec3(0.0f, -1.0f, 0.0f)});
     CHECK(far.y == doctest::Approx(1000.0f - kPlacementDistance));
+}
+
+TEST_CASE_FIXTURE(Fixture, "resourceChoices: built-in meshes first, then the meshes of models by file; files of a kind")
+{
+    const auto& resources = session.project()->resources();
+    const auto meshes = resourceChoices(PropertyHint::Mesh, &resources, session.resources());
+    REQUIRE(meshes.size() == builtinMeshes().size() + 2);
+    CHECK(meshes[0].builtin);
+    CHECK(meshes[0].label == "cube");
+    const ResourceChoice& door = meshes[builtinMeshes().size()];
+    CHECK_FALSE(door.builtin);
+    CHECK(door.label == "Door");
+    CHECK(door.group == "models/house.glb");
+    CHECK(door.id == mesh("mesh:Door"));
+
+    // Сцены - файлы верхнего уровня, без групп; текстур в проекте нет.
+    const auto scenes = resourceChoices(PropertyHint::Scene, &resources, session.resources());
+    REQUIRE(scenes.size() == 1);
+    CHECK(scenes[0].group.empty());
+    CHECK(resourceChoices(PropertyHint::Texture, &resources, session.resources()).empty());
+    CHECK(resourceChoices(PropertyHint::Layer, &resources, session.resources()).empty());
+    // Без проекта - только встроенные.
+    CHECK(resourceChoices(PropertyHint::Mesh, nullptr, session.resources()).size() == builtinMeshes().size());
+}
+
+TEST_CASE_FIXTURE(Fixture, "resourceForField: a model on a mesh field gives its first mesh, a wrong kind is refused")
+{
+    const auto& resources = session.project()->resources();
+    ResourceCache& cache = session.resources();
+    CHECK(resourceForField(PropertyHint::Mesh, model, &resources, cache) == mesh("mesh:Door"));
+    CHECK(resourceForField(PropertyHint::Mesh, mesh("mesh:Frame"), &resources, cache) == mesh("mesh:Frame"));
+    CHECK(resourceForField(PropertyHint::Mesh, builtin::kCubeMesh, &resources, cache) == builtin::kCubeMesh);
+    const ResourceId scene = session.project()->settings().get<GeneralSettings>().startupScene.id;
+    CHECK(resourceForField(PropertyHint::Scene, scene, &resources, cache) == scene);
+    CHECK_FALSE(resourceForField(PropertyHint::Mesh, scene, &resources, cache));
+    CHECK_FALSE(resourceForField(PropertyHint::Texture, model, &resources, cache));
+    CHECK_FALSE(resourceForField(PropertyHint::Texture, mesh("mesh:Door"), &resources, cache));
 }

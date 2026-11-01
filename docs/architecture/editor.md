@@ -136,10 +136,14 @@ Status marks: see [README](README.md).
   the nodes of the model under it, a mesh - a `Node3D` with a
   `MeshRenderer` (`instantiateResource`). One undo step
   (`SceneEditing::addResource`, `AddBranchCommand`).
-- **Into a field**: a resource dropped onto a resource field is taken if it
-  is of the kind of the field (mesh, texture, scene). The mesh list of
-  `MeshRenderer` holds the built-in meshes and the meshes of every model,
-  grouped by file; a nested resource reads "models/house.glb / Door".
+- **A resource field**, as in Unity (`resourceField`): an icon and the name
+  of the resource or "None (Mesh)"; clicking the field or the button on its
+  right opens a picker with a search: None, built-in resources, project
+  assets (meshes by model file, textures with a preview). What fits the
+  field is decided by `resourceChoices`. A resource dropped onto the field
+  is taken if it is of the kind of the field, and a model on a mesh field
+  gives its first mesh (`resourceForField`). A nested resource reads
+  "models/house.glb / Door".
 - **Changes on disk**: when the editor window gets focus, the session walks
   the project folder again and reloads changed files
   (`EditorSession::refreshResources`).

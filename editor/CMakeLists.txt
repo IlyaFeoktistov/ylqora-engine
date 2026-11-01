@@ -9,6 +9,7 @@ add_library(yqlora_editor STATIC
     src/Inspection.cpp
     src/LayerUsage.cpp
     src/PlayMode.cpp
+    src/ResourceChoices.cpp
     src/ResourceInspection.cpp
     src/ResourceInstance.cpp
     src/ResourceLabel.cpp
@@ -72,6 +73,7 @@ add_library(yqlora_editor_ui STATIC
     ui/src/widgets/PropertyEditor.cpp
     ui/src/widgets/PropertyTable.cpp
     ui/src/widgets/RenderView.cpp
+    ui/src/widgets/ResourceField.cpp
     ui/src/widgets/DragDrop.cpp
     ui/src/widgets/TitleBarButton.cpp
 )

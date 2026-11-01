@@ -3,25 +3,18 @@
 #include "yqlora/editor/ui/style/Icons.hpp"
 #include "yqlora/editor/ui/style/Theme.hpp"
 #include "yqlora/editor/ui/widgets/Checkbox.hpp"
-#include "yqlora/editor/ui/widgets/DragDrop.hpp"
+#include "yqlora/editor/ui/widgets/ResourceField.hpp"
 
-#include "yqlora/core/Utf8Path.hpp"
-#include "yqlora/editor/ProjectFiles.hpp"
 #include "yqlora/editor/PropertyValues.hpp"
+#include "yqlora/editor/ResourceChoices.hpp"
 #include "yqlora/editor/ResourceLabel.hpp"
 
 #include "yqlora/i18n/Translate.hpp"
-#include "yqlora/import/ModelData.hpp"
 #include "yqlora/input/Input.hpp"
 #include "yqlora/input/InputControl.hpp"
 #include "yqlora/project/SettingsSection.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
-#include "yqlora/render/BuiltinMeshes.hpp"
-#include "yqlora/render/MeshData.hpp"
-#include "yqlora/render/Renderer.hpp"
-#include "yqlora/render/TextureData.hpp"
-#include "yqlora/resource/ResourceCache.hpp"
 #include "yqlora/resource/ResourceDatabase.hpp"
 #include "yqlora/scene/Layers.hpp"
 #include "yqlora/scene/Scene.hpp"
@@ -140,139 +133,6 @@ void vectorFields(float* values, int count, float speed, const EditorColors& col
             ImGui::GetStateStorage()->SetInt(clickedKey, i);
         }
         ImGui::PopID();
-    }
-}
-
-// "Нет", встроенные меши и меши моделей проекта, по файлам. Модели
-// читаются при открытии списка: ID мешей появляются в .meta при загрузке.
-bool meshCombo(ResourceRef& value, const PropertyEditorContext& context)
-{
-    bool changed = false;
-    const auto choose = [&](const char* label, ResourceId id) {
-        if (ImGui::Selectable(label, id == value.id)) {
-            value.id = id;
-            changed = true;
-        }
-    };
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    if (!ImGui::BeginCombo("##value", resourceLabel(value, context.resources).c_str())) {
-        return false;
-    }
-    choose(tr("editor.inspector.none").c_str(), 0);
-    for (const BuiltinMesh& mesh : builtinMeshes()) {
-        choose(std::string(mesh.name).c_str(), mesh.id);
-    }
-    if (context.resources) {
-        for (const auto& [file, path] : context.resources->paths()) {
-            if (context.cache.kindOf(path) != ModelData::kResourceKind || !context.cache.find<ModelData>(file)) {
-                continue;
-            }
-            const std::string fileLabel = toGenericUtf8(path);
-            ImGui::SeparatorText(fileLabel.c_str());
-            // Одинаковые имена мешей в разных файлах.
-            ImGui::PushID(fileLabel.c_str());
-            for (const auto& [key, id] : context.resources->subresources(file)) {
-                // Меш, которого в файле больше нет, не предлагается.
-                if (context.cache.find<MeshData>(id)) {
-                    choose(subresourceLabel(key).c_str(), id);
-                }
-            }
-            ImGui::PopID();
-        }
-    }
-    ImGui::EndCombo();
-
-    return changed;
-}
-
-// Без проекта выбирать не из чего.
-const std::map<ResourceId, std::filesystem::path> kNoResources;
-
-// Превью текстуры в инспекторе: высота в строках поля.
-constexpr float kTexturePreviewLines = 3.0f;
-
-// "Нет" и файлы проекта, которые подходят (fits), по пути.
-template <typename Fits>
-bool fileCombo(ResourceRef& value, const ResourceDatabase* resources, Fits&& fits)
-{
-    bool changed = false;
-    ImGui::SetNextItemWidth(-FLT_MIN);
-    if (ImGui::BeginCombo("##value", resourceLabel(value, resources).c_str())) {
-        if (ImGui::Selectable(tr("editor.inspector.none").c_str(), value.id == 0)) {
-            value.id = 0;
-            changed = true;
-        }
-        for (const auto& [id, path] : resources ? resources->paths() : kNoResources) {
-            if (!fits(path)) {
-                continue;
-            }
-            if (ImGui::Selectable(toUtf8(path).c_str(), id == value.id)) {
-                value.id = id;
-                changed = true;
-            }
-        }
-        ImGui::EndCombo();
-    }
-
-    return changed;
-}
-
-// "Нет" и сцены проекта по пути.
-bool sceneCombo(ResourceRef& value, const ResourceDatabase* resources)
-{
-    return fileCombo(value, resources, [](const std::filesystem::path& path) {
-        return ProjectFiles::isScene(path);
-    });
-}
-
-// "Нет" и картинки проекта, под списком - превью выбранной.
-bool textureCombo(ResourceRef& value, const PropertyEditorContext& context)
-{
-    const bool changed = fileCombo(value, context.resources, [&](const std::filesystem::path& path) {
-        return context.cache.kindOf(path) == TextureData::kResourceKind;
-    });
-    if (const LoadedData<TextureData> texture = context.cache.get<TextureData>(value.id)) {
-        const UiTexture ui = context.renderer.uiTexture(value.id, texture.revision, *texture.data);
-        const float height = ImGui::GetFrameHeight() * kTexturePreviewLines;
-        const float width = height * static_cast<float>(texture.data->width) / static_cast<float>(texture.data->height);
-        ImGui::Image(
-            static_cast<ImTextureID>(ui.id),
-            ImVec2(width, height),
-            ImVec2(ui.uv0.x, ui.uv0.y),
-            ImVec2(ui.uv1.x, ui.uv1.y)
-        );
-    }
-
-    return changed;
-}
-
-// Ресурс, перетащенный на поле ссылки (последний элемент ImGui), если он
-// того вида, что ждёт поле.
-void resourceFieldDrop(
-    PropertyHint hint,
-    ResourceRef& value,
-    const PropertyEditorContext& context,
-    PropertyResult& result
-)
-{
-    const auto dropped = acceptResourceDrop();
-    if (!dropped) {
-        return;
-    }
-    const auto path = context.resources ? context.resources->path(*dropped) : std::nullopt;
-    bool fits = false;
-    switch (hint) {
-    case PropertyHint::Mesh: fits = context.cache.find<MeshData>(*dropped) != nullptr; break;
-    case PropertyHint::Texture:
-        fits = path && context.cache.kindOf(*path) == TextureData::kResourceKind
-               && context.resources->key(*dropped).empty();
-        break;
-    case PropertyHint::Scene: fits = path && ProjectFiles::isScene(*path); break;
-    default: break;
-    }
-    if (fits) {
-        value.id = *dropped;
-        result.changed = true;
     }
 }
 
@@ -741,20 +601,12 @@ void valueField(
         result.changed = nodeCombo(context.scene, std::get<NodeRef>(value)) || result.changed;
         break;
     case PropertyType::Resource:
-        // Группа - одна цель для перетаскивания: список и превью под ним.
-        ImGui::BeginGroup();
-        if (property.hint() == PropertyHint::Mesh) {
-            result.changed = meshCombo(std::get<ResourceRef>(value), context) || result.changed;
-        } else if (property.hint() == PropertyHint::Scene) {
-            result.changed = sceneCombo(std::get<ResourceRef>(value), context.resources) || result.changed;
-        } else if (property.hint() == PropertyHint::Texture) {
-            result.changed = textureCombo(std::get<ResourceRef>(value), context) || result.changed;
+        if (!fieldKind(property.hint()).empty()) {
+            result.changed = resourceField(property.hint(), std::get<ResourceRef>(value), context) || result.changed;
         } else {
             ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted(resourceLabel(std::get<ResourceRef>(value), context.resources).c_str());
         }
-        ImGui::EndGroup();
-        resourceFieldDrop(property.hint(), std::get<ResourceRef>(value), context, result);
         break;
     case PropertyType::List: listField(property, std::get<ListValue>(value), context, result); break;
     case PropertyType::Record: recordField(property, std::get<RecordValue>(value), context, result); break;
