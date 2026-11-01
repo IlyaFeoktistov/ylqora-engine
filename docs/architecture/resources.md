@@ -138,10 +138,10 @@ own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
 
 ### Phases of step 4
 
-0. Step 3 leftovers: on a module reload its scene systems and settings
-   sections are recreated (see [frame](frame.md),
-   [project settings](project-settings.md)). Test: after unload no system
-   and no section of the module is left.
+0. Step 3 leftovers. A game module registers only scripts, so its reload
+   has no systems or settings sections to recreate: the contract is written
+   down, and recreating them moves to [plugins](plugins.md), whose modules
+   will register them **[done]**.
 1. `ResourceCache` and the loader interface, the built-in meshes in it;
    `FrameBuilder` and picking take meshes from the cache; `findBuiltinMesh`
    goes away; `uv0`, submeshes, AABB; the GPU cache by ID and revision.

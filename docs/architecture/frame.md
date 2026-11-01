@@ -87,8 +87,9 @@ scene.system<PhysicsWorld>()                    // a component registers its bod
 
 - Systems are types of the registry (`TypeKind::System`), so they belong to a
   module and leave with it like components. A scene creates one instance of
-  every system type when it is constructed; on a reload of the game module the
-  scene is recreated together with its tree **[planned, step 3]**.
+  every system type when it is constructed. A game module registers only
+  scripts (`ModuleRegistrar`), so its reload touches no systems **[done]**;
+  systems of a reloaded plugin module are in [plugins](plugins.md).
 - Systems are called in the order of registration. An explicit order comes
   with the first pair of systems that needs one.
 - The edited scene in the editor has its systems too (bodies exist, colliders

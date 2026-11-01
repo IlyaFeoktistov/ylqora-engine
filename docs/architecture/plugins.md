@@ -34,6 +34,12 @@ Status marks: see [README](README.md).
   go into the built game.
 - The types of a plugin belong to its module and leave the registry with it
   (`TypeRegistry::removeModule`), like the types of `game.dll`.
+- A plugin module may register scene systems and settings sections, which a
+  game module cannot. Before such a module is unloaded, its systems leave
+  every scene and its sections leave the project settings (their values,
+  saved or not, are kept in memory); after it is loaded again, they are
+  created anew with those values, so no object of an unloaded library is
+  left **[planned]**.
 - Removing a plugin whose types are used in scenes warns first; the
   components of missing types stay as placeholders with their data, like
   after a failed build of the game (see [hot reload](scripting.md)).

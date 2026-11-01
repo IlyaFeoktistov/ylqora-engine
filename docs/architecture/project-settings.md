@@ -92,8 +92,9 @@ holds the format version and the values under `values`, so a property named
 - A system reads its section from the project it runs with:
   `project.settings().get<PhysicsSettings>()` **[done]**. The runtime
   (step 9) loads the same files.
-- Sections of a game module are recreated when the module is reloaded, so
-  the project holds no objects from an unloaded dll **[planned, step 3]**.
+- A game module registers only scripts, so it has no sections, and its
+  reload leaves the settings alone **[done]**. Sections of a reloaded plugin
+  module are in [plugins](plugins.md).
 - Every setting applies at once, including during Play. Nothing asks for a
   restart: even a new graphics API rebuilds only the renderer (see
   [rendering](rendering.md)) **[done]**.
