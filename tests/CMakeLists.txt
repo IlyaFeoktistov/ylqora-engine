@@ -25,6 +25,7 @@ add_executable(yqlora_tests
     test_texture.cpp
     test_resource_editor.cpp
     test_reparent.cpp
+    test_snapping.cpp
     test_methods.cpp
     test_runtime_types.cpp
     test_project_files.cpp

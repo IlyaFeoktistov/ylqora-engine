@@ -5,6 +5,7 @@
 #include "yqlora/render/MeshData.hpp"
 #include "yqlora/render/MeshRenderer.hpp"
 #include "yqlora/resource/ResourceCache.hpp"
+#include "yqlora/scene/NodeTree.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <glm/geometric.hpp>
@@ -102,12 +103,14 @@ bool hitsBounds(const Ray& ray, const Bounds& bounds)
 struct Hit {
     NodeId node = 0;
     float t = 0.0f;
+    // Нормаль поверхности в мире; у камеры - нулевая.
+    Vec3 normal{0.0f};
 };
 
-void keepNearest(std::optional<Hit>& best, NodeId node, std::optional<float> t)
+void keepNearest(std::optional<Hit>& best, NodeId node, std::optional<float> t, const Vec3& normal = Vec3(0.0f))
 {
     if (t && (!best || *t < best->t)) {
-        best = Hit{node, *t};
+        best = Hit{node, *t, normal};
     }
 }
 
@@ -136,14 +139,34 @@ void pickMesh(const Node3D& node, const MeshData& mesh, const Ray& worldRay, std
     if (!hitsBounds(localRay, mesh.bounds)) {
         return;
     }
+    // Нормали переводятся обратной транспонированной матрицей: так они
+    // остаются перпендикулярны поверхности и при неравномерном масштабе.
+    const Mat3 normalToWorld = glm::transpose(Mat3(toLocal));
     for (std::size_t i = 0; i + kTriangleVertices <= mesh.indices.size(); i += kTriangleVertices) {
-        const auto t = intersect(
-            localRay,
-            mesh.vertices[mesh.indices[i]].position,
-            mesh.vertices[mesh.indices[i + 1]].position,
-            mesh.vertices[mesh.indices[i + 2]].position
-        );
-        keepNearest(best, node.id(), t);
+        const Vec3& a = mesh.vertices[mesh.indices[i]].position;
+        const Vec3& b = mesh.vertices[mesh.indices[i + 1]].position;
+        const Vec3& c = mesh.vertices[mesh.indices[i + 2]].position;
+        if (const auto t = intersect(localRay, a, b, c); t && (!best || *t < best->t)) {
+            const Vec3 normal = normalToWorld * glm::cross(b - a, c - a);
+            const float length = glm::length(normal);
+            keepNearest(best, node.id(), t, length > 0.0f ? normal / length : Vec3(0.0f));
+        }
+    }
+}
+
+// Каждый включённый MeshRenderer с загруженным мешем на Node3D.
+template <typename Visit>
+void forEachMesh(const Scene& scene, Visit&& visit)
+{
+    ResourceCache& resources = scene.services().resources();
+    for (const MeshRenderer* renderer : scene.components<MeshRenderer>()) {
+        if (!renderer->activeAndEnabled()) {
+            continue;
+        }
+        const auto* node = dynamic_cast<const Node3D*>(renderer->owner());
+        if (const MeshData* mesh = resources.find<MeshData>(renderer->mesh().id); node && mesh) {
+            visit(*node, *mesh);
+        }
     }
 }
 
@@ -156,18 +179,58 @@ NodeId pickNode(const Scene& scene, const Ray& ray)
     }
     std::optional<Hit> best;
     pickCameras(*scene.root(), ray, best);
-    ResourceCache& resources = scene.services().resources();
-    for (const MeshRenderer* renderer : scene.components<MeshRenderer>()) {
-        if (!renderer->activeAndEnabled()) {
-            continue;
-        }
-        const auto* node = dynamic_cast<const Node3D*>(renderer->owner());
-        if (const MeshData* mesh = resources.find<MeshData>(renderer->mesh().id); node && mesh) {
-            pickMesh(*node, *mesh, ray, best);
-        }
-    }
+    forEachMesh(scene, [&](const Node3D& node, const MeshData& mesh) {
+        pickMesh(node, mesh, ray, best);
+    });
 
     return best ? best->node : 0;
+}
+
+std::optional<SurfaceHit> raycastSurfaces(const Scene& scene, const Ray& ray, const Node* skip)
+{
+    std::optional<Hit> best;
+    forEachMesh(scene, [&](const Node3D& node, const MeshData& mesh) {
+        if (!skip || !isInBranch(*skip, node)) {
+            pickMesh(node, mesh, ray, best);
+        }
+    });
+    if (!best) {
+        return std::nullopt;
+    }
+
+    return SurfaceHit{best->node, ray.at(best->t), best->normal};
+}
+
+std::optional<ScreenVertex> nearestVertex(
+    const Scene& scene,
+    const Mat4& viewProjection,
+    const Vec2& viewportSize,
+    const Vec2& point,
+    const VertexFilter& filter
+)
+{
+    std::optional<ScreenVertex> best;
+    forEachMesh(scene, [&](const Node3D& node, const MeshData& mesh) {
+        if (!filter(node)) {
+            return;
+        }
+        const Mat4 toClip = viewProjection * node.worldMatrix();
+        for (const Vertex& vertex : mesh.vertices) {
+            const Vec4 clip = toClip * Vec4(vertex.position, 1.0f);
+            // За камерой вершину не видно.
+            if (clip.w <= 0.0f) {
+                continue;
+            }
+            const Vec2 ndc = Vec2(clip) / clip.w;
+            const Vec2 screen((ndc.x * 0.5f + 0.5f) * viewportSize.x, (0.5f - ndc.y * 0.5f) * viewportSize.y);
+            const float distance = glm::length(screen - point);
+            if (!best || distance < best->screenDistance) {
+                best = ScreenVertex{node.toWorld(vertex.position), distance};
+            }
+        }
+    });
+
+    return best;
 }
 
 Vec3 placementPoint(const Ray& ray)

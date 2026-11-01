@@ -190,7 +190,7 @@ own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
    A node dropped onto another becomes its last child, onto the empty place
    under the tree - the last child of the root; one node at a time.
 7. Snapping while moving: to the grid, to vertices, onto a surface, with
-   viewport buttons and keys (see [editor](editor.md)).
+   viewport buttons and keys (see [editor](editor.md)) **[done]**.
 8. Documents: this one, project (`.meta`), rendering (vertex format,
    submeshes), editor, the guide "Importing a model", README.
 

@@ -176,7 +176,16 @@
             "scale": "Scale",
             "local": "Local",
             "global": "Global",
-            "spaceHint": "Manipulator axes: the object's own or the world ones"
+            "spaceHint": "Manipulator axes: the object's own or the world ones",
+            "snapGrid": "Snap to the grid (hold Ctrl while dragging to snap once)",
+            "snapSteps": "Snapping steps",
+            "alignToSurface": "Turn along the surface when snapping onto it (Ctrl+Shift while moving)",
+            "moveStep": "Move step",
+            "meters": "m",
+            "customStep": "Own step, m",
+            "rotateStep": "Rotate step, degrees",
+            "scaleStep": "Scale step",
+            "snapKeys": "Ctrl - to the grid, V - vertex to vertex, Ctrl+Shift - onto a surface"
         },
         "files": {
             "newResource": "Create resource",

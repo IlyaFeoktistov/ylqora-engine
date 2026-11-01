@@ -144,23 +144,31 @@ Status marks: see [README](README.md).
   the project folder again and reloads changed files
   (`EditorSession::refreshResources`).
 
-## Snapping while moving [planned, step 4]
+## Snapping while moving [done]
 
 As in Unity: a node is placed exactly on the grid, onto a vertex or onto a
 surface, not by eye. It works in the manipulator and when a model is
 dragged from Files into the viewport.
 
-- **To the grid**: moving by a step (1 m, 0.5 m or a custom one), rotating
-  and scaling by their own steps. A button with the step choice on the
-  viewport toolbar turns snapping on; Ctrl while dragging turns it on for
-  that drag. The steps and the button state are editor settings
-  (`EditorSettings`), not project ones: they are a habit of the person.
-- **To vertices**: with V held, the manipulator takes the vertex of the
-  selected mesh closest to the cursor and drags it to a vertex of another
-  mesh under the cursor.
-- **Onto a surface**: with Ctrl+Shift held, the node is put at the surface
-  point under the cursor (a ray into mesh triangles, as in picking); a
-  separate button also turns it along the surface normal.
-- The keys are editor actions (`EditorActions`) and can be rebound; every
-  mode has a button on the viewport toolbar whose tooltip shows its key.
+- **To the grid**: the magnet button on the viewport toolbar; Ctrl while
+  dragging turns snapping on for that drag. Moving puts the node at the
+  nearest point of the world grid (`snapToGrid`), rotating and scaling go by
+  steps from the start of the drag (ImGuizmo steps). The steps are in the
+  list next to the magnet: 1 m, 0.5 m, 0.25 m, 0.1 m or a custom one; the
+  rotate and scale steps. The steps and the button states are editor
+  settings (`EditorSettings::snap`), not project ones: they are a habit of
+  the person.
+- **To vertices**: with V held, the manipulator shows the vertex of the
+  selected mesh closest to the cursor; it is dragged to a vertex of another
+  mesh within 30 pixels of the cursor (`nearestVertex`). While dragging, the
+  node changes directly; one edit goes into the history on release.
+- **Onto a surface**: with Ctrl+Shift held while moving, the node is put at
+  the surface point under the cursor (a ray into mesh triangles, its own
+  branch skipped, `raycastSurfaces`); the button next to the magnet also
+  turns its local Y axis along the normal (`alignUpTo`).
+- A model dropped into the viewport lands on the surface under the cursor or
+  on the ground, and on a grid point when the grid is on (`dropPoint`).
+- The keys are held, not pressed, so they are constants of the manipulator,
+  not menu actions; the button tooltips name them. They become rebindable
+  together with the editor key settings.
 - A snapped move is one edit in the history, as an unsnapped one.

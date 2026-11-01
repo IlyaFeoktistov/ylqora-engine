@@ -14,6 +14,7 @@
 #include "yqlora/editor/EditorSettings.hpp"
 #include "yqlora/editor/Picking.hpp"
 #include "yqlora/editor/SceneEditing.hpp"
+#include "yqlora/editor/Snapping.hpp"
 #include "yqlora/editor/ui/core/EditorHost.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/render/Camera3D.hpp"
@@ -84,7 +85,7 @@ void ViewportPanel::draw(EditorContext& context)
     if (const auto dropped = acceptResourceDrop()) {
         const ImVec2 mouse = ImGui::GetMousePos();
         const Ray ray = m_camera.screenRay({mouse.x - origin.x, mouse.y - origin.y}, {size.x, size.y});
-        session.editing().addResource(*dropped, nullptr, placementPoint(ray));
+        session.editing().addResource(*dropped, nullptr, dropPoint(session.scene(), ray, context.settings.snap));
     }
 
     // Превью и его кнопка лежат поверх сцены: клики по ним до сцены не доходят.
@@ -103,6 +104,7 @@ void ViewportPanel::draw(EditorContext& context)
         .session = session,
         .camera = m_camera,
         .theme = context.theme,
+        .settings = context.settings,
         .view = m_camera.cameraData(aspect, context.host.depthRange()),
         .origin = origin,
         .size = size,

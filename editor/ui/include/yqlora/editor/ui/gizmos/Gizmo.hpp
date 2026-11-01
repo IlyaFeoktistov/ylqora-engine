@@ -11,6 +11,7 @@ namespace yqlora::editor {
 
 class EditorCamera;
 class EditorSession;
+class EditorSettings;
 class Theme;
 
 // Всё, что нужно гизмо, чтобы нарисоваться поверх окна сцены.
@@ -18,6 +19,8 @@ struct GizmoContext {
     EditorSession& session;
     EditorCamera& camera;
     const Theme& theme;
+    // Привычки человека: привязка при перемещении.
+    EditorSettings& settings;
     // Камера, через которую сейчас видна сцена.
     CameraData view;
     // Где картинка сцены на экране, в координатах интерфейса.

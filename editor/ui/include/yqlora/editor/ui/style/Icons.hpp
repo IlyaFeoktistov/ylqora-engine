@@ -9,12 +9,15 @@
 namespace yqlora::editor::icons {
 
 // Инструменты окна сцены.
-inline constexpr const char* kSelect = "\uE1C3"; // mouse-pointer-2
-inline constexpr const char* kMove = "\uE2E5";   // move-3d
-inline constexpr const char* kRotate = "\uE2EA"; // rotate-3d
-inline constexpr const char* kScale = "\uE2EB";  // scale-3d
-inline constexpr const char* kLocal = "\uE061";  // box
-inline constexpr const char* kGlobal = "\uE0E8"; // globe
+inline constexpr const char* kSelect = "\uE1C3";         // mouse-pointer-2
+inline constexpr const char* kMove = "\uE2E5";           // move-3d
+inline constexpr const char* kRotate = "\uE2EA";         // rotate-3d
+inline constexpr const char* kScale = "\uE2EB";          // scale-3d
+inline constexpr const char* kLocal = "\uE061";          // box
+inline constexpr const char* kGlobal = "\uE0E8";         // globe
+inline constexpr const char* kSnapGrid = "\uE2B5";       // magnet
+inline constexpr const char* kAlignToSurface = "\uE44E"; // arrow-up-from-dot
+inline constexpr const char* kDropDown = "\uE06D";       // chevron-down
 
 // Игра в редакторе.
 inline constexpr const char* kPlay = "\uE13C";  // play

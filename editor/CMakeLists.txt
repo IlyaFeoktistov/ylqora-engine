@@ -14,6 +14,7 @@ add_library(yqlora_editor STATIC
     src/ResourceLabel.cpp
     src/SceneDocument.cpp
     src/SceneEditing.cpp
+    src/Snapping.cpp
     src/SettingsCommands.cpp
     src/SettingsEditing.cpp
     src/ProjectSetup.cpp

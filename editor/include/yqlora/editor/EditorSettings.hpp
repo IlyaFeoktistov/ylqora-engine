@@ -1,6 +1,7 @@
 #pragma once
 
 #include "yqlora/editor/ScriptToolchain.hpp"
+#include "yqlora/editor/Snapping.hpp"
 #include "yqlora/scene/Node.hpp"
 
 #include <filesystem>
@@ -24,6 +25,8 @@ public:
     // Что сохранять, когда узел перетаскивают к другому родителю в дереве;
     // nullopt - спрашивать каждый раз. Меняется в меню "Правка".
     std::optional<KeepWorld> reparentKeepWorld;
+    // Привязка при перемещении: кнопки на панели окна вида.
+    SnapSettings snap;
     // Пути вместо записанных движком в sdk/toolchain.json; в интерфейсе их нет,
     // только в файле.
     ToolchainOverrides toolchain;
