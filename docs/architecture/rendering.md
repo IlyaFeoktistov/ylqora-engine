@@ -67,6 +67,29 @@ snapshot made by Extract, never the scene.
  Present
 ```
 
+## Meshes and textures [done]
+
+- **A vertex** (`Vertex`): position, normal, `uv0`. `uv0 = (0, 0)` is the top
+  left corner of the picture, as in glTF; tangents come with normal maps in
+  step 5.
+- **A mesh** (`MeshData`): vertices, indices of triangles counter-clockwise
+  from outside, submeshes and bounds (AABB). A submesh is a range of indices
+  with its own material; its index is the material slot of a `MeshRenderer`
+  (step 5), and it keeps the index of the material of the source file. The
+  bounds speed up picking, later culling.
+- **A texture** (`TextureData`): RGBA one byte per channel, rows from the
+  top, and how to read it: sRGB or Linear, filter, wrap, mipmaps (import
+  settings). Textures go onto meshes through materials, step 5.
+- **GPU copies** are kept by the backend itself, by resource ID and revision
+  (`GpuResourceCache`): a `DrawItem` carries the mesh with its ID and
+  revision, a copy of another revision is replaced, and a copy not drawn for
+  120 frames is released. One template for every backend and kind of
+  resource.
+- **A texture in the interface**: `Renderer::uiTexture` gives the texture of
+  a resource for ImGui (the preview in the inspector) with the colours of
+  the file, without sRGB decoding: ImGui draws into a plain buffer, and a
+  decoded picture would be darker.
+
 ## Cameras and rendering [done]
 
 Prepared for several cameras (for example the player's arms drawn by a second

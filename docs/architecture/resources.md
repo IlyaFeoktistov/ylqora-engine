@@ -2,8 +2,9 @@
 
 [Русская версия](resources.ru.md)
 
-Files of a project that the game uses: scenes now, meshes, textures,
-materials, shaders and sounds with their steps. Where they lie and the file
+Files of a project that the game uses: scenes, models and pictures now,
+materials, shaders and sounds with their steps. How a model gets into a
+scene is in the guide [importing a model](../guide/import-model.md). Where they lie and the file
 formats are in [project and file formats](project.md).
 
 Status marks: see [README](README.md).
@@ -37,7 +38,7 @@ Status marks: see [README](README.md).
   `removed` after a delete (the `.meta` goes away, the ID is forgotten).
 - Changes made outside the editor are picked up by the next `scan`.
 
-## Meshes and textures from files [planned, step 4]
+## Meshes and textures from files [done]
 
 ### Decisions
 
@@ -192,7 +193,7 @@ own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
 7. Snapping while moving: to the grid, to vertices, onto a surface, with
    viewport buttons and keys (see [editor](editor.md)) **[done]**.
 8. Documents: this one, project (`.meta`), rendering (vertex format,
-   submeshes), editor, the guide "Importing a model", README.
+   submeshes), editor, the guide "Importing a model", README **[done]**.
 
 Tests, besides unit tests of each part:
 

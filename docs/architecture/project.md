@@ -25,6 +25,8 @@ MyGame/
 |   |-- Player.hpp          C++ scripts, anywhere in the folder, without .meta
 |   `-- Player.cpp
 |-- assets/                 other resources with their .meta
+|   |-- house.glb           glTF models, pictures - anywhere
+|   `-- house.glb.meta      file ID, IDs of its meshes, import settings
 `-- .build/                 build output, not in git
     |-- Debug-<fingerprint>/   CMake build folder of the game module
     `-- reload/             copies of the module the editor has loaded
@@ -69,6 +71,23 @@ format.
     "values": {
         "gameName": "MyGame",
         "startupScene": "9bf87a121dc2ad5c"
+    },
+    "version": 1
+}
+```
+
+`<resource>.meta`: the file ID, the import settings (an object of its
+loader, defaults are not written) and the IDs of nested resources by key
+(see [resources](resources.md)). A scene and a picture without settings
+hold only the ID.
+
+```json
+{
+    "id": "9bf87a121dc2ad5c",
+    "import": {"scale": 0.01},
+    "subresources": {
+        "mesh:Door": "4c1e07a95b3d2f60",
+        "mesh:Frame": "e51d90c4b7a2f386"
     },
     "version": 1
 }
