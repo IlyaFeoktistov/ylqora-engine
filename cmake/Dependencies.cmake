@@ -50,7 +50,20 @@ FetchContent_Declare(imguizmo
     SOURCE_SUBDIR do-not-build
 )
 
-FetchContent_MakeAvailable(SDL3 glm nlohmann_json imgui imguizmo)
+# cgltf: чтение glTF 2.0 (.gltf, .glb) для мешей из файлов. Один заголовок без
+# CMakeLists: только скачиваем, реализацию собирает движок в одном своём файле.
+FetchContent_Declare(cgltf
+    GIT_REPOSITORY https://github.com/jkuhlmann/cgltf.git
+    GIT_TAG v1.15
+    GIT_SHALLOW TRUE
+    SOURCE_SUBDIR do-not-build
+)
+
+FetchContent_MakeAvailable(SDL3 glm nlohmann_json imgui imguizmo cgltf)
+
+# SYSTEM: наши строгие предупреждения не распространяются на чужой код.
+add_library(cgltf_headers INTERFACE)
+target_include_directories(cgltf_headers SYSTEM INTERFACE ${cgltf_SOURCE_DIR})
 
 # ImGui и ImGuizmo входят в библиотеку движка, чтобы у всех модулей был один
 # контекст ImGui. Внутри неё функции ImGui экспортируются, снаружи импортируются.

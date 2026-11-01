@@ -34,6 +34,9 @@ add_library(yqlora SHARED
     src/platform/MouseWrap.cpp
     src/platform/SharedLibrary.cpp
     src/platform/Process.cpp
+    src/import/Cgltf.cpp
+    src/import/EngineLoaders.cpp
+    src/import/GltfLoader.cpp
     src/input/Input.cpp
     src/input/InputControl.cpp
     src/input/InputSettings.cpp
@@ -99,7 +102,7 @@ add_library(yqlora::yqlora ALIAS yqlora)
 target_include_directories(yqlora PUBLIC include PRIVATE src)
 target_link_libraries(yqlora
     PUBLIC glm::glm imgui_headers
-    PRIVATE yqlora_engine_code imgui SDL3::SDL3-static nlohmann_json::nlohmann_json
+    PRIVATE yqlora_engine_code imgui SDL3::SDL3-static nlohmann_json::nlohmann_json cgltf_headers
 )
 target_compile_definitions(yqlora PRIVATE YQLORA_ENGINE_VERSION="${PROJECT_VERSION}")
 target_compile_definitions(yqlora INTERFACE

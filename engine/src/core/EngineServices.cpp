@@ -1,5 +1,6 @@
 #include "yqlora/core/EngineServices.hpp"
 
+#include "yqlora/import/EngineLoaders.hpp"
 #include "yqlora/input/Input.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/resource/ResourceCache.hpp"
@@ -11,6 +12,7 @@ EngineServices::EngineServices(const Input& input, const TypeRegistry& registry)
     , m_registry(registry)
     , m_resources(std::make_shared<ResourceCache>())
 {
+    addEngineLoaders(*m_resources);
 }
 
 EngineServices::EngineServices(const Input& input, const EngineServices& shared)

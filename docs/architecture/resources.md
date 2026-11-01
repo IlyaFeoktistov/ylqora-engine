@@ -162,7 +162,13 @@ own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
    (`importSettings`, `setImportSettings`) and reach the loader in
    `LoadRequest::import`. The cache writes the IDs while loading, so it
    holds the project as changeable.
-3. glTF meshes: the loader, the model description, scale.
+3. glTF meshes: the loader, the model description, scale **[done]**.
+   `GltfLoader` (`yqlora/import/`) gives `ModelData` for the file (nodes
+   with local position, rotation, scale, a mesh index and children; the
+   keys of the meshes) and one `MeshData` per mesh of the file. The engine
+   loaders are added by `addEngineLoaders` when `EngineServices` is made.
+   cgltf reads external buffers through a read function of the engine, so
+   paths outside ASCII work on Windows too.
 4. Textures: the loader, import settings, the GPU texture, the game icon.
 5. Editor: icons in Files; the inspector of a resource file (meshes with
    vertex, triangle and submesh counts; texture preview and size; import
