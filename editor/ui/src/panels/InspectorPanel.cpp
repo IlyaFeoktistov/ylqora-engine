@@ -5,6 +5,7 @@
 
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/editor/Inspection.hpp"
+#include "yqlora/editor/ResourceInspection.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/render/Camera3D.hpp"
@@ -157,6 +158,15 @@ void InspectorPanel::draw(EditorContext& context)
 {
     EditorSession& session = context.session;
     if (!beginWindow(context)) {
+        ImGui::End();
+
+        return;
+    }
+
+    if (const ResourceId resource = session.selection().resource()) {
+        if (const auto inspected = inspectResource(session, resource)) {
+            m_resource.draw(context, *inspected);
+        }
         ImGui::End();
 
         return;

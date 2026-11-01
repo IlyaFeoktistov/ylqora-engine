@@ -170,4 +170,18 @@ NodeId pickNode(const Scene& scene, const Ray& ray)
     return best ? best->node : 0;
 }
 
+Vec3 placementPoint(const Ray& ray)
+{
+    const Vec3 direction = glm::normalize(ray.direction);
+    // Плоскость y = 0: луч сверху вниз или снизу вверх, но не вдоль неё.
+    if (direction.y != 0.0f) {
+        const float t = -ray.origin.y / direction.y;
+        if (t > 0.0f && t <= kMaxPlacementDistance) {
+            return ray.origin + direction * t;
+        }
+    }
+
+    return ray.origin + direction * kPlacementDistance;
+}
+
 } // namespace yqlora::editor

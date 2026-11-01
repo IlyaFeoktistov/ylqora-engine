@@ -25,8 +25,6 @@ namespace yqlora {
 namespace {
 
 constexpr std::array<std::string_view, 2> kExtensions{".gltf", ".glb"};
-constexpr const char* kScaleSetting = "scale";
-constexpr float kDefaultScale = 1.0f;
 constexpr std::size_t kTriangleCorners = 3;
 // Нормаль вершины, у которой все соседние треугольники вырождены.
 const Vec3 kFallbackNormal{0.0f, 1.0f, 0.0f};

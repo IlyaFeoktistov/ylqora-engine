@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/resource/ResourceId.hpp"
 #include "yqlora/scene/NodeId.hpp"
 
 #include <algorithm>
@@ -11,6 +12,8 @@ namespace yqlora::editor {
 // Что выбрано в редакторе. Общее для 3D-окна и дерева узлов: выбор в одном
 // месте сразу виден в другом. Можно выбрать несколько узлов; последний
 // выбранный - основной: его показывает инспектор, на нём стоит манипулятор.
+// Вместо узлов можно выбрать ресурс проекта в "Файлах", как в Unity: тогда
+// инспектор показывает его. Выбор узла снимает выбор ресурса, и наоборот.
 // Хранит ID, а не указатели, чтобы удалённый узел не оставил висячих ссылок.
 class Selection {
 public:
@@ -39,6 +42,7 @@ public:
     void select(NodeId node)
     {
         m_nodes.clear();
+        m_resource = 0;
         if (node != 0) {
             m_nodes.push_back(node);
         }
@@ -51,6 +55,7 @@ public:
             deselect(node);
         } else if (node != 0) {
             m_nodes.push_back(node);
+            m_resource = 0;
         }
     }
 
@@ -62,12 +67,29 @@ public:
     void clear()
     {
         m_nodes.clear();
+        m_resource = 0;
+    }
+
+    // Выбранный ресурс проекта (файл); 0 - не выбран.
+    ResourceId resource() const
+    {
+        return m_resource;
+    }
+
+    // Выбирает ресурс вместо узлов; 0 снимает выбор ресурса.
+    void selectResource(ResourceId resource)
+    {
+        if (resource != 0) {
+            m_nodes.clear();
+        }
+        m_resource = resource;
     }
 
     bool operator==(const Selection&) const = default;
 
 private:
     std::vector<NodeId> m_nodes;
+    ResourceId m_resource = 0;
 };
 
 } // namespace yqlora::editor

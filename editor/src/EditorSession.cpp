@@ -8,6 +8,7 @@
 #include "yqlora/project/GeneralSettings.hpp"
 #include "yqlora/reflection/ComponentRules.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
+#include "yqlora/resource/ResourceCache.hpp"
 #include "yqlora/scene/Node3D.hpp"
 #include "yqlora/scene/NodeTree.hpp"
 #include "yqlora/scene/Scene.hpp"
@@ -134,6 +135,24 @@ void EditorSession::unloadGameModule()
     Scene* const scenes[] = {&m_document.scene()};
     m_gameModule.unload(scenes);
     m_gameLibrary.clear();
+}
+
+ResourceCache& EditorSession::resources() const
+{
+    return m_services.resources();
+}
+
+void EditorSession::refreshResources()
+{
+    if (!m_project) {
+        return;
+    }
+    m_project->scanResources();
+    m_services.resources().reloadChanged();
+    // Выбранного файла могло не стать.
+    if (m_selection.resource() != 0 && !m_project->resources().path(m_selection.resource())) {
+        m_selection.selectResource(0);
+    }
 }
 
 std::filesystem::path EditorSession::scenePath() const

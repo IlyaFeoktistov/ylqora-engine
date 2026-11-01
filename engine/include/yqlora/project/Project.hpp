@@ -115,6 +115,10 @@ public:
         return m_resources;
     }
 
+    // Обходит папку проекта заново (см. ResourceDatabase::scan): находит
+    // файлы, добавленные и убранные мимо редактора.
+    void scanResources();
+
 private:
     std::string m_name;
     std::filesystem::path m_directory;

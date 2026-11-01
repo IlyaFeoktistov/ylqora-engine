@@ -7,6 +7,14 @@
 
 namespace yqlora::editor {
 
+std::string subresourceLabel(std::string_view key)
+{
+    // Ключ без вида: "Door", "Door#1", "#2" - номер отличает одинаковые имена.
+    const std::size_t colon = key.find(':');
+
+    return std::string(colon == std::string_view::npos ? key : key.substr(colon + 1));
+}
+
 std::string resourceLabel(ResourceRef value, const ResourceDatabase* resources)
 {
     if (value.id == 0) {
@@ -18,7 +26,12 @@ std::string resourceLabel(ResourceRef value, const ResourceDatabase* resources)
         }
     }
     if (const auto path = resources ? resources->path(value.id) : std::nullopt) {
-        return toGenericUtf8(*path);
+        const std::string_view key = resources->key(value.id);
+        if (key.empty()) {
+            return toGenericUtf8(*path);
+        }
+
+        return toGenericUtf8(*path) + " / " + subresourceLabel(key);
     }
 
     return tr("editor.inspector.missing");

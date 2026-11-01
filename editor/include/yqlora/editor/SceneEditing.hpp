@@ -2,6 +2,7 @@
 
 #include "yqlora/editor/Command.hpp"
 #include "yqlora/reflection/Property.hpp"
+#include "yqlora/resource/ResourceId.hpp"
 #include "yqlora/scene/NodeId.hpp"
 #include "yqlora/scene/Transform3D.hpp"
 
@@ -37,6 +38,18 @@ public:
     // корнем, а без parent - ребёнком корня. Имя уникально среди соседей.
     // Новый узел выбирается. nullptr, если тип не узел или его нельзя создать.
     Node* createNode(const TypeInfo& type, Node* parent);
+
+    // Готовая ветка ребёнком parent, по тем же правилам, что createNode.
+    // nullptr, если ветки нет.
+    Node* addBranch(std::unique_ptr<Node> branch, Node* parent);
+
+    // Ставит ресурс проекта в сцену ребёнком parent одним шагом истории:
+    // модель - деревом её узлов, меш - узлом с MeshRenderer (см.
+    // instantiateResource). nullptr, если ресурс не модель и не меш.
+    Node* addResource(ResourceId resource, Node* parent);
+
+    // То же, с корнем новой ветки в точке мира worldPosition.
+    Node* addResource(ResourceId resource, Node* parent, const Vec3& worldPosition);
 
     // Удаляет узел со всеми детьми. Выделение внутри удалённой ветки
     // сбрасывается, чтобы на него не осталось висячих указателей.

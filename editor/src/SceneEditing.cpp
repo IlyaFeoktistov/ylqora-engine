@@ -1,5 +1,7 @@
 #include "yqlora/editor/SceneEditing.hpp"
 
+#include "yqlora/editor/ResourceInstance.hpp"
+
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/editor/SceneCommands.hpp"
 #include "yqlora/reflection/ComponentRules.hpp"
@@ -23,7 +25,46 @@ bool SceneEditing::execute(std::unique_ptr<Command> command)
 
 Node* SceneEditing::createNode(const TypeInfo& type, Node* parent)
 {
-    auto command = std::make_unique<CreateNodeCommand>(type, parent ? parent->id() : 0);
+    std::unique_ptr<Node> node = type.kind() == TypeKind::Node ? type.createNode() : nullptr;
+    if (!node) {
+        return nullptr;
+    }
+    node->setName(type.name());
+
+    return addBranch(std::move(node), parent);
+}
+
+Node* SceneEditing::addResource(ResourceId resource, Node* parent)
+{
+    const auto& project = m_session.project();
+    if (!project) {
+        return nullptr;
+    }
+
+    return addBranch(instantiateResource(resource, m_session.resources(), project->resources()), parent);
+}
+
+Node* SceneEditing::addResource(ResourceId resource, Node* parent, const Vec3& worldPosition)
+{
+    const auto& project = m_session.project();
+    if (!project) {
+        return nullptr;
+    }
+    std::unique_ptr<Node> branch = instantiateResource(resource, m_session.resources(), project->resources());
+    // Ветка станет ребёнком parent, а без него - корня; положение задаётся в
+    // его координатах. В пустой сцене ветка сама станет корнем.
+    const Node* target = parent ? parent : m_session.scene().root();
+    if (auto* root = dynamic_cast<Node3D*>(branch.get())) {
+        const auto* target3D = dynamic_cast<const Node3D*>(target);
+        root->transform().setPosition(target3D ? target3D->toLocal(worldPosition) : worldPosition);
+    }
+
+    return addBranch(std::move(branch), parent);
+}
+
+Node* SceneEditing::addBranch(std::unique_ptr<Node> branch, Node* parent)
+{
+    auto command = std::make_unique<AddBranchCommand>(std::move(branch), parent ? parent->id() : 0);
     const NodeId created = command->created();
     if (created == 0 || !execute(std::move(command))) {
         return nullptr;

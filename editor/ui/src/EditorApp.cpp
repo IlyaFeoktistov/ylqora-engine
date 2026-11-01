@@ -183,6 +183,7 @@ void EditorApp::onRendererLost()
 
 void EditorApp::onFocusGained()
 {
+    m_session.refreshResources();
     buildScripts(true);
 }
 

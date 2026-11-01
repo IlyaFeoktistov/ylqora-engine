@@ -1,6 +1,7 @@
 #include "yqlora/editor/ui/panels/SceneTreePanel.hpp"
 
 #include "yqlora/editor/ui/style/Icons.hpp"
+#include "yqlora/editor/ui/widgets/ResourceDrag.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/i18n/Translate.hpp"
@@ -38,6 +39,15 @@ void SceneTreePanel::draw(EditorContext& context)
         } else {
             ImGui::TextDisabled("%s", tr("editor.scene.empty").c_str());
         }
+        // Пустое место под деревом принимает ресурс ребёнком корня.
+        const ImVec2 rest = ImGui::GetContentRegionAvail();
+        // Только пока что-то тянут: иначе кнопка мешала бы клику по пустому месту.
+        if (ImGui::GetDragDropPayload() && rest.x > 0.0f && rest.y > 0.0f) {
+            ImGui::InvisibleButton("##dropArea", rest);
+            if (const auto dropped = acceptResourceDrop()) {
+                m_drop = Drop{*dropped, 0};
+            }
+        }
 
         // Клик по пустому месту панели снимает выбор, правый клик - меню.
         if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered()) {
@@ -60,6 +70,10 @@ void SceneTreePanel::draw(EditorContext& context)
     }
     ImGui::End();
 
+    if (m_drop) {
+        session.editing().addResource(m_drop->resource, session.findNode(m_drop->parent));
+        m_drop.reset();
+    }
     if (m_deleteRequested) {
         // Копия: удаление меняет сам выбор.
         const std::vector<NodeId> nodes(selection.nodes().begin(), selection.nodes().end());
@@ -97,6 +111,9 @@ void SceneTreePanel::drawNode(const Node& node, Selection& selection)
         ImGui::PopStyleColor();
     }
     ImGui::SetItemTooltip("%s", std::string(node.typeName()).c_str());
+    if (const auto dropped = acceptResourceDrop()) {
+        m_drop = Drop{*dropped, node.id()};
+    }
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left) && !ImGui::IsItemToggledOpen()) {
         if (ImGui::GetIO().KeyCtrl) {
             selection.toggle(node.id());

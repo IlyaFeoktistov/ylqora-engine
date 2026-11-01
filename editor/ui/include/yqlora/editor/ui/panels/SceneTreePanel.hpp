@@ -1,5 +1,9 @@
 #pragma once
 
+#include "yqlora/resource/ResourceId.hpp"
+
+#include <optional>
+
 #include "yqlora/editor/ui/core/EditorPanel.hpp"
 #include "yqlora/editor/ui/dialogs/AddNodeDialog.hpp"
 
@@ -36,6 +40,13 @@ private:
     bool m_reveal = false;
     // Удалять узлы можно только после обхода дерева.
     bool m_deleteRequested = false;
+    // Ресурс, отпущенный над узлом (или над пустым местом - 0), тоже ставится
+    // в сцену после обхода.
+    struct Drop {
+        ResourceId resource = 0;
+        NodeId parent = 0;
+    };
+    std::optional<Drop> m_drop;
 };
 
 } // namespace yqlora::editor

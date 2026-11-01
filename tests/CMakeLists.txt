@@ -23,6 +23,7 @@ add_executable(yqlora_tests
     test_resource_cache.cpp
     test_gltf.cpp
     test_texture.cpp
+    test_resource_editor.cpp
     test_methods.cpp
     test_runtime_types.cpp
     test_project_files.cpp

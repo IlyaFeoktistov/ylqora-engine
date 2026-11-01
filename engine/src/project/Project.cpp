@@ -86,7 +86,7 @@ std::optional<Project> Project::open(const std::filesystem::path& directory, con
     project.m_name = (*json)[kNameKey].get<std::string>();
     project.m_directory = directory;
     project.m_settings.load(registry, directory);
-    project.m_resources.scan(directory, reservedNames(), sourceExtensions());
+    project.scanResources();
 
     return project;
 }
@@ -104,9 +104,14 @@ std::optional<Project> Project::create(
         return std::nullopt;
     }
     project.m_settings.load(registry, directory);
-    project.m_resources.scan(directory, reservedNames(), sourceExtensions());
+    project.scanResources();
 
     return project;
+}
+
+void Project::scanResources()
+{
+    m_resources.scan(m_directory, reservedNames(), sourceExtensions());
 }
 
 std::optional<ProjectInfo> Project::readInfo(const std::filesystem::path& directory)

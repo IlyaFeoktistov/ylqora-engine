@@ -14,6 +14,9 @@ namespace yqlora {
 // вершин и узлов.
 class YQLORA_API GltfLoader final : public ResourceLoader {
 public:
+    static constexpr const char* kScaleSetting = "scale";
+    static constexpr float kDefaultScale = 1.0f;
+
     std::span<const std::string_view> extensions() const override;
     std::string_view kind() const override;
     LoadResult load(const LoadRequest& request) const override;

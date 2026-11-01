@@ -1,4 +1,5 @@
 #include "yqlora/editor/ui/panels/ViewportPanel.hpp"
+#include "yqlora/editor/ui/widgets/ResourceDrag.hpp"
 
 #include "yqlora/editor/ui/gizmos/AxisGizmo.hpp"
 #include "yqlora/editor/ui/gizmos/CameraGizmo.hpp"
@@ -11,6 +12,8 @@
 
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/editor/EditorSettings.hpp"
+#include "yqlora/editor/Picking.hpp"
+#include "yqlora/editor/SceneEditing.hpp"
 #include "yqlora/editor/ui/core/EditorHost.hpp"
 #include "yqlora/i18n/Translate.hpp"
 #include "yqlora/render/Camera3D.hpp"
@@ -78,6 +81,11 @@ void ViewportPanel::draw(EditorContext& context)
     const ImVec2 origin = ImGui::GetCursorScreenPos();
     m_view.image(size);
     const bool hovered = ImGui::IsItemHovered();
+    if (const auto dropped = acceptResourceDrop()) {
+        const ImVec2 mouse = ImGui::GetMousePos();
+        const Ray ray = m_camera.screenRay({mouse.x - origin.x, mouse.y - origin.y}, {size.x, size.y});
+        session.editing().addResource(*dropped, nullptr, placementPoint(ray));
+    }
 
     // Превью и его кнопка лежат поверх сцены: клики по ним до сцены не доходят.
     const bool overToggle = drawPreviewToggle(context, origin, size);

@@ -2,13 +2,19 @@
 
 #include "yqlora/editor/ui/style/Icons.hpp"
 #include "yqlora/editor/ui/style/Theme.hpp"
+#include "yqlora/editor/ui/widgets/ResourceDrag.hpp"
 
 #include "yqlora/core/AppPaths.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/editor/EditorSession.hpp"
+#include "yqlora/editor/ResourceLabel.hpp"
 #include "yqlora/i18n/Translate.hpp"
+#include "yqlora/import/ModelData.hpp"
 #include "yqlora/platform/Platform.hpp"
 #include "yqlora/project/Project.hpp"
+#include "yqlora/render/TextureData.hpp"
+#include "yqlora/resource/ResourceCache.hpp"
+#include "yqlora/resource/ResourceDatabase.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -22,17 +28,47 @@ namespace {
 
 constexpr float kNameFieldWidth = 360.0f;
 
-const char* iconFor(const ProjectFiles::Entry& entry, bool open)
+// kind - вид ресурса файла по его загрузчику (ResourceCache::kindOf).
+const char* iconFor(const ProjectFiles::Entry& entry, bool open, std::string_view kind)
 {
     if (entry.directory) {
         return open ? icons::kFolderOpen : icons::kFolder;
     }
-
     if (ProjectFiles::isScene(entry.path)) {
         return icons::kScene;
     }
+    if (kind == ModelData::kResourceKind) {
+        return icons::kModelFile;
+    }
+    if (kind == TextureData::kResourceKind) {
+        return icons::kImageFile;
+    }
 
     return Project::isSource(entry.path) ? icons::kCodeFile : icons::kFile;
+}
+
+// Меши модели строками под её файлом: их тянут в сцену или на поле меша.
+void drawModelMeshes(ResourceId file, EditorSession& session)
+{
+    const ModelData* model = session.resources().find<ModelData>(file);
+    if (!model) {
+        return;
+    }
+    const auto& ids = session.project()->resources().subresources(file);
+    for (const std::string& key : model->meshes) {
+        const auto id = ids.find(key);
+        if (id == ids.end()) {
+            continue;
+        }
+        const std::string label = std::string(icons::kMesh) + "  " + subresourceLabel(key);
+        ImGui::TreeNodeEx(
+            key.c_str(),
+            ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanAvailWidth,
+            "%s",
+            label.c_str()
+        );
+        resourceDragSource(id->second, label);
+    }
 }
 
 const char* iconFor(NewResourceKind kind)
@@ -143,9 +179,20 @@ void FileSystemPanel::drawEntry(
         ImGui::PushStyleColor(ImGuiCol_Text, toImVec4(colors.selectionOutline));
     }
     const std::string id = toUtf8(entry.path);
+    const std::string_view kind = entry.directory ? std::string_view() : session.resources().kindOf(entry.path);
+    const ResourceId resource = entry.directory ? 0 : session.project()->resources().id(entry.path);
+    // Модель раскрывается в свои меши.
+    const bool model = kind == ModelData::kResourceKind;
+    if (model) {
+        flags &= ~(ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+    }
+    if (resource != 0 && resource == session.selection().resource()) {
+        flags |= ImGuiTreeNodeFlags_Selected;
+    }
     // Иконка папки зависит от того, раскрыта ли она, а это известно до отрисовки узла.
     const bool expanded = entry.directory && ImGui::TreeNodeGetOpen(ImGui::GetID(id.c_str()));
-    const bool open = ImGui::TreeNodeEx(id.c_str(), flags, "%s  %s", iconFor(entry, expanded), entry.name.c_str());
+    const char* icon = iconFor(entry, expanded, kind);
+    const bool open = ImGui::TreeNodeEx(id.c_str(), flags, "%s  %s", icon, entry.name.c_str());
     if (openScene) {
         ImGui::PopStyleColor();
     }
@@ -153,8 +200,15 @@ void FileSystemPanel::drawEntry(
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left) || ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
         m_selected = entry.path;
         m_selectedIsDirectory = entry.directory;
+        // Ресурс показывает инспектор; исходники и папки - не ресурсы.
+        if (resource != 0) {
+            session.selection().selectResource(resource);
+        }
     }
-    if (!entry.directory && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+    // Любой ресурс тянется: модель - в сцену, текстура - на поле текстуры.
+    resourceDragSource(resource, std::string(icon) + "  " + entry.name);
+    // Модель по двойному щелчку раскрывается, как папка.
+    if (!entry.directory && !model && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
         if (ProjectFiles::isScene(entry.path)) {
             m_openRequest = entry.path;
         } else {
@@ -173,6 +227,9 @@ void FileSystemPanel::drawEntry(
         for (const auto& child : entry.children) {
             drawEntry(child, session, serializer, colors);
         }
+        ImGui::TreePop();
+    } else if (model && open) {
+        drawModelMeshes(resource, session);
         ImGui::TreePop();
     }
 }

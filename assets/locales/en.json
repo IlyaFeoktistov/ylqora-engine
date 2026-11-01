@@ -215,6 +215,28 @@
         "panel": {
             "maximize": "Maximize",
             "restore": "Restore layout"
+        },
+        "resource": {
+            "model": "Model",
+            "texture": "Texture",
+            "file": "File",
+            "nodes": "Nodes",
+            "meshes": "Meshes",
+            "vertices": "Vertices",
+            "triangles": "Triangles",
+            "submeshes": "Submeshes",
+            "size": "Size",
+            "import": "Import settings",
+            "scale": "Scale",
+            "colorSpace": "Color space",
+            "filter": "Filter",
+            "wrap": "Wrap",
+            "mipmaps": "Mipmaps",
+            "apply": "Apply",
+            "revert": "Revert",
+            "notLoaded": "Not loaded",
+            "missing": "Missing",
+            "dragHint": "Drag a model or a mesh into the scene tree or the viewport"
         }
     },
     "projects": {

@@ -115,6 +115,35 @@ Status marks: see [README](README.md).
   from `assets/templates/cpp-script/`. A double click on a
   file that is not a scene opens it with the system (`platform::openWithSystem`).
 
+## Resources in the editor [done]
+
+- **Files** shows a model and a picture with their own icons (the kind
+  comes from the loader, `ResourceCache::kindOf`, files are not read). A
+  model opens into its meshes. Any resource can be dragged.
+- **Selection**: clicking a resource in Files selects it instead of nodes,
+  as in Unity (`Selection::selectResource`), and the inspector shows the
+  file (`ResourceInspector`, data from `inspectResource`): the meshes of a
+  model with vertex, triangle and submesh counts, the size and a preview of
+  a texture, the state and the message if the file is not loaded. Import
+  settings (model scale; texture colour space, filter, wrap, mipmaps) are
+  edited there and written to `.meta` by "Apply" (`applyImportSettings`):
+  the file is read again with a new revision. This is not in the edit
+  history: the file and its `.meta` are not the scene.
+- **Into the scene**: a model or a mesh dropped onto a node of the scene
+  tree becomes its child, onto the empty place under the tree - a child of
+  the root, into the viewport - at the point on the ground under the cursor
+  (`placementPoint`). A model becomes a `Node3D` named after the file with
+  the nodes of the model under it, a mesh - a `Node3D` with a
+  `MeshRenderer` (`instantiateResource`). One undo step
+  (`SceneEditing::addResource`, `AddBranchCommand`).
+- **Into a field**: a resource dropped onto a resource field is taken if it
+  is of the kind of the field (mesh, texture, scene). The mesh list of
+  `MeshRenderer` holds the built-in meshes and the meshes of every model,
+  grouped by file; a nested resource reads "models/house.glb / Door".
+- **Changes on disk**: when the editor window gets focus, the session walks
+  the project folder again and reloads changed files
+  (`EditorSession::refreshResources`).
+
 ## Snapping while moving [planned, step 4]
 
 As in Unity: a node is placed exactly on the grid, onto a vertex or onto a

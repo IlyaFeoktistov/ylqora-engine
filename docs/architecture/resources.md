@@ -183,7 +183,8 @@ own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
    settings with "Apply"); project meshes in the `MeshRenderer` list grouped
    by file; dragging a model from Files into the tree or the viewport creates
    its node tree in one undo step; dragging a mesh onto the mesh field;
-   changed files are reloaded when the editor window gets focus.
+   changed files are reloaded when the editor window gets focus **[done]**.
+   See [editor](editor.md), "Resources in the editor".
 6. Dragging nodes in the tree with "Keep the world position?" (see
    [scene](scene.md)), one undo step for parent and transform.
 7. Snapping while moving: to the grid, to vertices, onto a surface, with

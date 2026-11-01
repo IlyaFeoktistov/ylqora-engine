@@ -37,24 +37,24 @@ struct DetachedBranch {
     std::size_t index = 0;
 };
 
-// Новый узел типа type ребёнком parent (0 - ребёнком корня, а в пустой
-// сцене - корнем). Имя уникально среди соседей. Новый узел выбирается.
-class CreateNodeCommand final : public Command {
+// Новая ветка (узел или целое дерево, например модель из файла) ребёнком
+// parent (0 - ребёнком корня, а в пустой сцене - корнем). Имя её корня
+// уникально среди соседей. Корень ветки выбирается.
+class AddBranchCommand final : public Command {
 public:
-    // Узел создаётся сразу, чтобы его ID был известен до apply.
-    CreateNodeCommand(const TypeInfo& type, NodeId parent);
+    // Ветка готова заранее, поэтому ID её корня известен до apply.
+    AddBranchCommand(std::unique_ptr<Node> branch, NodeId parent);
 
     bool apply(EditorSession& session) override;
     void revert(EditorSession& session) override;
 
-    // 0, если тип не узел или его нельзя создать.
+    // 0, если ветки нет.
     NodeId created() const
     {
         return m_created;
     }
 
 private:
-    const TypeInfo& m_type;
     NodeId m_parent;
     NodeId m_created = 0;
     bool m_placed = false;

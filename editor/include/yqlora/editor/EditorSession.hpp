@@ -25,6 +25,7 @@ class EngineServices;
 class GameModule;
 class Node;
 class Node3D;
+class ResourceCache;
 class Scene;
 class SceneSerializer;
 class TypeInfo;
@@ -87,6 +88,9 @@ public:
     {
         return m_selection;
     }
+
+    // Загруженные ресурсы: общие у редактируемой сцены и копии Play.
+    ResourceCache& resources() const;
 
     // Правка текущей сцены командами с отменой.
     SceneEditing& editing()
@@ -163,6 +167,10 @@ public:
     {
         return m_gameLibrary;
     }
+
+    // Файлы проекта могли поменять мимо редактора (вернулись из другой
+    // программы): обходит папку проекта и перечитывает изменённые ресурсы.
+    void refreshResources();
 
     // Путь к открытой сцене от папки проекта. Пусто, если сцены нет.
     std::filesystem::path scenePath() const;

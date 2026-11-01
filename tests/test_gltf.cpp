@@ -1,4 +1,5 @@
 #include "EngineRegistry.hpp"
+#include "GltfBuilder.hpp"
 
 #include <doctest/doctest.h>
 
@@ -22,146 +23,11 @@
 #include <vector>
 
 using namespace yqlora;
+using namespace yqlora::test;
 namespace fs = std::filesystem;
 using Json = nlohmann::json;
 
 namespace {
-
-// Коды glTF.
-constexpr int kFloat = 5126;
-constexpr int kUnsignedShort = 5123;
-constexpr int kTriangles = 4;
-constexpr int kPoints = 0;
-constexpr std::uint32_t kGlbMagic = 0x46546C67;
-constexpr std::uint32_t kGlbVersion = 2;
-constexpr std::uint32_t kJsonChunk = 0x4E4F534A;
-constexpr std::uint32_t kBinChunk = 0x004E4942;
-
-std::string base64(const std::vector<std::uint8_t>& bytes)
-{
-    static constexpr char kAlphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    std::string text;
-    for (std::size_t i = 0; i < bytes.size(); i += 3) {
-        const std::uint32_t chunk = (bytes[i] << 16) | (i + 1 < bytes.size() ? bytes[i + 1] << 8 : 0)
-                                    | (i + 2 < bytes.size() ? bytes[i + 2] : 0);
-        text += kAlphabet[(chunk >> 18) & 63];
-        text += kAlphabet[(chunk >> 12) & 63];
-        text += i + 1 < bytes.size() ? kAlphabet[(chunk >> 6) & 63] : '=';
-        text += i + 2 < bytes.size() ? kAlphabet[chunk & 63] : '=';
-    }
-
-    return text;
-}
-
-// Собирает glTF: двоичный буфер, виды и аксессоры, остальное - JSON руками.
-struct GltfBuilder {
-    template <typename T>
-    int view(const std::vector<T>& values, int stride = 0)
-    {
-        while (bin.size() % 4 != 0) {
-            bin.push_back(0);
-        }
-        const std::size_t offset = bin.size();
-        bin.resize(offset + values.size() * sizeof(T));
-        std::memcpy(bin.data() + offset, values.data(), values.size() * sizeof(T));
-        Json entry{{"buffer", 0}, {"byteOffset", offset}, {"byteLength", values.size() * sizeof(T)}};
-        if (stride != 0) {
-            entry["byteStride"] = stride;
-        }
-        json["bufferViews"].push_back(entry);
-
-        return static_cast<int>(json["bufferViews"].size()) - 1;
-    }
-
-    int accessor(int bufferView, int offset, int componentType, int count, const char* type, Json extra = {})
-    {
-        Json entry{
-            {"bufferView", bufferView},
-            {"byteOffset", offset},
-            {"componentType", componentType},
-            {"count", count},
-            {"type", type}
-        };
-        if (extra.is_object()) {
-            entry.update(extra);
-        }
-        json["accessors"].push_back(entry);
-
-        return static_cast<int>(json["accessors"].size()) - 1;
-    }
-
-    // Аксессор VEC3 из чисел подряд, с границами: их требует glTF для положений.
-    int positions(const std::vector<float>& values)
-    {
-        Vec3 low(values[0], values[1], values[2]);
-        Vec3 high = low;
-        for (std::size_t i = 0; i < values.size(); i += 3) {
-            low = glm::min(low, Vec3(values[i], values[i + 1], values[i + 2]));
-            high = glm::max(high, Vec3(values[i], values[i + 1], values[i + 2]));
-        }
-        const int count = static_cast<int>(values.size() / 3);
-
-        return accessor(
-            view(values),
-            0,
-            kFloat,
-            count,
-            "VEC3",
-            {{"min", {low.x, low.y, low.z}}, {"max", {high.x, high.y, high.z}}}
-        );
-    }
-
-    Json document(Json buffer) const
-    {
-        Json result = json;
-        result["asset"] = {{"version", "2.0"}};
-        buffer["byteLength"] = bin.size();
-        result["buffers"] = Json::array({buffer});
-
-        return result;
-    }
-
-    void writeGltf(const fs::path& file) const
-    {
-        std::ofstream(file) << document({{"uri", "data:application/octet-stream;base64," + base64(bin)}}).dump();
-    }
-
-    // .gltf и рядом внешний .bin.
-    void writeGltfWithBin(const fs::path& file, const std::string& binName) const
-    {
-        std::ofstream(file.parent_path() / fromUtf8(binName), std::ios::binary)
-            .write(reinterpret_cast<const char*>(bin.data()), static_cast<std::streamsize>(bin.size()));
-        std::ofstream(file) << document({{"uri", binName}}).dump();
-    }
-
-    void writeGlb(const fs::path& file) const
-    {
-        std::string text = document(Json::object()).dump();
-        while (text.size() % 4 != 0) {
-            text += ' ';
-        }
-        std::vector<std::uint8_t> data = bin;
-        while (data.size() % 4 != 0) {
-            data.push_back(0);
-        }
-        const auto word = [](std::ofstream& out, std::uint32_t value) {
-            out.write(reinterpret_cast<const char*>(&value), sizeof(value));
-        };
-        std::ofstream out(file, std::ios::binary);
-        word(out, kGlbMagic);
-        word(out, kGlbVersion);
-        word(out, static_cast<std::uint32_t>(12 + 8 + text.size() + 8 + data.size()));
-        word(out, static_cast<std::uint32_t>(text.size()));
-        word(out, kJsonChunk);
-        out.write(text.data(), static_cast<std::streamsize>(text.size()));
-        word(out, static_cast<std::uint32_t>(data.size()));
-        word(out, kBinChunk);
-        out.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
-    }
-
-    Json json = Json::object();
-    std::vector<std::uint8_t> bin;
-};
 
 fs::path freshDirectory(const char* name)
 {

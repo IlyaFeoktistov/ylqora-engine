@@ -51,6 +51,10 @@ private:
     std::set<std::string, std::less<>> m_used;
 };
 
+// Имя элемента файла по его ключу, без вида и номера: "mesh:Door#1" ->
+// "Door". У элемента без имени - пустое.
+YQLORA_API std::string_view subresourceName(std::string_view key);
+
 template <typename T>
 LoadedResource makeLoadedResource(std::string key, T data)
 {

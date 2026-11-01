@@ -9,6 +9,8 @@ add_library(yqlora_editor STATIC
     src/Inspection.cpp
     src/LayerUsage.cpp
     src/PlayMode.cpp
+    src/ResourceInspection.cpp
+    src/ResourceInstance.cpp
     src/ResourceLabel.cpp
     src/SceneDocument.cpp
     src/SceneEditing.cpp
@@ -59,6 +61,7 @@ add_library(yqlora_editor_ui STATIC
     ui/src/panels/LogPanel.cpp
     ui/src/panels/ProjectManagerPanel.cpp
     ui/src/panels/ProjectSettingsPanel.cpp
+    ui/src/panels/ResourceInspector.cpp
     ui/src/panels/SceneTreePanel.cpp
     ui/src/panels/ViewportPanel.cpp
     ui/src/style/Theme.cpp
@@ -68,6 +71,7 @@ add_library(yqlora_editor_ui STATIC
     ui/src/widgets/PropertyEditor.cpp
     ui/src/widgets/PropertyTable.cpp
     ui/src/widgets/RenderView.cpp
+    ui/src/widgets/ResourceDrag.cpp
     ui/src/widgets/TitleBarButton.cpp
 )
 add_library(yqlora::editor_ui ALIAS yqlora_editor_ui)

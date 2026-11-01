@@ -123,19 +123,16 @@ bool setProperty(
 
 } // namespace
 
-CreateNodeCommand::CreateNodeCommand(const TypeInfo& type, NodeId parent)
-    : m_type(type)
-    , m_parent(parent)
+AddBranchCommand::AddBranchCommand(std::unique_ptr<Node> branch, NodeId parent)
+    : m_parent(parent)
 {
-    if (type.kind() == TypeKind::Node) {
-        m_branch.node = type.createNode();
-    }
+    m_branch.node = std::move(branch);
     if (m_branch.node) {
         m_created = m_branch.node->id();
     }
 }
 
-bool CreateNodeCommand::apply(EditorSession& session)
+bool AddBranchCommand::apply(EditorSession& session)
 {
     if (!m_branch.node) {
         return false;
@@ -146,7 +143,7 @@ bool CreateNodeCommand::apply(EditorSession& session)
         if (!target) {
             return false;
         }
-        m_branch.node->setName(uniqueChildName(*target, m_type.name()));
+        m_branch.node->setName(uniqueChildName(*target, m_branch.node->name()));
         m_branch.parent = target->id();
         m_branch.index = target->children().size();
     }
@@ -163,7 +160,7 @@ bool CreateNodeCommand::apply(EditorSession& session)
     return true;
 }
 
-void CreateNodeCommand::revert(EditorSession& session)
+void AddBranchCommand::revert(EditorSession& session)
 {
     if (Node* node = session.findNode(m_created)) {
         m_branch = detach(session, *node);
