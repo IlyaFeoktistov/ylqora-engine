@@ -1,5 +1,5 @@
 #include "yqlora/editor/ui/panels/ViewportPanel.hpp"
-#include "yqlora/editor/ui/widgets/ResourceDrag.hpp"
+#include "yqlora/editor/ui/widgets/DragDrop.hpp"
 
 #include "yqlora/editor/ui/gizmos/AxisGizmo.hpp"
 #include "yqlora/editor/ui/gizmos/CameraGizmo.hpp"

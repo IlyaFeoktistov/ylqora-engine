@@ -89,10 +89,21 @@ TEST_CASE("EditorSettings: defaults without a file, the choice survives a restar
     fresh.load();
     CHECK(fresh.cameraPreview);
 
+    CHECK_FALSE(fresh.reparentKeepWorld);
+
     fresh.cameraPreview = false;
+    fresh.reparentKeepWorld = KeepWorld::Yes;
     REQUIRE(fresh.save());
 
     editor::EditorSettings reloaded(file);
     reloaded.load();
     CHECK_FALSE(reloaded.cameraPreview);
+    CHECK(reloaded.reparentKeepWorld == KeepWorld::Yes);
+
+    // Снова "спрашивать": ключа в файле нет.
+    reloaded.reparentKeepWorld.reset();
+    REQUIRE(reloaded.save());
+    editor::EditorSettings asking(file);
+    asking.load();
+    CHECK_FALSE(asking.reparentKeepWorld);
 }

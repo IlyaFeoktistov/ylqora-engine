@@ -10,6 +10,7 @@ namespace yqlora::editor {
 namespace {
 
 constexpr const char* kCameraPreviewKey = "cameraPreview";
+constexpr const char* kReparentKeepWorldKey = "reparentKeepWorld";
 constexpr const char* kToolchainKey = "toolchain";
 constexpr const char* kCmakeKey = "cmake";
 constexpr const char* kMakeProgramKey = "makeProgram";
@@ -42,6 +43,9 @@ void EditorSettings::load()
     if (const auto it = json->find(kCameraPreviewKey); it != json->end() && it->is_boolean()) {
         cameraPreview = it->get<bool>();
     }
+    if (const auto it = json->find(kReparentKeepWorldKey); it != json->end() && it->is_boolean()) {
+        reparentKeepWorld = it->get<bool>() ? KeepWorld::Yes : KeepWorld::No;
+    }
     if (const auto it = json->find(kToolchainKey); it != json->end() && it->is_object()) {
         forEachOverride(toolchain, [&](const char* key, std::filesystem::path& path) {
             if (const auto value = it->find(key); value != it->end() && value->is_string()) {
@@ -60,7 +64,12 @@ bool EditorSettings::save() const
         }
     });
 
-    return writeJsonFile(m_file, {{kCameraPreviewKey, cameraPreview}, {kToolchainKey, overrides}});
+    nlohmann::json json{{kCameraPreviewKey, cameraPreview}, {kToolchainKey, overrides}};
+    if (reparentKeepWorld) {
+        json[kReparentKeepWorldKey] = *reparentKeepWorld == KeepWorld::Yes;
+    }
+
+    return writeJsonFile(m_file, json);
 }
 
 } // namespace yqlora::editor

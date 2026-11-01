@@ -12,6 +12,7 @@ class ActionRegistry;
 class EditorHost;
 class EditorPanel;
 class EditorSession;
+class EditorSettings;
 class LogBuffer;
 class Theme;
 
@@ -23,6 +24,7 @@ struct MainMenuContext {
     // Код языка и его название.
     std::span<const std::pair<std::string, std::string>> languages;
     const Theme& theme;
+    EditorSettings& settings;
     const LogBuffer& log;
     // Идёт сборка скриптов; последняя законченная не прошла.
     bool buildingScripts = false;

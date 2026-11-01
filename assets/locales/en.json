@@ -77,7 +77,11 @@
             "projectSettings": "Project Settings",
             "maximizePanel": "Maximize window",
             "buildScripts": "Build scripts",
-            "scripts": "Scripts"
+            "scripts": "Scripts",
+            "reparent": "Moving a node in the tree",
+            "reparentAsk": "Ask every time",
+            "reparentWorld": "Keep the world position",
+            "reparentLocal": "Keep the local values"
         },
         "window": {
             "scene": "Scene",
@@ -141,7 +145,15 @@
         "tree": {
             "addNode": "Add node",
             "addChild": "Add child node",
-            "delete": "Delete"
+            "delete": "Delete",
+            "keepWorld": {
+                "title": "Move node",
+                "question": "Keep the world position?",
+                "remember": "Remember the choice",
+                "hint": "Alt on release does the opposite once; Edit > Moving a node in the tree changes the choice.",
+                "yes": "Keep",
+                "no": "Keep local values"
+            }
         },
         "addNode": {
             "title": "Add node",

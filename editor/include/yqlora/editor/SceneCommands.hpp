@@ -150,4 +150,28 @@ private:
     std::optional<TransformValues> m_previous;
 };
 
+// Перенос узла последним ребёнком другого узла. keepWorld решает, что
+// сохранить: мировое положение или локальные значения (см. Scene::setParent).
+// Отмена возвращает и родителя с местом среди соседей, и прежние локальные
+// значения трансформа.
+class SetParentCommand final : public Command {
+public:
+    SetParentCommand(NodeId node, NodeId parent, KeepWorld keepWorld);
+
+    bool apply(EditorSession& session) override;
+    void revert(EditorSession& session) override;
+
+private:
+    NodeId m_node;
+    NodeId m_parent;
+    KeepWorld m_keepWorld;
+    NodeId m_previousParent = 0;
+    std::size_t m_previousIndex = 0;
+    std::optional<TransformValues> m_previousValues;
+};
+
+// Можно ли перенести node под parent: не корень, не в свою же ветку и не к
+// тому же родителю.
+bool canMoveUnder(const Node& node, const Node& parent);
+
 } // namespace yqlora::editor

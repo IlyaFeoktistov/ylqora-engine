@@ -7,12 +7,16 @@
 #include "yqlora/editor/ui/style/Theme.hpp"
 
 #include "yqlora/editor/EditorSession.hpp"
+#include "yqlora/editor/EditorSettings.hpp"
 #include "yqlora/editor/LogBuffer.hpp"
 #include "yqlora/editor/ui/core/EditorHost.hpp"
 #include "yqlora/i18n/Language.hpp"
 #include "yqlora/i18n/Translate.hpp"
 
 #include <imgui.h>
+
+#include <iterator>
+#include <optional>
 
 namespace yqlora::editor {
 
@@ -146,6 +150,23 @@ void drawViewMenu(const MainMenuContext& context)
     ImGui::EndMenu();
 }
 
+// Что сохранять при переносе узла в дереве: спрашивать или запомненный выбор.
+void drawReparentMenu(EditorSettings& settings)
+{
+    if (!ImGui::BeginMenu(tr("editor.menu.reparent").c_str())) {
+        return;
+    }
+    const std::optional<KeepWorld> choices[] = {std::nullopt, KeepWorld::Yes, KeepWorld::No};
+    const char* keys[] = {"editor.menu.reparentAsk", "editor.menu.reparentWorld", "editor.menu.reparentLocal"};
+    for (std::size_t i = 0; i < std::size(choices); ++i) {
+        if (ImGui::MenuItem(tr(keys[i]).c_str(), nullptr, settings.reparentKeepWorld == choices[i])) {
+            settings.reparentKeepWorld = choices[i];
+            settings.save();
+        }
+    }
+    ImGui::EndMenu();
+}
+
 } // namespace
 
 void drawMainMenu(const MainMenuContext& context)
@@ -165,6 +186,8 @@ void drawMainMenu(const MainMenuContext& context)
     if (context.session.project() && ImGui::BeginMenu(tr("editor.menu.edit").c_str())) {
         context.actions.menuItem(actions::kUndo);
         context.actions.menuItem(actions::kRedo);
+        ImGui::Separator();
+        drawReparentMenu(context.settings);
         ImGui::EndMenu();
     }
     if (context.session.project() && ImGui::BeginMenu(tr("editor.menu.project").c_str())) {

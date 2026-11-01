@@ -4,7 +4,7 @@
 #include "yqlora/editor/ui/core/EditorHost.hpp"
 #include "yqlora/editor/ui/style/Icons.hpp"
 #include "yqlora/editor/ui/style/Theme.hpp"
-#include "yqlora/editor/ui/widgets/ResourceDrag.hpp"
+#include "yqlora/editor/ui/widgets/DragDrop.hpp"
 
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/editor/EditorSession.hpp"

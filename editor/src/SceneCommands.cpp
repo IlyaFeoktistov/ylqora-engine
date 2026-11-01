@@ -359,4 +359,62 @@ bool SetTransformCommand::merge(const Command& next)
     return true;
 }
 
+SetParentCommand::SetParentCommand(NodeId node, NodeId parent, KeepWorld keepWorld)
+    : m_node(node)
+    , m_parent(parent)
+    , m_keepWorld(keepWorld)
+{
+}
+
+bool SetParentCommand::apply(EditorSession& session)
+{
+    Node* node = session.findNode(m_node);
+    Node* parent = session.findNode(m_parent);
+    if (!node || !parent || !canMoveUnder(*node, *parent)) {
+        return false;
+    }
+    const auto siblings = node->parent()->children();
+    m_previousParent = node->parent()->id();
+    m_previousIndex = static_cast<std::size_t>(
+        std::ranges::find_if(
+            siblings,
+            [&](const auto& child) {
+                return child.get() == node;
+            }
+        )
+        - siblings.begin()
+    );
+    if (const auto* node3D = dynamic_cast<const Node3D*>(node)) {
+        m_previousValues = node3D->transform().values();
+    }
+    session.scene().setParent(*node, *parent, m_keepWorld);
+
+    return true;
+}
+
+void SetParentCommand::revert(EditorSession& session)
+{
+    Node* node = session.findNode(m_node);
+    if (!node) {
+        return;
+    }
+    // Ветку вынимают и вставляют на прежнее место: так возвращается и порядок
+    // среди соседей. Выбор внутри неё снимается при этом и возвращается.
+    const Selection selected = session.selection();
+    DetachedBranch branch = detach(session, *node);
+    branch.parent = m_previousParent;
+    branch.index = m_previousIndex;
+    if (attach(session, branch)) {
+        session.selection() = selected;
+    }
+    if (auto* node3D = dynamic_cast<Node3D*>(session.findNode(m_node)); node3D && m_previousValues) {
+        node3D->transform().setValues(*m_previousValues);
+    }
+}
+
+bool canMoveUnder(const Node& node, const Node& parent)
+{
+    return node.parent() && node.parent() != &parent && !isInBranch(node, parent);
+}
+
 } // namespace yqlora::editor

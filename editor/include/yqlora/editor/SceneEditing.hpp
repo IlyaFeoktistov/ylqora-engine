@@ -3,6 +3,7 @@
 #include "yqlora/editor/Command.hpp"
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/resource/ResourceId.hpp"
+#include "yqlora/scene/Node.hpp"
 #include "yqlora/scene/NodeId.hpp"
 #include "yqlora/scene/Transform3D.hpp"
 
@@ -71,6 +72,10 @@ public:
     bool setProperty(Component& component, const Property& property, const PropertyValue& value);
 
     bool setTransform(Node3D& node, const TransformValues& values);
+
+    // Переносит узел последним ребёнком parent, см. SetParentCommand. false,
+    // если так нельзя (canMoveUnder).
+    bool setParent(Node& node, Node& parent, KeepWorld keepWorld);
 
     // Делает камеру главной, меняя её order (см. orderToBecomeMain).
     // false, если камера уже главная или выключена.

@@ -186,7 +186,9 @@ own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
    changed files are reloaded when the editor window gets focus **[done]**.
    See [editor](editor.md), "Resources in the editor".
 6. Dragging nodes in the tree with "Keep the world position?" (see
-   [scene](scene.md)), one undo step for parent and transform.
+   [scene](scene.md)), one undo step for parent and transform **[done]**.
+   A node dropped onto another becomes its last child, onto the empty place
+   under the tree - the last child of the root; one node at a time.
 7. Snapping while moving: to the grid, to vertices, onto a surface, with
    viewport buttons and keys (see [editor](editor.md)).
 8. Documents: this one, project (`.meta`), rendering (vertex format,

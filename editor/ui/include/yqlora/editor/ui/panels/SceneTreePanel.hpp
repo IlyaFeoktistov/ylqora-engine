@@ -32,6 +32,10 @@ public:
 
 private:
     void drawNode(const Node& node, Selection& selection);
+    // Перенос, отпущенный в этом кадре: сразу по запомненному выбору или
+    // через окно с вопросом.
+    void handleMove(EditorContext& context);
+    void drawKeepWorldDialog(EditorContext& context);
 
     AddNodeDialog m_addNode;
     // Что было выбрано в прошлом кадре: если выбор сменился не здесь,
@@ -47,6 +51,18 @@ private:
         NodeId parent = 0;
     };
     std::optional<Drop> m_drop;
+    // Узел, отпущенный над другим узлом: перенос к нему. Alt при отпускании
+    // один раз делает наоборот запомненному выбору.
+    struct Move {
+        NodeId node = 0;
+        NodeId parent = 0;
+        bool invert = false;
+    };
+    std::optional<Move> m_move;
+    // Перенос ждёт ответа в окне "Сохранить положение в мире?".
+    std::optional<Move> m_asking;
+    bool m_askRequested = false;
+    bool m_rememberChoice = false;
 };
 
 } // namespace yqlora::editor

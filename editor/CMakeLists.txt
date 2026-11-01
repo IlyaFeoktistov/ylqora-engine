@@ -71,7 +71,7 @@ add_library(yqlora_editor_ui STATIC
     ui/src/widgets/PropertyEditor.cpp
     ui/src/widgets/PropertyTable.cpp
     ui/src/widgets/RenderView.cpp
-    ui/src/widgets/ResourceDrag.cpp
+    ui/src/widgets/DragDrop.cpp
     ui/src/widgets/TitleBarButton.cpp
 )
 add_library(yqlora::editor_ui ALIAS yqlora_editor_ui)

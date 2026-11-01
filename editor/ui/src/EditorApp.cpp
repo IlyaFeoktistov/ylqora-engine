@@ -286,6 +286,7 @@ void EditorApp::onGui()
         .panels = m_panels,
         .languages = m_languages,
         .theme = m_theme,
+        .settings = *m_settings,
         .log = m_log,
         .buildingScripts = m_scriptBuild.building(),
         .scriptsFailed = m_scriptsFailed,

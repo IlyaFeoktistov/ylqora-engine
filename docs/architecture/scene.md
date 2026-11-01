@@ -212,8 +212,9 @@ the hand; a wagon hooked to a train must not move in the world.
   "Keep the world position?" with a "Remember my choice" checkbox. The choice
   is an editor setting (a habit of the person, not a property of the game) and
   can be changed there. Alt while dropping does the opposite once. Undo returns
-  both the parent and the old transform. Comes with dragging nodes in the tree
-  **[planned, step 4]**.
+  both the parent with the place among siblings and the old transform
+  (`SetParentCommand`). The choice is changed in "Edit > Moving a node in the
+  tree" **[done]**.
 - Keeping the world position is not always exact: under a parent with
   non-uniform scale and rotation the world matrix has a skew that position,
   rotation and scale cannot hold; the nearest values are taken, as in Unity.

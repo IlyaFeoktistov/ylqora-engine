@@ -152,6 +152,11 @@ bool SceneEditing::setProperty(Component& component, const Property& property, c
     );
 }
 
+bool SceneEditing::setParent(Node& node, Node& parent, KeepWorld keepWorld)
+{
+    return execute(std::make_unique<SetParentCommand>(node.id(), parent.id(), keepWorld));
+}
+
 bool SceneEditing::setTransform(Node3D& node, const TransformValues& values)
 {
     return execute(std::make_unique<SetTransformCommand>(node.id(), values));

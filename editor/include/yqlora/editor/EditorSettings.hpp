@@ -1,8 +1,10 @@
 #pragma once
 
 #include "yqlora/editor/ScriptToolchain.hpp"
+#include "yqlora/scene/Node.hpp"
 
 #include <filesystem>
+#include <optional>
 
 namespace yqlora::editor {
 
@@ -19,6 +21,9 @@ public:
 
     // Маленькое окно с картинкой через выбранную камеру в углу окна сцены.
     bool cameraPreview = true;
+    // Что сохранять, когда узел перетаскивают к другому родителю в дереве;
+    // nullopt - спрашивать каждый раз. Меняется в меню "Правка".
+    std::optional<KeepWorld> reparentKeepWorld;
     // Пути вместо записанных движком в sdk/toolchain.json; в интерфейсе их нет,
     // только в файле.
     ToolchainOverrides toolchain;

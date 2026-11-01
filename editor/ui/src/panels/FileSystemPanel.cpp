@@ -2,7 +2,7 @@
 
 #include "yqlora/editor/ui/style/Icons.hpp"
 #include "yqlora/editor/ui/style/Theme.hpp"
-#include "yqlora/editor/ui/widgets/ResourceDrag.hpp"
+#include "yqlora/editor/ui/widgets/DragDrop.hpp"
 
 #include "yqlora/core/AppPaths.hpp"
 #include "yqlora/core/Utf8Path.hpp"
