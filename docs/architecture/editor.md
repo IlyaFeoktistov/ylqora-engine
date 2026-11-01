@@ -114,3 +114,24 @@ Status marks: see [README](README.md).
   leaves nothing behind. A C++ script's name is its class name; it is made
   from `assets/templates/cpp-script/`. A double click on a
   file that is not a scene opens it with the system (`platform::openWithSystem`).
+
+## Snapping while moving [planned, step 4]
+
+As in Unity: a node is placed exactly on the grid, onto a vertex or onto a
+surface, not by eye. It works in the manipulator and when a model is
+dragged from Files into the viewport.
+
+- **To the grid**: moving by a step (1 m, 0.5 m or a custom one), rotating
+  and scaling by their own steps. A button with the step choice on the
+  viewport toolbar turns snapping on; Ctrl while dragging turns it on for
+  that drag. The steps and the button state are editor settings
+  (`EditorSettings`), not project ones: they are a habit of the person.
+- **To vertices**: with V held, the manipulator takes the vertex of the
+  selected mesh closest to the cursor and drags it to a vertex of another
+  mesh under the cursor.
+- **Onto a surface**: with Ctrl+Shift held, the node is put at the surface
+  point under the cursor (a ray into mesh triangles, as in picking); a
+  separate button also turns it along the surface normal.
+- The keys are editor actions (`EditorActions`) and can be rebound; every
+  mode has a button on the viewport toolbar whose tooltip shows its key.
+- A snapped move is one edit in the history, as an unsnapped one.

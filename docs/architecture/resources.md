@@ -162,7 +162,9 @@ own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
    changed files are reloaded when the editor window gets focus.
 6. Dragging nodes in the tree with "Keep the world position?" (see
    [scene](scene.md)), one undo step for parent and transform.
-7. Documents: this one, project (`.meta`), rendering (vertex format,
+7. Snapping while moving: to the grid, to vertices, onto a surface, with
+   viewport buttons and keys (see [editor](editor.md)).
+8. Documents: this one, project (`.meta`), rendering (vertex format,
    submeshes), editor, the guide "Importing a model", README.
 
 Tests, besides unit tests of each part:
