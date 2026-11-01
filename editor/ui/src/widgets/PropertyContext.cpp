@@ -2,6 +2,7 @@
 
 #include "yqlora/editor/ui/style/Theme.hpp"
 
+#include "yqlora/core/EngineServices.hpp"
 #include "yqlora/editor/EditorSession.hpp"
 #include "yqlora/editor/ui/core/EditorHost.hpp"
 #include "yqlora/scene/LayerSettings.hpp"
@@ -24,6 +25,8 @@ PropertyEditorContext propertyEditorContext(const EditorContext& context)
         .registry = session.registry(),
         .input = context.host.input(),
         .resources = project ? &project->resources() : nullptr,
+        .cache = session.scene().services().resources(),
+        .renderer = context.host.renderer(),
         .layerNames = layers ? std::span<const std::string>(layers->names()) : std::span<const std::string>(),
         .editLayers = [open = context.openProjectSettings] {
             open(typeNameOf<LayerSettings>());

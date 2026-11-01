@@ -12,6 +12,8 @@ namespace yqlora {
 class Component;
 class Input;
 class Node;
+class Renderer;
+class ResourceCache;
 class ResourceDatabase;
 class Scene;
 class SettingsSection;
@@ -51,6 +53,10 @@ struct PropertyEditorContext {
     const Input& input;
     // Ресурсы проекта для ссылок на ресурсы. nullptr, если проекта нет.
     const ResourceDatabase* resources = nullptr;
+    // Загруженные ресурсы: вид файла для списков и данные для превью.
+    ResourceCache& cache;
+    // Превью текстур.
+    Renderer& renderer;
     // Имена слоёв по номеру (LayerSettings). Пусто без проекта: слои показываются номерами.
     std::span<const std::string> layerNames;
     // Открыть раздел Layers настроек проекта: пункт "Изменить слои..." в

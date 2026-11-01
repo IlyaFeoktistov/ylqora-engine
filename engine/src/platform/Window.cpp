@@ -202,6 +202,28 @@ void Window::setTitle(const std::string& title)
     SDL_SetWindowTitle(m_window, title.c_str());
 }
 
+void Window::setIcon(int width, int height, std::span<const std::uint8_t> rgba)
+{
+    constexpr int kBytesPerPixel = 4;
+    // SDL не меняет пиксели поверхности, которую только читает для иконки.
+    SDL_Surface* surface = SDL_CreateSurfaceFrom(
+        width,
+        height,
+        SDL_PIXELFORMAT_RGBA32,
+        const_cast<std::uint8_t*>(rgba.data()),
+        width * kBytesPerPixel
+    );
+    if (!surface) {
+        log::warn("Window icon is not set: {}", SDL_GetError());
+
+        return;
+    }
+    if (!SDL_SetWindowIcon(m_window, surface)) {
+        log::warn("Window icon is not set: {}", SDL_GetError());
+    }
+    SDL_DestroySurface(surface);
+}
+
 Vec2 Window::sizeInPoints() const
 {
     int w = 0;

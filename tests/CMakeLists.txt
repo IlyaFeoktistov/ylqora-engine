@@ -22,6 +22,7 @@ add_executable(yqlora_tests
     test_resources.cpp
     test_resource_cache.cpp
     test_gltf.cpp
+    test_texture.cpp
     test_methods.cpp
     test_runtime_types.cpp
     test_project_files.cpp
@@ -43,7 +44,7 @@ add_executable(yqlora_tests
     test_compiler_diagnostics.cpp
     test_script_build.cpp
 )
-target_link_libraries(yqlora_tests PRIVATE yqlora::internal yqlora::editor doctest::doctest)
+target_link_libraries(yqlora_tests PRIVATE yqlora::internal yqlora::editor doctest::doctest stb_headers)
 target_compile_definitions(yqlora_tests PRIVATE
     YQLORA_LOCALES_DIR="${PROJECT_SOURCE_DIR}/assets/locales"
     YQLORA_SCRIPT_TEMPLATE_DIR="${PROJECT_SOURCE_DIR}/assets/templates/cpp-script"

@@ -254,6 +254,11 @@ std::span<const std::string_view> GltfLoader::extensions() const
     return kExtensions;
 }
 
+std::string_view GltfLoader::kind() const
+{
+    return ModelData::kResourceKind;
+}
+
 LoadResult GltfLoader::load(const LoadRequest& request) const
 {
     const float scale = request.import.value(kScaleSetting, kDefaultScale);

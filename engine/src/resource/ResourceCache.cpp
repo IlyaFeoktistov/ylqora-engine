@@ -50,6 +50,13 @@ void ResourceCache::setProject(Project* project)
     });
 }
 
+std::string_view ResourceCache::kindOf(const fs::path& file) const
+{
+    const ResourceLoader* loader = loaderFor(file);
+
+    return loader ? loader->kind() : std::string_view();
+}
+
 const ResourceStatus* ResourceCache::status(ResourceId id) const
 {
     const auto it = m_entries.find(id);

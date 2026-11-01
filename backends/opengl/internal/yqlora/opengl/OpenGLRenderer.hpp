@@ -1,5 +1,6 @@
 #pragma once
 
+#include "yqlora/render/GpuResourceCache.hpp"
 #include "yqlora/render/Renderer.hpp"
 
 #include <memory>
@@ -10,6 +11,7 @@ struct SDL_GLContextState;
 namespace yqlora::opengl {
 
 class GlMeshCache;
+class GlTexture;
 class GridPass;
 class MeshPass;
 class OutlinePass;
@@ -43,6 +45,7 @@ public:
     std::unique_ptr<RenderTarget> createRenderTarget(int width, int height) override;
     void clearWindow(const Vec4& color) override;
 
+    UiTexture uiTexture(ResourceId id, std::uint64_t revision, const TextureData& data) override;
     std::unique_ptr<UiRenderer> createUiRenderer() override;
 
     void present() override;
@@ -56,6 +59,7 @@ private:
     Window& m_window;
     SDL_GLContextState* m_context = nullptr;
     std::unique_ptr<GlMeshCache> m_meshes;
+    std::unique_ptr<GpuResourceCache<GlTexture>> m_uiTextures;
     std::unique_ptr<MeshPass> m_meshPass;
     std::unique_ptr<GridPass> m_grid;
     std::unique_ptr<OutlinePass> m_outline;

@@ -48,7 +48,7 @@ never go into the project.
 
 | Section | Contents | When |
 |---|---|---|
-| General | game name, version, company, startup scene **[done]**; icon | **[planned, step 4]** for the icon, with textures |
+| General | game name, version, company, startup scene, icon (a texture of the project; the game window takes it, the editor keeps its own) | **[done]** |
 | Time | fixed time step, longest frame; read every frame by the scene and the frame loop, so an edit applies at once, in Play too | **[done]** |
 | Input | actions and axes, their bindings to keys, the mouse and gamepads; see [input](input.md) | **[done]** |
 | Execution Order | order of component types inside every lifecycle phase, overriding the default from code (see [scene](scene.md)); a type is picked from the registered components that use the frame phases, rows of unloaded types are kept. An edit applies from the next frame, in Play too: every write of a section raises `ProjectSettings::revision`, and the phase lists re-sort when it changes | **[done]** |

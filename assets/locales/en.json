@@ -276,6 +276,7 @@
         "gameName": "Game name",
         "company": "Company",
         "startupScene": "Startup scene",
+        "icon": "Icon",
         "active": "Active",
         "enabled": "Enabled",
         "layer": "Layer",

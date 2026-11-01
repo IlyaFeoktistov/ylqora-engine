@@ -1,4 +1,8 @@
 #include "yqlora/core/Application.hpp"
+#include "yqlora/project/GeneralSettings.hpp"
+#include "yqlora/project/Project.hpp"
+#include "yqlora/render/TextureData.hpp"
+#include "yqlora/resource/ResourceCache.hpp"
 
 #include "yqlora/core/AppPaths.hpp"
 #include "yqlora/core/EngineTypes.hpp"
@@ -300,6 +304,23 @@ void Application::applyGraphicsSettings()
     }
 }
 
+void Application::applyGameIcon()
+{
+    const Project* project = m_services.project();
+    const ResourceId id = project ? project->settings().get<GeneralSettings>().icon.id : 0;
+    const LoadedData<TextureData> texture = m_services.resources().get<TextureData>(id);
+    if (id == m_iconId && texture.revision == m_iconRevision) {
+        return;
+    }
+    m_iconId = id;
+    m_iconRevision = texture.revision;
+    // Без иконки в настройках остаётся та, что уже стоит: SDL не умеет вернуть
+    // иконку системы.
+    if (texture) {
+        m_window->setIcon(texture.data->width, texture.data->height, texture.data->pixels);
+    }
+}
+
 void Application::rebuildRenderer(GraphicsApi api)
 {
     const GraphicsApi previous = m_renderer->api();
@@ -325,6 +346,9 @@ void Application::rebuildRenderer(GraphicsApi api)
                 .api = target,
             });
             m_dialogs = std::make_unique<FileDialogs>(*m_window);
+            // У нового окна иконки ещё нет.
+            m_iconId = 0;
+            m_iconRevision = 0;
         }
         m_renderer = createRenderer(target, *m_window);
     };
@@ -361,6 +385,9 @@ void Application::mainLoop()
     loop.reset(platform::timeSeconds());
     while (m_running) {
         applyGraphicsSettings();
+        if (m_config.mode == ApplicationMode::Game) {
+            applyGameIcon();
+        }
         loop.setMaxFrameSeconds(timeSettingsOf(m_services).maxFrame());
         loop.runFrame(platform::timeSeconds());
     }

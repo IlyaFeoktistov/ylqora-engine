@@ -8,6 +8,7 @@
 #include "yqlora/platform/Window.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
+#include "yqlora/resource/ResourceId.hpp"
 
 #include <filesystem>
 #include <functional>
@@ -170,6 +171,8 @@ private:
     void updateTitle();
     // Раздел Graphics открытого проекта: vsync сразу, смена API - пересоздание рендера.
     void applyGraphicsSettings();
+    // Только в режиме игры: иконка окна из раздела General. У редактора своя.
+    void applyGameIcon();
     // Пересоздаёт только рендер: окно (если API нужны другие флаги окна),
     // рендерер и отрисовку интерфейса. Сцены, проект и интерфейс остаются.
     void rebuildRenderer(GraphicsApi api);
@@ -195,6 +198,9 @@ private:
     std::optional<bool> m_vsync;
     // API из настроек, которого нет в сборке или в системе: о нём уже сказали в лог.
     std::optional<GraphicsApi> m_unavailableApi;
+    // Иконка, которая уже стоит у окна: ID текстуры и её ревизия.
+    ResourceId m_iconId = 0;
+    std::uint64_t m_iconRevision = 0;
     std::string m_titleDetail;
     std::string m_title;
 };

@@ -84,6 +84,10 @@ public:
         return get<T>(id).data;
     }
 
+    // Вид ресурса файла по его загрузчику, файл не читается. Пусто, если
+    // загрузчика для таких файлов нет.
+    std::string_view kindOf(const std::filesystem::path& file) const;
+
     // nullptr, если к ресурсу ещё не обращались.
     const ResourceStatus* status(ResourceId id) const;
 

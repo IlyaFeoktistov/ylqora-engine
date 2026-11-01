@@ -50,6 +50,11 @@ public:
         return kExtensions;
     }
 
+    std::string_view kind() const override
+    {
+        return MeshData::kResourceKind;
+    }
+
     LoadResult load(const LoadRequest& request) const override
     {
         std::ifstream stream(request.file);

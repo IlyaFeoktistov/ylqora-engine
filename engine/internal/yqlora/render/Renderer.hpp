@@ -5,12 +5,14 @@
 #include "yqlora/render/GraphicsApi.hpp"
 #include "yqlora/render/RenderTarget.hpp"
 #include "yqlora/render/UiRenderer.hpp"
+#include "yqlora/resource/ResourceId.hpp"
 
 #include <memory>
 
 namespace yqlora {
 
 class Window;
+struct TextureData;
 
 // Контракт движка на отрисовку. Реализации живут в backends/<api>/
 // и не светят заголовки своего API наружу.
@@ -33,6 +35,11 @@ public:
     // Заливает окно цветом. Нужно, когда сцена рисуется в текстуру, а окно
     // целиком занято интерфейсом.
     virtual void clearWindow(const Vec4& color) = 0;
+
+    // Текстура ресурса для показа в интерфейсе (превью в редакторе), с
+    // цветами как в файле. Копия в видеопамяти живёт по ID и ревизии, см.
+    // GpuResourceCache; брать заново каждый кадр.
+    virtual UiTexture uiTexture(ResourceId id, std::uint64_t revision, const TextureData& data) = 0;
 
     // Отрисовка Dear ImGui под этот графический API, см. UiRenderer.
     virtual std::unique_ptr<UiRenderer> createUiRenderer() = 0;

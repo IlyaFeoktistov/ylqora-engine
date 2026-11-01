@@ -1,0 +1,182 @@
+#include "EngineRegistry.hpp"
+
+#include <doctest/doctest.h>
+
+#include <yqlora/core/EngineServices.hpp>
+#include <yqlora/import/ImageLoader.hpp>
+#include <yqlora/import/TextureImport.hpp>
+#include <yqlora/input/Input.hpp>
+#include <yqlora/project/GeneralSettings.hpp>
+#include <yqlora/project/Project.hpp>
+#include <yqlora/render/TextureData.hpp>
+#include <yqlora/resource/ResourceCache.hpp>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STBI_WRITE_NO_STDIO
+#include <stb_image_write.h>
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <filesystem>
+#include <fstream>
+#include <vector>
+
+using namespace yqlora;
+namespace fs = std::filesystem;
+using Json = nlohmann::json;
+
+namespace {
+
+constexpr int kRgba = 4;
+constexpr int kJpegQuality = 100;
+
+// 2 x 2: красный, зелёный сверху; синий, полупрозрачный белый снизу.
+const std::array<std::uint8_t, 16> kPixels{
+    255,
+    0,
+    0,
+    255,
+    0,
+    255,
+    0,
+    255, //
+    0,
+    0,
+    255,
+    255,
+    255,
+    255,
+    255,
+    128,
+};
+
+void appendBytes(void* context, void* data, int size)
+{
+    auto* bytes = static_cast<std::vector<char>*>(context);
+    bytes->insert(bytes->end(), static_cast<char*>(data), static_cast<char*>(data) + size);
+}
+
+void save(const fs::path& file, const std::vector<char>& bytes)
+{
+    std::ofstream(file, std::ios::binary).write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+}
+
+void writePng(const fs::path& file)
+{
+    std::vector<char> bytes;
+    stbi_write_png_to_func(&appendBytes, &bytes, 2, 2, kRgba, kPixels.data(), 2 * kRgba);
+    save(file, bytes);
+}
+
+// JPG без прозрачности: одноцветный, чтобы сжатие не меняло цвет заметно.
+void writeJpg(const fs::path& file)
+{
+    std::vector<std::uint8_t> gray(4 * 4 * 3, 200);
+    std::vector<char> bytes;
+    stbi_write_jpg_to_func(&appendBytes, &bytes, 4, 4, 3, gray.data(), kJpegQuality);
+    save(file, bytes);
+}
+
+fs::path freshDirectory(const char* name)
+{
+    const auto directory = fs::temp_directory_path() / "yqlora_tests" / name;
+    fs::remove_all(directory);
+    fs::create_directories(directory);
+
+    return directory;
+}
+
+const TextureData& texture(const LoadResult& result)
+{
+    REQUIRE(result.error.empty());
+    REQUIRE(result.resources.size() == 1);
+    REQUIRE(result.resources[0].kind == TextureData::kResourceKind);
+
+    return *static_cast<const TextureData*>(result.resources[0].data.get());
+}
+
+} // namespace
+
+TEST_CASE("ImageLoader: PNG keeps alpha and rows go from the top")
+{
+    const fs::path file = freshDirectory("texture_png") / "four.png";
+    writePng(file);
+    const LoadResult result = ImageLoader{}.load({file});
+    const TextureData& data = texture(result);
+    CHECK(data.width == 2);
+    CHECK(data.height == 2);
+    CHECK(std::ranges::equal(data.pixels, kPixels));
+    CHECK(data.sampling == TextureSampling{});
+}
+
+TEST_CASE("ImageLoader: JPG becomes RGBA, opaque")
+{
+    const fs::path file = freshDirectory("texture_jpg") / "gray.JPG";
+    writeJpg(file);
+    const LoadResult result = ImageLoader{}.load({file});
+    const TextureData& data = texture(result);
+    CHECK(data.width == 4);
+    REQUIRE(data.pixels.size() == 4 * 4 * kRgba);
+    CHECK(data.pixels[3] == 255);
+    CHECK(data.pixels[0] > 190);
+    CHECK(data.pixels[0] < 210);
+}
+
+TEST_CASE("ImageLoader: broken and missing files give an error")
+{
+    const fs::path directory = freshDirectory("texture_broken");
+    std::ofstream(directory / "text.png") << "not a picture";
+    CHECK_FALSE(ImageLoader{}.load({directory / "text.png"}).error.empty());
+    CHECK_FALSE(ImageLoader{}.load({directory / "missing.png"}).error.empty());
+}
+
+TEST_CASE("TextureImport: settings go to JSON and back, defaults are not written, unknown values are defaults")
+{
+    CHECK(toJson(TextureSampling{}) == Json::object());
+    const TextureSampling pixelArt{ColorSpace::Linear, TextureFilter::Nearest, TextureWrap::Clamp, false};
+    const Json json = toJson(pixelArt);
+    CHECK(json == Json{{"colorSpace", "Linear"}, {"filter", "Nearest"}, {"wrap", "Clamp"}, {"mipmaps", false}});
+    CHECK(textureSamplingFromJson(json) == pixelArt);
+
+    const TextureSampling odd = textureSamplingFromJson({{"filter", "Cubic"}, {"wrap", 3}, {"mipmaps", "yes"}});
+    CHECK(odd == TextureSampling{});
+    CHECK(textureSamplingFromJson(Json::array()) == TextureSampling{});
+}
+
+TEST_CASE("ResourceCache: a picture is a texture, new import settings give a new revision")
+{
+    const fs::path directory = freshDirectory("texture_cache");
+    writePng(directory / "icon.png");
+    test::EngineRegistry registry;
+    REQUIRE(Project::create(directory, "Game", registry));
+    auto project = Project::open(directory, registry);
+    REQUIRE(project);
+    Input input;
+    EngineServices services{input, registry};
+    services.setProject(&*project);
+    ResourceCache& cache = services.resources();
+
+    CHECK(cache.kindOf("icon.png") == TextureData::kResourceKind);
+    CHECK(cache.kindOf("model.GLB") == "model");
+    CHECK(cache.kindOf("notes.txt").empty());
+
+    const ResourceId icon = project->resources().id("icon.png");
+    const auto before = cache.get<TextureData>(icon);
+    REQUIRE(before);
+    CHECK(before.data->sampling.colorSpace == ColorSpace::Srgb);
+
+    const TextureSampling linear{.colorSpace = ColorSpace::Linear};
+    REQUIRE(project->resources().setImportSettings(icon, toJson(linear).dump()));
+    REQUIRE(cache.reload(icon));
+    const auto after = cache.get<TextureData>(icon);
+    CHECK(after.revision > before.revision);
+    CHECK(after.data->sampling.colorSpace == ColorSpace::Linear);
+
+    // Иконка игры - ссылка на текстуру в разделе General.
+    project->settings().get<GeneralSettings>().icon = {icon};
+    REQUIRE(project->settings().saveModified());
+    services.setProject(nullptr);
+    const auto reopened = Project::open(directory, registry);
+    CHECK(reopened->settings().get<GeneralSettings>().icon.id == icon);
+}

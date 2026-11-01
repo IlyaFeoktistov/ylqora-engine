@@ -70,6 +70,7 @@ cmake --build --preset debug
 | [Dear ImGui](https://github.com/ocornut/imgui) | MIT |
 | [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) | MIT |
 | [cgltf](https://github.com/jkuhlmann/cgltf) | MIT |
+| [stb_image](https://github.com/nothings/stb) | MIT или общественное достояние |
 | [doctest](https://github.com/doctest/doctest) | MIT |
 | [glad](https://github.com/Dav1dde/glad) (сгенерированный загрузчик) | CC0-1.0 или WTFPL; части Khronos - Apache-2.0 |
 | Шрифт [Noto Sans](https://github.com/notofonts/latin-greek-cyrillic) | [SIL OFL 1.1](assets/fonts/OFL.txt) |

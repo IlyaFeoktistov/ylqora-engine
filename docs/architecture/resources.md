@@ -169,7 +169,15 @@ own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
    loaders are added by `addEngineLoaders` when `EngineServices` is made.
    cgltf reads external buffers through a read function of the engine, so
    paths outside ASCII work on Windows too.
-4. Textures: the loader, import settings, the GPU texture, the game icon.
+4. Textures: the loader, import settings, the GPU texture, the game icon
+   **[done]**. `ImageLoader` (stb_image, the engine reads the bytes itself)
+   gives `TextureData`; a loader also names the kind of its file
+   (`ResourceLoader::kind`, `ResourceCache::kindOf`), so the editor lists
+   textures without reading files. Import settings and their names live in
+   `TextureImport`. `GlTexture` takes rows from the top, so `uv0 = (0, 0)` is
+   the top left corner with no flip. `Renderer::uiTexture` shows a texture
+   in the interface with the colours of the file (no sRGB decoding, ImGui
+   draws into a plain buffer); the icon field in General shows a preview.
 5. Editor: icons in Files; the inspector of a resource file (meshes with
    vertex, triangle and submesh counts; texture preview and size; import
    settings with "Apply"); project meshes in the `MeshRenderer` list grouped

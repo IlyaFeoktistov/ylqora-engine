@@ -8,7 +8,7 @@
 
 namespace yqlora {
 
-// Общие сведения об игре. Иконка появится с текстурами (шаг 4 MVP).
+// Общие сведения об игре.
 class YQLORA_API GeneralSettings final : public SettingsSection {
 public:
     YQLORA_TYPE(GeneralSettings, SettingsSection)
@@ -25,6 +25,8 @@ public:
     std::string company;
     // Сцена, которая открывается вместе с проектом и запускается в игре.
     ResourceRef startupScene;
+    // Иконка окна игры (и позже исполняемого файла): текстура проекта.
+    ResourceRef icon;
 };
 
 // Имя свойства startupScene в реестре: по нему редактор ставит стартовую сцену командой с отменой.

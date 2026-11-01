@@ -72,6 +72,10 @@ public:
     // Расширения файлов в нижнем регистре, с точкой: ".glb".
     virtual std::span<const std::string_view> extensions() const = 0;
 
+    // Вид ресурса самого файла (MeshData::kResourceKind и другие): по нему
+    // редактор, не читая файл, знает, что в нём, например для списка текстур.
+    virtual std::string_view kind() const = 0;
+
     virtual LoadResult load(const LoadRequest& request) const = 0;
 };
 

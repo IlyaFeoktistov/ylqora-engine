@@ -37,6 +37,7 @@ add_library(yqlora_opengl STATIC
     src/GlUiRenderer.cpp
     src/GridPass.cpp
     src/GlMesh.cpp
+    src/GlTexture.cpp
     src/MeshPass.cpp
     src/OutlinePass.cpp
 )

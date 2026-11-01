@@ -5,7 +5,9 @@
 #include "yqlora/platform/MouseWrap.hpp"
 #include "yqlora/render/GraphicsApi.hpp"
 
+#include <cstdint>
 #include <functional>
+#include <span>
 #include <string>
 
 struct SDL_Window;
@@ -62,6 +64,9 @@ public:
     }
 
     void setTitle(const std::string& title);
+
+    // Иконка окна: RGBA по байту на канал, строки сверху вниз.
+    void setIcon(int width, int height, std::span<const std::uint8_t> rgba);
 
     // В тех же единицах, что положение мыши. На экранах с масштабом
     // меньше размера в пикселях.

@@ -16,6 +16,9 @@
 #include "yqlora/reflection/Property.hpp"
 #include "yqlora/reflection/TypeRegistry.hpp"
 #include "yqlora/render/BuiltinMeshes.hpp"
+#include "yqlora/render/Renderer.hpp"
+#include "yqlora/render/TextureData.hpp"
+#include "yqlora/resource/ResourceCache.hpp"
 #include "yqlora/resource/ResourceDatabase.hpp"
 #include "yqlora/scene/Layers.hpp"
 #include "yqlora/scene/Scene.hpp"
@@ -163,8 +166,12 @@ bool meshCombo(ResourceRef& value, const ResourceDatabase* resources)
 // Без проекта выбирать не из чего.
 const std::map<ResourceId, std::filesystem::path> kNoResources;
 
-// "Нет" и сцены проекта по пути.
-bool sceneCombo(ResourceRef& value, const ResourceDatabase* resources)
+// Превью текстуры в инспекторе: высота в строках поля.
+constexpr float kTexturePreviewLines = 3.0f;
+
+// "Нет" и файлы проекта, которые подходят (fits), по пути.
+template <typename Fits>
+bool fileCombo(ResourceRef& value, const ResourceDatabase* resources, Fits&& fits)
 {
     bool changed = false;
     ImGui::SetNextItemWidth(-FLT_MIN);
@@ -174,7 +181,7 @@ bool sceneCombo(ResourceRef& value, const ResourceDatabase* resources)
             changed = true;
         }
         for (const auto& [id, path] : resources ? resources->paths() : kNoResources) {
-            if (!ProjectFiles::isScene(path)) {
+            if (!fits(path)) {
                 continue;
             }
             if (ImGui::Selectable(toUtf8(path).c_str(), id == value.id)) {
@@ -183,6 +190,35 @@ bool sceneCombo(ResourceRef& value, const ResourceDatabase* resources)
             }
         }
         ImGui::EndCombo();
+    }
+
+    return changed;
+}
+
+// "Нет" и сцены проекта по пути.
+bool sceneCombo(ResourceRef& value, const ResourceDatabase* resources)
+{
+    return fileCombo(value, resources, [](const std::filesystem::path& path) {
+        return ProjectFiles::isScene(path);
+    });
+}
+
+// "Нет" и картинки проекта, под списком - превью выбранной.
+bool textureCombo(ResourceRef& value, const PropertyEditorContext& context)
+{
+    const bool changed = fileCombo(value, context.resources, [&](const std::filesystem::path& path) {
+        return context.cache.kindOf(path) == TextureData::kResourceKind;
+    });
+    if (const LoadedData<TextureData> texture = context.cache.get<TextureData>(value.id)) {
+        const UiTexture ui = context.renderer.uiTexture(value.id, texture.revision, *texture.data);
+        const float height = ImGui::GetFrameHeight() * kTexturePreviewLines;
+        const float width = height * static_cast<float>(texture.data->width) / static_cast<float>(texture.data->height);
+        ImGui::Image(
+            static_cast<ImTextureID>(ui.id),
+            ImVec2(width, height),
+            ImVec2(ui.uv0.x, ui.uv0.y),
+            ImVec2(ui.uv1.x, ui.uv1.y)
+        );
     }
 
     return changed;
@@ -657,6 +693,8 @@ void valueField(
             result.changed = meshCombo(std::get<ResourceRef>(value), context.resources) || result.changed;
         } else if (property.hint() == PropertyHint::Scene) {
             result.changed = sceneCombo(std::get<ResourceRef>(value), context.resources) || result.changed;
+        } else if (property.hint() == PropertyHint::Texture) {
+            result.changed = textureCombo(std::get<ResourceRef>(value), context) || result.changed;
         } else {
             ImGui::AlignTextToFramePadding();
             ImGui::TextUnformatted(resourceLabel(std::get<ResourceRef>(value), context.resources).c_str());

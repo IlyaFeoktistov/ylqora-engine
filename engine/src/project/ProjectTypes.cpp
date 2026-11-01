@@ -13,7 +13,8 @@ void registerProjectTypes(TypeRegistry& registry)
         .property("gameName", &GeneralSettings::gameName)
         .property("gameVersion", &GeneralSettings::gameVersion)
         .property("company", &GeneralSettings::company)
-        .property(kStartupSceneProperty, &GeneralSettings::startupScene, PropertyHint::Scene);
+        .property(kStartupSceneProperty, &GeneralSettings::startupScene, PropertyHint::Scene)
+        .property("icon", &GeneralSettings::icon, PropertyHint::Texture);
 }
 
 } // namespace yqlora

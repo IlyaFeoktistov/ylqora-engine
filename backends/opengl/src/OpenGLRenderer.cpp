@@ -2,6 +2,7 @@
 
 #include "yqlora/opengl/GlMesh.hpp"
 #include "yqlora/opengl/GlRenderTarget.hpp"
+#include "yqlora/opengl/GlTexture.hpp"
 #include "yqlora/opengl/GlUiRenderer.hpp"
 #include "yqlora/opengl/GridPass.hpp"
 #include "yqlora/opengl/MeshPass.hpp"
@@ -77,6 +78,7 @@ OpenGLRenderer::OpenGLRenderer(Window& window)
 
     glEnable(GL_DEPTH_TEST);
     m_meshes = std::make_unique<GlMeshCache>();
+    m_uiTextures = std::make_unique<GpuResourceCache<GlTexture>>();
     m_meshPass = std::make_unique<MeshPass>(*m_meshes);
     m_grid = std::make_unique<GridPass>();
     m_outline = std::make_unique<OutlinePass>(*m_meshes);
@@ -90,6 +92,7 @@ OpenGLRenderer::~OpenGLRenderer()
     m_grid.reset();
     m_meshPass.reset();
     m_meshes.reset();
+    m_uiTextures.reset();
     SDL_GL_DestroyContext(m_context);
 }
 
@@ -156,6 +159,17 @@ void OpenGLRenderer::present()
 {
     SDL_GL_SwapWindow(m_window.sdlWindow());
     m_meshes->endFrame();
+    m_uiTextures->endFrame();
+}
+
+UiTexture OpenGLRenderer::uiTexture(ResourceId id, std::uint64_t revision, const TextureData& data)
+{
+    const GlTexture& texture = m_uiTextures->get(id, revision, [&] {
+        return std::make_unique<GlTexture>(data, GlTexture::Use::Interface);
+    });
+
+    // Первая строка картинки лежит в текстуре при v = 0 (см. GlTexture).
+    return {texture.id(), {0.0f, 0.0f}, {1.0f, 1.0f}};
 }
 
 bool OpenGLRenderer::setVsync(bool enabled)

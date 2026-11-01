@@ -59,11 +59,21 @@ FetchContent_Declare(cgltf
     SOURCE_SUBDIR do-not-build
 )
 
-FetchContent_MakeAvailable(SDL3 glm nlohmann_json imgui imguizmo cgltf)
+# stb_image: картинки PNG, JPG, TGA, BMP для текстур. Тегов у stb нет,
+# поэтому закреплён коммит. Реализацию собирает движок, как у cgltf.
+FetchContent_Declare(stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG 003501f6d7a8668ce8b6d875e34dd97ad0d5d5b5
+    SOURCE_SUBDIR do-not-build
+)
+
+FetchContent_MakeAvailable(SDL3 glm nlohmann_json imgui imguizmo cgltf stb)
 
 # SYSTEM: наши строгие предупреждения не распространяются на чужой код.
 add_library(cgltf_headers INTERFACE)
 target_include_directories(cgltf_headers SYSTEM INTERFACE ${cgltf_SOURCE_DIR})
+add_library(stb_headers INTERFACE)
+target_include_directories(stb_headers SYSTEM INTERFACE ${stb_SOURCE_DIR})
 
 # ImGui и ImGuizmo входят в библиотеку движка, чтобы у всех модулей был один
 # контекст ImGui. Внутри неё функции ImGui экспортируются, снаружи импортируются.
