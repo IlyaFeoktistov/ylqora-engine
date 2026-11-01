@@ -1,14 +1,20 @@
 #include "yqlora/editor/Picking.hpp"
 
-#include "yqlora/render/BuiltinMeshes.hpp"
+#include "yqlora/core/EngineServices.hpp"
 #include "yqlora/render/Camera3D.hpp"
+#include "yqlora/render/MeshData.hpp"
 #include "yqlora/render/MeshRenderer.hpp"
+#include "yqlora/resource/ResourceCache.hpp"
 #include "yqlora/scene/Scene.hpp"
 
 #include <glm/geometric.hpp>
 
+#include <limits>
+
+#include <algorithm>
 #include <cmath>
 #include <optional>
+#include <utility>
 
 namespace yqlora::editor {
 
@@ -65,6 +71,34 @@ std::optional<float> intersectSphere(const Ray& ray, const Vec3& center, float r
     return farT > 0.0f ? std::optional<float>(farT) : std::nullopt;
 }
 
+// Задевает ли луч границы (метод плит). Луч, параллельный плите, задевает,
+// только если начинается между её плоскостями.
+bool hitsBounds(const Ray& ray, const Bounds& bounds)
+{
+    float nearT = 0.0f;
+    float farT = std::numeric_limits<float>::max();
+    for (int axis = 0; axis < Vec3::length(); ++axis) {
+        if (ray.direction[axis] == 0.0f) {
+            if (ray.origin[axis] < bounds.min[axis] || ray.origin[axis] > bounds.max[axis]) {
+                return false;
+            }
+            continue;
+        }
+        float t1 = (bounds.min[axis] - ray.origin[axis]) / ray.direction[axis];
+        float t2 = (bounds.max[axis] - ray.origin[axis]) / ray.direction[axis];
+        if (t1 > t2) {
+            std::swap(t1, t2);
+        }
+        nearT = std::max(nearT, t1);
+        farT = std::min(farT, t2);
+        if (nearT > farT) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 struct Hit {
     NodeId node = 0;
     float t = 0.0f;
@@ -99,6 +133,9 @@ void pickMesh(const Node3D& node, const MeshData& mesh, const Ray& worldRay, std
     // и попадания в разные объекты можно сравнивать.
     const Mat4 toLocal = glm::inverse(node.worldMatrix());
     const Ray localRay{Vec3(toLocal * Vec4(worldRay.origin, 1.0f)), Vec3(toLocal * Vec4(worldRay.direction, 0.0f))};
+    if (!hitsBounds(localRay, mesh.bounds)) {
+        return;
+    }
     for (std::size_t i = 0; i + kTriangleVertices <= mesh.indices.size(); i += kTriangleVertices) {
         const auto t = intersect(
             localRay,
@@ -119,12 +156,13 @@ NodeId pickNode(const Scene& scene, const Ray& ray)
     }
     std::optional<Hit> best;
     pickCameras(*scene.root(), ray, best);
+    ResourceCache& resources = scene.services().resources();
     for (const MeshRenderer* renderer : scene.components<MeshRenderer>()) {
         if (!renderer->activeAndEnabled()) {
             continue;
         }
         const auto* node = dynamic_cast<const Node3D*>(renderer->owner());
-        if (const MeshData* mesh = findBuiltinMesh(renderer->mesh().id); node && mesh) {
+        if (const MeshData* mesh = resources.find<MeshData>(renderer->mesh().id); node && mesh) {
             pickMesh(*node, *mesh, ray, best);
         }
     }

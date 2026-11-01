@@ -9,20 +9,16 @@
 
 namespace yqlora {
 
-// Меш, встроенный в движок: стандартный выбор для MeshRenderer, пока у
-// проекта нет своих мешей. ID постоянные, см. BuiltinResources.hpp.
+// Меш, встроенный в движок: стандартный выбор для MeshRenderer. ID
+// постоянные, см. BuiltinResources.hpp; сами данные держит ResourceCache.
 struct BuiltinMesh {
     ResourceId id;
     // Английское имя: "cube", "sphere", "plane".
     std::string_view name;
-    // Живёт до конца программы.
-    const MeshData* data;
+    MeshData (*make)();
 };
 
-// Все встроенные меши, для выбора в редакторе.
+// Все встроенные меши, для кэша ресурсов и для выбора в редакторе.
 YQLORA_API std::span<const BuiltinMesh> builtinMeshes();
-
-// nullptr, если это не встроенный меш.
-YQLORA_API const MeshData* findBuiltinMesh(ResourceId id);
 
 } // namespace yqlora

@@ -3,9 +3,11 @@
 #include "yqlora/math/DepthRange.hpp"
 #include "yqlora/math/Math.hpp"
 #include "yqlora/render/Camera3D.hpp"
+#include "yqlora/resource/ResourceId.hpp"
 #include "yqlora/scene/Layers.hpp"
 #include "yqlora/scene/NodeId.hpp"
 
+#include <cstdint>
 #include <vector>
 
 namespace yqlora {
@@ -26,9 +28,12 @@ struct ViewData {
     LayerMask mask = kAllLayers;
 };
 
-// Один меш в кадре.
+// Один меш в кадре. Данные меша живут в кэше ресурсов до конца кадра.
 struct DrawItem {
     const MeshData* mesh = nullptr;
+    // По ID и ревизии бэкенд узнаёт, что его копия меша в видеопамяти устарела.
+    ResourceId meshId = 0;
+    std::uint64_t meshRevision = 0;
     Mat4 world{1.0f};
     Vec4 color{1.0f};
     int layer = 0;

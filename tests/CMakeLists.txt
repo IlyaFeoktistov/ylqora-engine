@@ -20,6 +20,7 @@ add_executable(yqlora_tests
     test_world_transform.cpp
     test_history.cpp
     test_resources.cpp
+    test_resource_cache.cpp
     test_methods.cpp
     test_runtime_types.cpp
     test_project_files.cpp

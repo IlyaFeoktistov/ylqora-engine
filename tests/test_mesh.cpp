@@ -5,20 +5,24 @@
 #include <yqlora/render/BuiltinMeshes.hpp>
 #include <yqlora/render/Camera3D.hpp>
 #include <yqlora/render/FrameBuilder.hpp>
+#include <yqlora/render/MeshData.hpp>
 #include <yqlora/render/MeshRenderer.hpp>
 #include <yqlora/resource/BuiltinResources.hpp>
+#include <yqlora/resource/ResourceCache.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
 
 #include <glm/geometric.hpp>
+#include <glm/vector_relational.hpp>
 
 using namespace yqlora;
 
 TEST_CASE("MeshData: builtin meshes are valid and face outwards")
 {
+    ResourceCache cache;
     for (const BuiltinMesh& builtinMesh : builtinMeshes()) {
         CAPTURE(builtinMesh.name);
-        const MeshData* mesh = findBuiltinMesh(builtinMesh.id);
+        const MeshData* mesh = cache.find<MeshData>(builtinMesh.id);
         REQUIRE(mesh);
         REQUIRE(mesh->indices.size() % 3 == 0);
 
@@ -27,7 +31,18 @@ TEST_CASE("MeshData: builtin meshes are valid and face outwards")
         }
         for (const Vertex& vertex : mesh->vertices) {
             CHECK(glm::length(vertex.normal) == doctest::Approx(1.0f));
+            CHECK(vertex.uv0.x >= 0.0f);
+            CHECK(vertex.uv0.x <= 1.0f);
+            CHECK(vertex.uv0.y >= 0.0f);
+            CHECK(vertex.uv0.y <= 1.0f);
+            CHECK(glm::all(glm::greaterThanEqual(vertex.position, mesh->bounds.min)));
+            CHECK(glm::all(glm::lessThanEqual(vertex.position, mesh->bounds.max)));
         }
+        // Один материал на весь меш.
+        REQUIRE(mesh->submeshes.size() == 1);
+        CHECK(mesh->submeshes[0].firstIndex == 0);
+        CHECK(mesh->submeshes[0].indexCount == mesh->indices.size());
+        CHECK_FALSE(mesh->submeshes[0].sourceMaterial);
 
         // Против часовой стрелки снаружи: нормаль треугольника по порядку вершин
         // смотрит туда же, куда нормали вершин. Иначе грань отсечётся как задняя.
@@ -44,8 +59,8 @@ TEST_CASE("MeshData: builtin meshes are valid and face outwards")
         }
     }
 
-    CHECK(findBuiltinMesh(0) == nullptr);
-    CHECK(findBuiltinMesh(builtin::kFirstProjectId) == nullptr);
+    CHECK(cache.find<MeshData>(0) == nullptr);
+    CHECK(cache.find<MeshData>(builtin::kFirstProjectId) == nullptr);
 }
 
 TEST_CASE("FrameBuilder: every Node3D with a MeshRenderer and a known mesh becomes a draw item")
@@ -69,7 +84,9 @@ TEST_CASE("FrameBuilder: every Node3D with a MeshRenderer and a known mesh becom
     const FrameData frame = extractFrame(scene, 1.0f, DepthRange::MinusOneToOne);
     REQUIRE(frame.drawItems.size() == 1);
     const DrawItem& item = frame.drawItems[0];
-    CHECK(item.mesh == findBuiltinMesh(builtin::kCubeMesh));
+    CHECK(item.mesh == scene.services().resources().find<MeshData>(builtin::kCubeMesh));
+    CHECK(item.meshId == builtin::kCubeMesh);
+    CHECK(item.meshRevision == scene.services().resources().status(builtin::kCubeMesh)->revision);
     CHECK(item.node == cube.id());
     CHECK(item.color == Vec4(1.0f, 0.0f, 0.0f, 1.0f));
     // Мировая матрица учитывает родителя.

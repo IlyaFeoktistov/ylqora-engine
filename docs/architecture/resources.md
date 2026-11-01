@@ -145,7 +145,12 @@ own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
 1. `ResourceCache` and the loader interface, the built-in meshes in it;
    `FrameBuilder` and picking take meshes from the cache; `findBuiltinMesh`
    goes away; `uv0`, submeshes, AABB; the GPU cache by ID and revision.
-   Nothing changes from the outside.
+   Nothing changes from the outside **[done]**. The cache belongs to
+   `EngineServices` (`services.resources()`), and opening a project there
+   hands the project to the cache too; the Play copy has its own input but
+   shares the cache, so files are not read twice. The GPU cache is one
+   template for every backend and resource (`GpuResourceCache`): a copy not
+   drawn for 120 frames is released.
 2. Nested IDs and the `.meta` format (version, `import`, `subresources`).
 3. glTF meshes: the loader, the model description, scale.
 4. Textures: the loader, import settings, the GPU texture, the game icon.

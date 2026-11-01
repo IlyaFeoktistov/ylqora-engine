@@ -17,10 +17,11 @@ void addQuad(MeshData& mesh, const Vec3& center, const Vec3& right, const Vec3& 
     const Vec3 halfRight = right * 0.5f;
     const Vec3 halfUp = up * 0.5f;
 
-    mesh.vertices.push_back({center - halfRight - halfUp, normal});
-    mesh.vertices.push_back({center + halfRight - halfUp, normal});
-    mesh.vertices.push_back({center + halfRight + halfUp, normal});
-    mesh.vertices.push_back({center - halfRight + halfUp, normal});
+    // uv0 как в glTF: (0, 0) - левый верхний угол картинки, v растёт вниз.
+    mesh.vertices.push_back({center - halfRight - halfUp, normal, {0.0f, 1.0f}});
+    mesh.vertices.push_back({center + halfRight - halfUp, normal, {1.0f, 1.0f}});
+    mesh.vertices.push_back({center + halfRight + halfUp, normal, {1.0f, 0.0f}});
+    mesh.vertices.push_back({center - halfRight + halfUp, normal, {0.0f, 0.0f}});
     mesh.indices.insert(mesh.indices.end(), {first, first + 1, first + 2, first, first + 2, first + 3});
 }
 
@@ -39,6 +40,7 @@ MeshData makeCube()
     addQuad(mesh, -x * 0.5f, z, y);
     addQuad(mesh, y * 0.5f, x, -z);
     addQuad(mesh, -y * 0.5f, x, z);
+    finishSingleMaterial(mesh);
 
     return mesh;
 }
@@ -47,6 +49,7 @@ MeshData makePlane()
 {
     MeshData mesh;
     addQuad(mesh, Vec3(0.0f), Vec3(1.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, -1.0f));
+    finishSingleMaterial(mesh);
 
     return mesh;
 }
@@ -63,7 +66,9 @@ MeshData makeSphere()
         for (std::uint32_t segment = 0; segment <= kSegments; ++segment) {
             const float phi = glm::two_pi<float>() * static_cast<float>(segment) / kSegments;
             const Vec3 normal(std::sin(theta) * std::sin(phi), std::cos(theta), std::sin(theta) * std::cos(phi));
-            mesh.vertices.push_back({normal * kRadius, normal});
+            // Развёртка по долготе и широте, v = 0 у верхнего полюса.
+            const Vec2 uv(static_cast<float>(segment) / kSegments, static_cast<float>(ring) / kRings);
+            mesh.vertices.push_back({normal * kRadius, normal, uv});
         }
     }
 
@@ -76,6 +81,7 @@ MeshData makeSphere()
             mesh.indices.insert(mesh.indices.end(), {top, bottom, bottom + 1, top, bottom + 1, top + 1});
         }
     }
+    finishSingleMaterial(mesh);
 
     return mesh;
 }

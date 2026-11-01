@@ -17,7 +17,8 @@ snapshot made by Extract, never the scene.
 ```
  SCENE (simulated, world matrices ready)
    RenderSystem: active cameras sorted by order
-   MeshRenderer: enabled components, their mesh, colour, node layer
+   MeshRenderer: enabled components, their mesh (from ResourceCache),
+                 colour, node layer
    Node3D: world matrices
         |
         |  extractFrame(scene, aspect, depthRange)        render/FrameBuilder
@@ -25,7 +26,8 @@ snapshot made by Extract, never the scene.
  FrameData (snapshot, nothing points back into the scene)
    views[]      one per camera: view and projection, clear mode,
                 background, culling mask
-   drawItems[]  mesh, world matrix, colour, layer, node id
+   drawItems[]  mesh with its ID and revision, world matrix, colour,
+                layer, node id
    editor       grid on/off, selected nodes          (editor only)
         |
         |  Renderer::render(frame)          -> window back buffer

@@ -7,6 +7,7 @@
 #include <yqlora/project/GeneralSettings.hpp>
 #include <yqlora/project/Project.hpp>
 #include <yqlora/reflection/TypeRegistry.hpp>
+#include <yqlora/resource/ResourceCache.hpp>
 #include <yqlora/scene/Node3D.hpp>
 #include <yqlora/scene/Scene.hpp>
 #include <yqlora/scene/SceneSerializer.hpp>
@@ -43,6 +44,9 @@ TEST_CASE_FIXTURE(Fixture, "PlayMode: the game runs in a copy that is thrown awa
     REQUIRE(play.scene());
     CHECK(play.scene() != &scene);
     CHECK(play.scene()->root()->id() == scene.root()->id());
+    // Свой ввод, но те же загруженные ресурсы.
+    CHECK(&play.scene()->services().input() != &scene.services().input());
+    CHECK(&play.scene()->services().resources() == &scene.services().resources());
 
     play.scene()->root()->setName("Changed");
     CHECK(scene.root()->name() == "Root");

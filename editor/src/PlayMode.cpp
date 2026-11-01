@@ -20,8 +20,7 @@ bool PlayMode::start(const Scene& source)
         return false;
     }
     m_input = Input{};
-    m_services = std::make_unique<EngineServices>(m_input, source.services().registry());
-    m_services->setProject(source.services().project());
+    m_services = std::make_unique<EngineServices>(m_input, source.services());
     // Копия через формат файла: в ней те же ID узлов, и выделение остаётся на месте.
     auto copy = std::make_unique<Scene>(*m_services);
     if (!m_serializer.fromJson(*copy, m_serializer.toJson(source))) {

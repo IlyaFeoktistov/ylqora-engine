@@ -155,6 +155,7 @@ void OpenGLRenderer::drawScene(const FrameData& frame, int width, int height)
 void OpenGLRenderer::present()
 {
     SDL_GL_SwapWindow(m_window.sdlWindow());
+    m_meshes->endFrame();
 }
 
 bool OpenGLRenderer::setVsync(bool enabled)

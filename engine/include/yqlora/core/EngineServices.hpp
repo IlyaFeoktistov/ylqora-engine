@@ -2,10 +2,13 @@
 
 #include "yqlora/core/Export.hpp"
 
+#include <memory>
+
 namespace yqlora {
 
 class Input;
 class Project;
+class ResourceCache;
 class TypeRegistry;
 
 // Службы движка, общие для всех сцен процесса. Их даёт сцене её владелец:
@@ -14,8 +17,16 @@ class TypeRegistry;
 class YQLORA_API EngineServices {
 public:
     EngineServices(const Input& input, const TypeRegistry& registry);
+    // Те же реестр, проект и кэш ресурсов, но свой ввод: так живёт копия
+    // сцены для Play. Кэш общий, файлы не читаются второй раз.
+    EngineServices(const Input& input, const EngineServices& shared);
+    ~EngineServices();
 
-    // Пустые службы: ничего не нажато, реестр без типов, проекта нет. Для сцен,
+    EngineServices(const EngineServices&) = delete;
+    EngineServices& operator=(const EngineServices&) = delete;
+
+    // Пустые службы: ничего не нажато, реестр без типов, проекта нет (из
+    // ресурсов только встроенные). Для сцен,
     // которые только читают и пишут файлы. В игре компоненты такой сцены не
     // вызываются: без реестра сцена не знает их фаз.
     static const EngineServices& none();
@@ -36,15 +47,21 @@ public:
         return m_project;
     }
 
-    void setProject(const Project* project)
+    // Кэш ресурсов получает тот же проект (и у служб, которые его делят).
+    void setProject(const Project* project);
+
+    // Загруженные ресурсы: встроенные и файлы открытого проекта. Кэш грузит
+    // файлы при обращении, поэтому меняется и у неизменяемых служб.
+    ResourceCache& resources() const
     {
-        m_project = project;
+        return *m_resources;
     }
 
 private:
     const Input& m_input;
     const TypeRegistry& m_registry;
     const Project* m_project = nullptr;
+    std::shared_ptr<ResourceCache> m_resources;
 };
 
 } // namespace yqlora

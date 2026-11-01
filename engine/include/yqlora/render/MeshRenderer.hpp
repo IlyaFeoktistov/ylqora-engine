@@ -12,9 +12,9 @@ class YQLORA_API MeshRenderer final : public Component {
 public:
     YQLORA_TYPE(MeshRenderer, Component)
 
-    // Ресурс меша. Пустая ссылка (по умолчанию) - меша нет, и компонент ничего
-    // не рисует, как и с неизвестным мешем. Пока находятся только встроенные
-    // меши (builtin::kCubeMesh и другие).
+    // Ресурс меша: встроенный (builtin::kCubeMesh и другие) или из файла
+    // проекта. Пустая ссылка (по умолчанию) - меша нет, и компонент ничего
+    // не рисует, как и с отсутствующим или битым мешем.
     ResourceRef mesh() const
     {
         return m_mesh;

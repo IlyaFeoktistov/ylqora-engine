@@ -77,10 +77,12 @@ add_library(yqlora SHARED
     src/render/FrameBuilder.cpp
     src/render/GraphicsSettings.cpp
     src/render/BuiltinMeshes.cpp
+    src/render/MeshData.cpp
     src/render/PrimitiveMeshes.cpp
     src/render/RenderSystem.cpp
     src/render/RenderTypes.cpp
     src/render/RendererFactory.cpp
+    src/resource/ResourceCache.cpp
     src/resource/ResourceDatabase.cpp
     src/runtime/GameRuntime.cpp
     src/scripting/GameModule.cpp

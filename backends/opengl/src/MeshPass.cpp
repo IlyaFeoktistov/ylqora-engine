@@ -49,7 +49,7 @@ void MeshPass::draw(const FrameData& frame, const ViewData& view) const
         glUniformMatrix4fv(m_modelLocation, 1, GL_FALSE, glm::value_ptr(item.world));
         glUniformMatrix3fv(m_normalMatrixLocation, 1, GL_FALSE, glm::value_ptr(normalMatrix));
         glUniform4fv(m_colorLocation, 1, glm::value_ptr(item.color));
-        m_meshes.get(*item.mesh).draw();
+        m_meshes.get(item).draw();
     }
     glDisable(GL_CULL_FACE);
 }

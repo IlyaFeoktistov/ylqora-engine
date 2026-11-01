@@ -1,9 +1,9 @@
 #pragma once
 
-#include <map>
-#include <memory>
+#include "yqlora/render/GpuResourceCache.hpp"
 
 namespace yqlora {
+struct DrawItem;
 struct MeshData;
 } // namespace yqlora
 
@@ -27,14 +27,18 @@ private:
     int m_indexCount = 0;
 };
 
-// Загружает меш в видеопамять при первом обращении и дальше отдаёт готовый.
-// Ключ: указатель на MeshData, он живёт до конца программы.
+// Копии мешей кадра в видеопамяти, см. GpuResourceCache.
 class GlMeshCache {
 public:
-    const GlMesh& get(const MeshData& data);
+    const GlMesh& get(const DrawItem& item);
+
+    void endFrame()
+    {
+        m_meshes.endFrame();
+    }
 
 private:
-    std::map<const MeshData*, std::unique_ptr<GlMesh>> m_meshes;
+    GpuResourceCache<GlMesh> m_meshes;
 };
 
 } // namespace yqlora::opengl

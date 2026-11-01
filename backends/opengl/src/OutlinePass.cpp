@@ -68,7 +68,7 @@ void OutlinePass::draw(const FrameData& frame, const CameraData& camera, int wid
         }
         const Mat4 transform = viewProjection * item.world;
         glUniformMatrix4fv(m_maskTransformLocation, 1, GL_FALSE, glm::value_ptr(transform));
-        m_meshes.get(*item.mesh).draw();
+        m_meshes.get(item).draw();
     }
 
     // 2. Контур поверх кадра.

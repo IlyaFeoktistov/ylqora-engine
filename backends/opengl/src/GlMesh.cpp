@@ -1,5 +1,6 @@
 #include "yqlora/opengl/GlMesh.hpp"
 
+#include "yqlora/render/FrameData.hpp"
 #include "yqlora/render/MeshData.hpp"
 
 #include <glad/gl.h>
@@ -13,6 +14,7 @@ namespace {
 // Так входы вершин ждут все шейдеры мешей.
 constexpr GLuint kPositionLocation = 0;
 constexpr GLuint kNormalLocation = 1;
+constexpr GLuint kUv0Location = 2;
 
 } // namespace
 
@@ -57,6 +59,15 @@ GlMesh::GlMesh(const MeshData& data)
         sizeof(Vertex),
         reinterpret_cast<const void*>(offsetof(Vertex, normal))
     );
+    glEnableVertexAttribArray(kUv0Location);
+    glVertexAttribPointer(
+        kUv0Location,
+        Vec2::length(),
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(Vertex),
+        reinterpret_cast<const void*>(offsetof(Vertex, uv0))
+    );
     glBindVertexArray(0);
 }
 
@@ -74,14 +85,13 @@ void GlMesh::draw() const
     glBindVertexArray(0);
 }
 
-const GlMesh& GlMeshCache::get(const MeshData& data)
+const GlMesh& GlMeshCache::get(const DrawItem& item)
 {
-    auto& mesh = m_meshes[&data];
-    if (!mesh) {
-        mesh = std::make_unique<GlMesh>(data);
-    }
-
-    return *mesh;
+    // Команды OpenGL идут по порядку: буферы старой копии можно удалить, даже
+    // если ими уже рисовали в этом кадре.
+    return m_meshes.get(item.meshId, item.meshRevision, [&] {
+        return std::make_unique<GlMesh>(*item.mesh);
+    });
 }
 
 } // namespace yqlora::opengl
