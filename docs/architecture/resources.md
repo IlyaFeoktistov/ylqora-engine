@@ -35,10 +35,141 @@ Status marks: see [README](README.md).
   `removed` after a delete (the `.meta` goes away, the ID is forgotten).
 - Changes made outside the editor are picked up by the next `scan`.
 
-## Planned
+## Meshes and textures from files [planned, step 4]
 
-- Loading and caching of resources instead of the static lookup of built-in
-  meshes; meshes and textures from files **[planned, step 4]**.
-- The window "create a file" in the Files panel (the name is asked before the
-  file appears; renaming to the same name is not an error)
-  **[planned, step 4]**.
+### Decisions
+
+- **The source file is the resource**, as in Godot and Unity: `.glb`,
+  `.gltf`, `.png`, `.jpg` lie anywhere in the project and are seen in Files.
+  The engine reads the source file itself; an import cache and a binary
+  format come with step 9, between the source file and `ResourceCache`,
+  without changing the resource interface.
+- **Libraries**: cgltf (MIT) for glTF 2.0, stb_image (public domain or MIT)
+  for PNG, JPG, TGA, BMP, from a file and from memory (images inside a GLB
+  later). No FBX (closed format) and no OBJ (glTF covers it).
+- **Three levels, not mixed**: the source file, the loaded data in
+  `ResourceCache` (`MeshData`, `TextureData`), the GPU copies in the graphics
+  backend. Only the cache reads files, only the backend knows the GPU.
+- **Loaders by extension.** A new kind of resource is a new loader, nothing
+  else changes. The built-in meshes are in the same cache with their constant
+  IDs; `findBuiltinMesh` goes away.
+- **Loading is synchronous**, on first use. Background loading is later.
+- **Not in step 4**: skinning, animation, morph targets, cameras and lights
+  from glTF, compressed textures (KTX2), PBR from glTF (step 5).
+
+### Nested resource IDs
+
+A file may hold several resources (meshes of a `.glb`). Each one gets its
+own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
+
+```json
+{
+    "id": "9bf87a121dc2ad5c",
+    "import": {"scale": 1.0},
+    "subresources": {
+        "mesh:Door": "4c1e07a95b3d2f60",
+        "mesh:Door#1": "a07f3b9e21c8d415",
+        "mesh:#2": "e51d90c4b7a2f386"
+    },
+    "version": 1
+}
+```
+
+- A nested ID is 64 random bits, made once and kept in `.meta`, never
+  computed from the name. The name is only the key that matches an element
+  of the file to its entry.
+- Key: kind, name and the number of the element among elements of the same
+  name (`Door`, `Door#1`); an element without a name is keyed by its index
+  in the file (`#2`).
+- Re-export from Blender: elements whose key is found keep their IDs, new
+  elements get new ones. The entry of an element removed from the file stays
+  in `.meta`, references to it show "missing in file", and the ID comes back
+  if the element comes back.
+- Rename and move: `.meta` follows the file, all IDs stay. A copy (a repeated
+  file ID found by `scan`) gets a new file ID and new nested IDs.
+- `ResourceDatabase` knows, for every ID, the file and the key inside it.
+- `.meta` gets a format version (`FileFormat`), version 1.
+
+### Cache and revisions
+
+- A loaded resource has a revision. The GPU cache in the backend keys copies
+  by ID and revision, so a new revision replaces the old copy, and the old
+  one is released once nothing draws with it.
+- A reload (the file changed on disk, or "Apply" of import settings) loads
+  the new data first, then checks it, then replaces the entry and raises the
+  revision. The old data is never destroyed before the new data is loaded.
+- A failed load leaves the resource in the "error" state with its message:
+  the old data is not shown as if it were current. A deleted file puts the
+  resource in the "missing" state; references stay and work again when the
+  file comes back.
+- A reference to an empty, missing or broken resource draws nothing; the
+  log gets one message per resource, the inspector shows the state.
+- Data handed out by the cache is not kept across frames by its users:
+  `FrameData` and picking take it anew every frame, so a reload never leaves
+  a dangling pointer.
+
+### Meshes
+
+- `Vertex`: position, normal, `uv0`. Tangents come with normal maps in step 5.
+- `MeshData` has submeshes (index ranges, one per glTF primitive) and bounds
+  (AABB, for picking and later culling). A submesh has a stable index: it is
+  the material slot of step 5, and it keeps the index of the glTF material of
+  its primitive (or "none"), so step 5 imports materials without changing
+  the loader contract.
+- The glTF loader reads data through cgltf accessors, so interleaved
+  buffers, sparse accessors, normalized integers, external buffers, GLB
+  chunks, missing indices and all component types work. Only the TRIANGLES
+  mode is accepted, others are rejected with a message. Missing normals are
+  computed smooth, by summing face normals over shared vertices; vertices
+  that the file splits stay split.
+- The model description keeps the node tree of the file with local
+  transforms and references to meshes. One mesh used by several nodes is one
+  resource referenced several times, never copied.
+- Import setting: scale.
+
+### Textures
+
+- `TextureData`: RGBA8, width, height. Import settings: color space (sRGB
+  for color, Linear for data: normal, roughness, metallic), filter, wrap,
+  mipmaps. The settings are a record, so new ones are added without changing
+  the loader.
+- Textures go on meshes only through materials, in step 5. In step 4 a
+  texture is used as the game icon (General section).
+
+### Phases of step 4
+
+0. Step 3 leftovers: on a module reload its scene systems and settings
+   sections are recreated (see [frame](frame.md),
+   [project settings](project-settings.md)). Test: after unload no system
+   and no section of the module is left.
+1. `ResourceCache` and the loader interface, the built-in meshes in it;
+   `FrameBuilder` and picking take meshes from the cache; `findBuiltinMesh`
+   goes away; `uv0`, submeshes, AABB; the GPU cache by ID and revision.
+   Nothing changes from the outside.
+2. Nested IDs and the `.meta` format (version, `import`, `subresources`).
+3. glTF meshes: the loader, the model description, scale.
+4. Textures: the loader, import settings, the GPU texture, the game icon.
+5. Editor: icons in Files; the inspector of a resource file (meshes with
+   vertex, triangle and submesh counts; texture preview and size; import
+   settings with "Apply"); project meshes in the `MeshRenderer` list grouped
+   by file; dragging a model from Files into the tree or the viewport creates
+   its node tree in one undo step; dragging a mesh onto the mesh field;
+   changed files are reloaded when the editor window gets focus.
+6. Dragging nodes in the tree with "Keep the world position?" (see
+   [scene](scene.md)), one undo step for parent and transform.
+7. Documents: this one, project (`.meta`), rendering (vertex format,
+   submeshes), editor, the guide "Importing a model", README.
+
+Tests, besides unit tests of each part:
+
+- 1: a reload raises the revision; the old GPU copy is released; no
+  dangling data after a reload (asan).
+- 2: elements with the same name; rename keeps IDs; a copy gets new IDs;
+  re-export keeps IDs; a removed element keeps its entry.
+- 3: interleaved buffers; GLB with several meshes; one mesh used by several
+  nodes; missing normals; broken data and a non-triangle mode give an error,
+  not a crash.
+- 4: PNG with alpha; JPG; sRGB and Linear; applying import settings again
+  raises the revision.
+- 5: a model with nested nodes into a scene; re-export keeps references;
+  save and reopen the scene; delete the source file while references exist.

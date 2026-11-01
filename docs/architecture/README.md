@@ -20,7 +20,7 @@ Status marks: **[done]** implemented, **[next]** the next stage of work
 | [Plugins](plugins.md) | ready-made scripts, scenes and resources from the plugin repository, the plugin manager |
 | [Project settings](project-settings.md) | settings of a game kept in its project |
 | [Project and file formats](project.md) | the project folder, JSON files, format versions, upgrading a project |
-| [Resources](resources.md) | resource IDs, `.meta` files, built-in resources |
+| [Resources](resources.md) | resource IDs, `.meta` files, built-in resources, meshes and textures from files, the resource cache |
 | [Localization](localization.md) | language files, keys, `tr()`, translation rules |
 | [Input](input.md) | raw input, input actions and bindings, gamepads |
 
