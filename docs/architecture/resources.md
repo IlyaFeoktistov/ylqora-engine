@@ -14,7 +14,9 @@ Status marks: see [README](README.md).
   path: a renamed or moved file keeps all references to it (the startup
   scene, the mesh of a `MeshRenderer`).
 - The ID lives in a `.meta` file next to the resource (`level.yscene.meta`
-  holds `{"id": "..."}`), so it travels with the file in version control.
+  holds `{"id": "...", "version": 1}`), so it travels with the file in
+  version control. A `.meta` without a format version or with a broken ID
+  is not read, and the file gets a new ID.
 - `ResourceDatabase` keeps both directions, ID to path and path to ID, all
   paths relative to the project folder.
 - A new ID is 64 random bits, so two projects practically never give the
@@ -80,7 +82,9 @@ own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
   of the file to its entry.
 - Key: kind, name and the number of the element among elements of the same
   name (`Door`, `Door#1`); an element without a name is keyed by its index
-  in the file (`#2`).
+  in the file (`#2`), so removing an element before it gives it a new key.
+  A key already given in the file gets the next number, so keys never repeat
+  even with `#` in a name (`SubresourceKeys`).
 - Re-export from Blender: elements whose key is found keep their IDs, new
   elements get new ones. The entry of an element removed from the file stays
   in `.meta`, references to it show "missing in file", and the ID comes back
@@ -151,7 +155,13 @@ own `ResourceId`, so a `ResourceRef` stays a single 64-bit number.
    shares the cache, so files are not read twice. The GPU cache is one
    template for every backend and resource (`GpuResourceCache`): a copy not
    drawn for 120 frames is released.
-2. Nested IDs and the `.meta` format (version, `import`, `subresources`).
+2. Nested IDs and the `.meta` format (version, `import`, `subresources`)
+   **[done]**. `ResourceDatabase::assignSubresources` gives the IDs of the
+   keys a loader returned and writes `.meta` once; `fileOf`, `key`,
+   `subresources`; import settings are a JSON object kept as text
+   (`importSettings`, `setImportSettings`) and reach the loader in
+   `LoadRequest::import`. The cache writes the IDs while loading, so it
+   holds the project as changeable.
 3. glTF meshes: the loader, the model description, scale.
 4. Textures: the loader, import settings, the GPU texture, the game icon.
 5. Editor: icons in Files; the inspector of a resource file (meshes with

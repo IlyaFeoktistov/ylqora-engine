@@ -1,5 +1,6 @@
 #include "yqlora/resource/ResourceCache.hpp"
 
+#include "yqlora/core/JsonFile.hpp"
 #include "yqlora/core/Log.hpp"
 #include "yqlora/core/Utf8Path.hpp"
 #include "yqlora/project/Project.hpp"
@@ -40,7 +41,7 @@ void ResourceCache::addLoader(std::unique_ptr<ResourceLoader> loader)
     m_loaders.push_back(std::move(loader));
 }
 
-void ResourceCache::setProject(const Project* project)
+void ResourceCache::setProject(Project* project)
 {
     m_project = project;
     m_files.clear();
@@ -144,7 +145,7 @@ void ResourceCache::addBuiltins()
 
 void ResourceCache::loadFile(const fs::path& file)
 {
-    const ResourceDatabase& database = m_project->resources();
+    ResourceDatabase& database = m_project->resources();
     const fs::path full = m_project->directory() / file;
     const ResourceId own = database.id(file);
     FileEntry loaded;
@@ -164,15 +165,20 @@ void ResourceCache::loadFile(const fs::path& file)
         fail(ResourceState::Missing, "The file is missing");
     } else if (!loader) {
         fail(ResourceState::Error, "No loader for files " + lowerExtension(file));
-    } else if (LoadResult result = loader->load({full}); !result.error.empty()) {
+    } else if (LoadResult result = loader->load(request(own, full)); !result.error.empty()) {
         fail(ResourceState::Error, std::move(result.error));
     } else {
-        for (LoadedResource& resource : result.resources) {
-            // Вложенные ресурсы получат свои ID из .meta (шаг 4, фаза 2).
+        std::vector<std::string> keys;
+        for (const LoadedResource& resource : result.resources) {
             if (!resource.key.empty()) {
-                continue;
+                keys.push_back(resource.key);
             }
-            fresh[own] = {resource.kind, std::move(resource.data), {ResourceState::Ready, 0, {}}};
+        }
+        const std::vector<ResourceId> nested = database.assignSubresources(own, keys);
+        auto nextNested = nested.begin();
+        for (LoadedResource& resource : result.resources) {
+            const ResourceId id = resource.key.empty() ? own : *nextNested++;
+            fresh[id] = {resource.kind, std::move(resource.data), {ResourceState::Ready, 0, {}}};
         }
         if (!fresh.contains(own)) {
             fail(ResourceState::Error, "The file holds no resource of its own");
@@ -197,6 +203,17 @@ void ResourceCache::loadFile(const fs::path& file)
         setEntry(id, std::move(entry));
     }
     m_files[file] = std::move(loaded);
+}
+
+LoadRequest ResourceCache::request(ResourceId file, const fs::path& full) const
+{
+    LoadRequest request{full};
+    const auto import = nlohmann::json::parse(m_project->resources().importSettings(file), nullptr, false);
+    if (import.is_object()) {
+        request.import = import;
+    }
+
+    return request;
 }
 
 const ResourceLoader* ResourceCache::loaderFor(const fs::path& file) const

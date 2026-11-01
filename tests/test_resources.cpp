@@ -2,11 +2,15 @@
 
 #include <yqlora/resource/BuiltinResources.hpp>
 #include <yqlora/resource/ResourceDatabase.hpp>
+#include <yqlora/resource/ResourceLoader.hpp>
 
 #include <array>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
+#include <string>
 #include <string_view>
+#include <vector>
 
 using namespace yqlora;
 
@@ -100,4 +104,111 @@ TEST_CASE("ResourceDatabase: ids follow renamed files and folders, removed ones 
     const ResourceId created = database.add("new.png");
     CHECK(created != 0);
     CHECK(database.add("new.png") == created);
+}
+
+namespace {
+
+std::string readText(const std::filesystem::path& file)
+{
+    std::ifstream stream(file);
+
+    return {std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+}
+
+} // namespace
+
+TEST_CASE("ResourceDatabase: nested ids are made once, kept in .meta and survive a rescan and a rename")
+{
+    const auto root = freshDirectory("resources_nested");
+    touch(root / "door.glb");
+    ResourceDatabase database;
+    database.scan(root);
+    const ResourceId file = database.id("door.glb");
+
+    const std::vector<std::string> keys{"mesh:Door", "mesh:Door#1"};
+    const auto ids = database.assignSubresources(file, keys);
+    REQUIRE(ids.size() == 2);
+    CHECK(ids[0] != ids[1]);
+    CHECK(database.fileOf(ids[0]) == file);
+    CHECK(database.fileOf(file) == file);
+    CHECK(database.key(ids[1]) == "mesh:Door#1");
+    CHECK(database.key(file).empty());
+    CHECK(database.path(ids[0]) == std::filesystem::path("door.glb"));
+    // Вложенные ресурсы - не файлы.
+    CHECK(database.paths().size() == 1);
+    CHECK(readText(root / "door.glb.meta").find("\"mesh:Door#1\"") != std::string::npos);
+
+    // Перевыгрузка: известные ключи - те же ID, новый ключ - новый ID, а
+    // запись пропавшего остаётся.
+    const auto again = database.assignSubresources(file, std::vector<std::string>{"mesh:Door#1", "mesh:Frame"});
+    CHECK(again[0] == ids[1]);
+    CHECK(again[1] != ids[0]);
+    CHECK(database.subresources(file).size() == 3);
+    CHECK(database.fileOf(ids[0]) == file);
+
+    std::filesystem::rename(root / "door.glb", root / "gate.glb");
+    database.moved("door.glb", "gate.glb");
+    ResourceDatabase reopened;
+    reopened.scan(root);
+    CHECK(reopened.id("gate.glb") == file);
+    CHECK(reopened.subresources(file).at("mesh:Door") == ids[0]);
+    CHECK(reopened.path(ids[0]) == std::filesystem::path("gate.glb"));
+
+    reopened.removed("gate.glb");
+    CHECK(reopened.fileOf(ids[0]) == 0);
+    CHECK(reopened.key(ids[0]).empty());
+}
+
+TEST_CASE("ResourceDatabase: a copy of a model gets a new id for the file and every nested resource")
+{
+    const auto root = freshDirectory("resources_nested_copy");
+    touch(root / "a.glb");
+    ResourceDatabase database;
+    database.scan(root);
+    const ResourceId original = database.id("a.glb");
+    const ResourceId mesh = database.assignSubresources(original, std::vector<std::string>{"mesh:Box"})[0];
+    std::filesystem::copy_file(root / "a.glb", root / "b.glb");
+    std::filesystem::copy_file(root / "a.glb.meta", root / "b.glb.meta");
+
+    database.scan(root);
+    const ResourceId copy = database.id("b.glb");
+    CHECK(database.id("a.glb") == original);
+    CHECK(copy != original);
+    const ResourceId copiedMesh = database.subresources(copy).at("mesh:Box");
+    CHECK(copiedMesh != mesh);
+    CHECK(database.fileOf(mesh) == original);
+    CHECK(database.fileOf(copiedMesh) == copy);
+}
+
+TEST_CASE("ResourceDatabase: import settings are kept in .meta, a .meta without a format version is broken")
+{
+    const auto root = freshDirectory("resources_import");
+    touch(root / "grass.png");
+    ResourceDatabase database;
+    database.scan(root);
+    const ResourceId file = database.id("grass.png");
+    CHECK(database.importSettings(file) == "{}");
+    CHECK_FALSE(database.setImportSettings(file, "[1, 2]"));
+    CHECK_FALSE(database.setImportSettings(file, "not json"));
+    REQUIRE(database.setImportSettings(file, R"({"srgb": false})"));
+
+    ResourceDatabase reopened;
+    reopened.scan(root);
+    CHECK(reopened.id("grass.png") == file);
+    CHECK(reopened.importSettings(file) == R"({"srgb":false})");
+
+    // Формат .meta - версии 1 без совместимости: .meta без версии не читается.
+    std::ofstream(root / "grass.png.meta", std::ios::trunc) << R"({"id": "00000000000f4240"})";
+    reopened.scan(root);
+    CHECK(reopened.id("grass.png") != 0x00000000000f4240);
+}
+
+TEST_CASE("SubresourceKeys: names, repeated names, names with # and nameless elements give distinct keys")
+{
+    SubresourceKeys keys;
+    CHECK(keys.next("mesh", "Door", 0) == "mesh:Door");
+    CHECK(keys.next("mesh", "Door", 1) == "mesh:Door#1");
+    CHECK(keys.next("mesh", "Door#1", 2) == "mesh:Door#1#1");
+    CHECK(keys.next("mesh", "", 3) == "mesh:#3");
+    CHECK(keys.next("texture", "Door", 0) == "texture:Door");
 }

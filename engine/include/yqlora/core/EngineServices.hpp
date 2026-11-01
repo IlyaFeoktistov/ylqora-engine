@@ -48,7 +48,7 @@ public:
     }
 
     // Кэш ресурсов получает тот же проект (и у служб, которые его делят).
-    void setProject(const Project* project);
+    void setProject(Project* project);
 
     // Загруженные ресурсы: встроенные и файлы открытого проекта. Кэш грузит
     // файлы при обращении, поэтому меняется и у неизменяемых служб.
@@ -60,7 +60,7 @@ public:
 private:
     const Input& m_input;
     const TypeRegistry& m_registry;
-    const Project* m_project = nullptr;
+    Project* m_project = nullptr;
     std::shared_ptr<ResourceCache> m_resources;
 };
 

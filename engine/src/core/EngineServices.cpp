@@ -23,7 +23,7 @@ EngineServices::EngineServices(const Input& input, const EngineServices& shared)
 
 EngineServices::~EngineServices() = default;
 
-void EngineServices::setProject(const Project* project)
+void EngineServices::setProject(Project* project)
 {
     m_project = project;
     m_resources->setProject(project);

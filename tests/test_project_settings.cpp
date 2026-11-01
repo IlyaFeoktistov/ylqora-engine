@@ -343,7 +343,7 @@ TEST_CASE_FIXTURE(Fixture, "GraphicsSettings: an API per system, written by name
     REQUIRE(project.settings().save(graphics));
     CHECK(readText(directory / "settings" / "graphics.json").find("\"Vulkan\"") != std::string::npos);
 
-    const Project reopened = open();
+    Project reopened = open();
     services.setProject(&reopened);
     CHECK(graphicsSettingsOf(services).currentPlatformApi() == GraphicsApi::Vulkan);
     CHECK_FALSE(graphicsSettingsOf(services).vsync);

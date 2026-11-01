@@ -15,6 +15,7 @@ namespace yqlora {
 
 class Project;
 class ResourceLoader;
+struct LoadRequest;
 
 enum class ResourceState {
     Ready,
@@ -64,7 +65,9 @@ public:
 
     // Проект, чьи файлы читаются. Ресурсы прежнего проекта забываются,
     // встроенные остаются. nullptr - проекта нет.
-    void setProject(const Project* project);
+    // Файлы вложенных ресурсов получают их ID в своих .meta при загрузке,
+    // поэтому проект изменяемый.
+    void setProject(Project* project);
 
     // T - тип данных с T::kResourceKind (MeshData).
     template <typename T>
@@ -118,10 +121,11 @@ private:
     // Читает файл (путь от папки проекта) и заменяет записи его ресурсов.
     void loadFile(const std::filesystem::path& file);
     const ResourceLoader* loaderFor(const std::filesystem::path& file) const;
+    LoadRequest request(ResourceId file, const std::filesystem::path& full) const;
     void setEntry(ResourceId id, Entry entry);
 
     std::vector<std::unique_ptr<ResourceLoader>> m_loaders;
-    const Project* m_project = nullptr;
+    Project* m_project = nullptr;
     std::map<ResourceId, Entry> m_entries;
     std::map<std::filesystem::path, FileEntry> m_files;
     std::uint64_t m_lastRevision = 0;

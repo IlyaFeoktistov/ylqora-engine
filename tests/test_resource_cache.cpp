@@ -9,6 +9,7 @@
 #include <yqlora/resource/ResourceCache.hpp>
 #include <yqlora/resource/ResourceLoader.hpp>
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <filesystem>
@@ -27,8 +28,21 @@ struct TestText {
     std::string text;
 };
 
+MeshData triangle(float height)
+{
+    MeshData mesh;
+    mesh.vertices = {{Vec3(0.0f), Vec3(0.0f, 0.0f, 1.0f)}, {Vec3(1.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f)}};
+    mesh.vertices.push_back({Vec3(0.0f, height, 0.0f), Vec3(0.0f, 0.0f, 1.0f)});
+    mesh.indices = {0, 1, 2};
+    finishSingleMaterial(mesh);
+
+    return mesh;
+}
+
 // Файл .tmesh: "broken" не читается, иначе меш из одного треугольника,
-// высота которого - длина текста файла.
+// высота которого - длина текста файла, умноженная на настройку импорта
+// "scale". "parts:Door,Door,,Frame" даёт ещё вложенные меши с такими именами
+// высотой 1, 2, 3...
 class TestLoader final : public ResourceLoader {
 public:
     std::span<const std::string_view> extensions() const override
@@ -43,13 +57,27 @@ public:
         if (content == "broken") {
             return loadError("broken test mesh");
         }
-        MeshData mesh;
-        mesh.vertices = {{Vec3(0.0f), Vec3(0.0f, 0.0f, 1.0f)}, {Vec3(1.0f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 1.0f)}};
-        mesh.vertices.push_back({Vec3(0.0f, static_cast<float>(content.size()), 0.0f), Vec3(0.0f, 0.0f, 1.0f)});
-        mesh.indices = {0, 1, 2};
-        finishSingleMaterial(mesh);
+        const float scale = request.import.value("scale", 1.0f);
         LoadResult result;
-        result.resources.push_back(makeLoadedResource(std::string(), std::move(mesh)));
+        result.resources.push_back(
+            makeLoadedResource(std::string(), triangle(static_cast<float>(content.size()) * scale))
+        );
+        constexpr std::string_view kParts = "parts:";
+        if (content.starts_with(kParts)) {
+            SubresourceKeys keys;
+            std::size_t index = 0;
+            std::size_t begin = kParts.size();
+            while (begin <= content.size()) {
+                const std::size_t end = std::min(content.find(',', begin), content.size());
+                const std::string name = content.substr(begin, end - begin);
+                result.resources.push_back(makeLoadedResource(
+                    keys.next(MeshData::kResourceKind, name, index),
+                    triangle(static_cast<float>(index + 1))
+                ));
+                ++index;
+                begin = end + 1;
+            }
+        }
 
         return result;
     }
@@ -253,4 +281,40 @@ TEST_CASE("GpuResourceCache: a new revision replaces the copy, an unused copy is
     // Копию 2 давно не рисовали: она ушла, копия 1 осталась.
     CHECK(gpu.size() == 1);
     CHECK(alive == 1);
+}
+
+TEST_CASE_FIXTURE(Fixture, "ResourceCache: nested resources get ids from .meta, a removed one is missing")
+{
+    write(directory / "door.tmesh", "parts:Door,Door,,Frame");
+    const ResourceId door = project->resources().add("door.tmesh");
+    REQUIRE(cache.find<MeshData>(door));
+    const auto& nested = project->resources().subresources(door);
+    REQUIRE(nested.size() == 4);
+    const ResourceId second = nested.at("mesh:Door#1");
+    const ResourceId frame = nested.at("mesh:Frame");
+    CHECK(height(second) == doctest::Approx(2.0f));
+    CHECK(height(nested.at("mesh:#2")) == doctest::Approx(3.0f));
+    CHECK(height(frame) == doctest::Approx(4.0f));
+
+    // Перевыгрузка без второй двери: ID остальных те же, её ID ждёт в .meta.
+    rewrite(directory / "door.tmesh", "parts:Door,,Frame");
+    CHECK(cache.reloadChanged() == 1);
+    CHECK(cache.find<MeshData>(second) == nullptr);
+    CHECK(cache.status(second)->state == ResourceState::Missing);
+    CHECK(height(frame) == doctest::Approx(3.0f));
+    // Безымянный меш ищется по индексу, а индекс сдвинулся: у него новый ключ.
+    CHECK(project->resources().subresources(door).size() == 5);
+
+    rewrite(directory / "door.tmesh", "parts:Door,Door,,Frame");
+    cache.reloadChanged();
+    CHECK(height(second) == doctest::Approx(2.0f));
+}
+
+TEST_CASE_FIXTURE(Fixture, "ResourceCache: new import settings reach the loader with a new revision")
+{
+    const auto before = cache.get<MeshData>(box);
+    REQUIRE(project->resources().setImportSettings(box, R"({"scale": 2.0})"));
+    REQUIRE(cache.reload(box));
+    CHECK(cache.status(box)->revision > before.revision);
+    CHECK(height(box) == doctest::Approx(6.0f));
 }
